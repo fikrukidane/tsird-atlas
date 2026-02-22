@@ -1,6 +1,6 @@
 # TSIRD Atlas Data Engineering Pipeline Documentation
 
-**Status**: Production  
+**Status**: Operational (Private Deployment)  
 **Version**: 1.0  
 **Date**: 2026-02-22
 
@@ -8,7 +8,7 @@
 
 ## Documentation Overview
 
-This directory contains comprehensive technical documentation for the TSIRD Atlas Data Engineering Pipeline—a production-grade geospatial ETL system built with Docker, Python, GDAL, and MapServer.
+This directory contains comprehensive technical documentation for the TSIRD Atlas Data Engineering Pipeline—a Docker-based geospatial ETL system built with Docker, Python, GDAL, and MapServer.
 
 ### Core Documents
 
@@ -42,9 +42,28 @@ This directory contains comprehensive technical documentation for the TSIRD Atla
 
 ---
 
+## Repository Structure
+
+```
+/data (not committed to git)
+	raw/
+	normalized/
+	gold/
+Docker Projects/
+	TSIRD-Atlas-Data-Pipeline/
+mapserver/
+docs/
+docker-compose.yml
+```
+
+Data under /data is not committed; the repository contains pipeline logic, configuration, and documentation.
+
+---
+
 ## System Summary
 
 **What it does**: Ingests raw geospatial data (shapefiles/rasters), validates/normalizes to EPSG:4326, separates by region (Ethiopia-wide vs Tigray-only), exposes via OGC WMS/WFS.
+Vector layers are normalized/validated by the Python pipeline; rasters (e.g., DEM/slope/web rasters) are managed and served via MapServer with explicit CRS definitions.
 
 **Key Features**:
 - ✅ **Reproducible**: No manual fixes; all operations logged
@@ -59,13 +78,13 @@ This directory contains comprehensive technical documentation for the TSIRD Atla
 3. **Regional Separation** → Classify & clip Tigray vs Ethiopia-wide
 4. **MapServer Integration** → Expose via WMS/WFS
 
-**Tech Stack**: Docker Compose, Python 3.11, GeoPandas, GDAL, PostGIS 16-3.4, MapServer 8.6.0
+**Tech Stack**: Docker Compose, Python 3.11, GeoPandas, GDAL, PostgreSQL 16 + PostGIS 3.4, MapServer 8.6.0
 
 ---
 
 ## Documentation Principles
 
-This documentation follows production-grade standards:
+This documentation follows engineering documentation standards:
 
 - **Concise**: Technical accuracy without verbosity
 - **Actionable**: Commands you can copy-paste
