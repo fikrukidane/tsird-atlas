@@ -177,6 +177,99 @@ docker-compose logs --tail=50 mapserver
 
 ---
 
+## Release Checklist
+
+**This repository is intentionally published without source data or secrets.**
+
+### ✅ What's Included in This Portfolio Repo
+
+- **Complete ETL pipeline code** (Python + GDAL in `etl/`, `Docker Projects/TSIRD-Atlas-Data-Pipeline/`)
+- **Docker orchestration** (docker-compose.yml, Dockerfiles, service configs)
+- **MapServer configuration** (mapfiles, templates, includes)
+- **Comprehensive documentation** (2900+ lines in `docs/`)
+- **Verification scripts** (WMS tests, health checks in `scripts/`)
+- **Database schema** (PostGIS initialization in `db/init/`)
+- **Configuration templates** (.env.example with placeholders)
+
+### ❌ What's Intentionally Excluded
+
+**Data Files** (Never Committed):
+- Source shapefiles: `data/raw/*.shp,*.dbf,*.shx,*.prj`
+- Raster files: `data/source/*.tif`
+- Processed outputs: `data/gold/*`, `data/staging/*`
+- Database backups: `backups/*.dump`, `backups/*.bak`
+- Test artifacts: `tmp/*`
+
+**Secrets & Credentials** (Gitignored):
+- Real environment variables: `.env.tsird`
+- Database passwords: Removed from `infra/mapserver/mapfiles/tsird.map` (replaced with `YOUR_DB_PASSWORD`)
+- Connection strings: Sanitized; use `.env.example` as template
+
+**Large Binaries**:
+- Notebook checkpoints: `.ipynb_checkpoints/`
+- Compiled artifacts: `__pycache__/`, `*.pyc`
+
+### 🚀 How to Run This Pipeline Locally
+
+**Prerequisites**:
+1. Source datasets (Ethiopian shapefiles/rasters)
+2. Actual credentials in `.env.tsird`
+3. Docker Engine 24+ with 4GB RAM
+
+**Steps**:
+```bash
+# 1. Clone repository
+git clone https://github.com/fikrukidane/tsird-atlas.git
+cd tsird-atlas
+
+# 2. Configure environment
+cp .env.example .env.tsird
+# Edit .env.tsird: Set POSTGRES_PASSWORD=<your_password>
+
+# 3. Configure MapServer
+# Edit infra/mapserver/mapfiles/tsird.map
+# Replace YOUR_DB_PASSWORD with actual password (2 locations)
+
+# 4. Add source data (not included in repo)
+# Place shapefiles in data/raw/
+# Place rasters in data/source/
+
+# 5. Start services
+docker-compose up -d
+
+# 6. Run ETL pipeline
+docker-compose exec etl-service python etl/raw_inventory_audit.py
+docker-compose exec etl-service python etl/normalize_to_gold_4326.py
+docker-compose exec etl-service python etl/separate_layers.py
+
+# 7. Verify WMS endpoint
+curl "http://localhost:18080/mapserv?SERVICE=WMS&REQUEST=GetCapabilities"
+```
+
+### 📚 Where Documentation Lives
+
+- **System architecture**: [docs/TSIRD_ATLAS_PIPELINE_ARCHITECTURE.md](docs/TSIRD_ATLAS_PIPELINE_ARCHITECTURE.md)
+- **Operations runbook**: [docs/TSIRD_OPERATIONS_GUIDE.md](docs/TSIRD_OPERATIONS_GUIDE.md)
+- **Flow diagrams**: [docs/TSIRD_PIPELINE_FLOW_DIAGRAM.md](docs/TSIRD_PIPELINE_FLOW_DIAGRAM.md)
+- **Troubleshooting**: [docs/TSIRD_TROUBLESHOOTING.md](docs/TSIRD_TROUBLESHOOTING.md)
+- **Documentation index**: [docs/README.md](docs/README.md)
+
+### 🔒 Security Notes
+
+- All passwords replaced with placeholders (`YOUR_DB_PASSWORD`, `your_secure_password_here`)
+- `.env.tsird` (real secrets) is gitignored and never committed
+- `.env.example` is the only environment file in the repository
+- MapServer CONNECTION strings sanitized
+- No production database dumps included
+
+### 📦 Repository Size
+
+- **Tracked files**: 109
+- **Total size**: ~157 KB (code, docs, configs only)
+- **No binaries**: All data files properly excluded
+
+---
+
 ## License
 
 **Private Portfolio Repository** — Not licensed for redistribution or commercial use.
