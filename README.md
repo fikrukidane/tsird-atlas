@@ -1,22 +1,101 @@
-# TSIRD Atlas – Tigray Spatial Intelligence & Resilience Dashboard
+# TSIRD Atlas
 
-[![Status](https://img.shields.io/badge/status-production-green)]()
-[![License](https://img.shields.io/badge/license-private-red)]()
+Geospatial data engineering system for normalizing heterogeneous vector and raster datasets to EPSG:4326, validating regional bounds, and publishing via OGC WMS/WFS. Built for Ethiopian spatial data with explicit focus on Tigray regional subsetting. This system handles CRS-inconsistent shapefiles, applies YAML-driven coordinate overrides, validates geometry integrity, quarantines malformed features, and exposes normalized layers through MapServer. Architecture is Docker-based with PostGIS storage and incremental pipeline orchestration in progress.
 
-A production-grade geospatial data engineering pipeline for processing Ethiopian spatial data, normalizing coordinate systems, and serving layers via OGC WMS/WFS.
+**Stack**: Python 3.11, GeoPandas, GDAL 3.8, PostGIS 16+3.4, MapServer 8.6, Docker Compose
+**Status**: Private portfolio repository. Source datasets and credentials excluded.
 
 ---
 
-## Overview
+## Core Capabilities
 
-**TSIRD Atlas** is a Docker-based GIS ETL system that:
-- Ingests raw shapefiles and rasters with inconsistent CRS definitions
-- Validates and normalizes all layers to EPSG:4326 (WGS 84)
-- Separates data by region (Ethiopia-wide vs Tigray-focused)
-- Exposes validated layers through MapServer (WMS/WFS/WCS)
-- Maintains full audit trails and quarantine logs for failed transformations
+**Vector Processing**
+- CRS detection and EPSG:4326 normalization with YAML override mechanism
+- Geometry validation with automatic repair and quarantine logging
+- Bounds anomaly detection (longitude/latitude range enforcement)
+- Regional separation engine (Tigray vs Ethiopia-wide classification)
 
-**Tech Stack**: Docker Compose, Python 3.11, GeoPandas, GDAL, PostGIS 16-3.4, MapServer 8.6.0
+**Raster Integration**
+- DEM and slope layer processing
+- Web raster ingestion and tiling
+- GDAL-based reprojection and clipping
+
+**Publication Layer**
+- MapServer WMS/WFS/WCS endpoints
+- Multi-CRS support (EPSG:4326, 20137, 3857)
+- PostGIS-backed layer serving
+
+**Infrastructure**
+- Docker Compose service orchestration
+- PostGIS 16 with spatial indexing
+- Audit trail generation (CSV + Markdown reports)
+- Incremental pipeline orchestration (in progress)
+
+---
+
+## Architecture Overview
+
+```
+Raw Data (shapefiles/rasters)
+            |
+            v
+Raw Inventory Audit
+   - CRS detection
+   - Geometry validity checks
+   - Bounds anomaly detection
+   - Audit reports (CSV/MD)
+            |
+            v
+CRS Normalization (EPSG:4326)
+   - YAML override catalog
+   - Reprojection + repair
+   - Quarantine invalid features
+            |
+            v
+Regional Separation
+   - Tigray vs Ethiopia-wide
+   - Clip to regional bounds
+   - Load into PostGIS (gold.*)
+            |
+            v
+MapServer Publication
+   - WMS/WFS/WCS
+   - Multi-CRS handling
+   - PostGIS-backed layers
+```
+
+---
+
+## Engineering Principles
+
+- **No manual fixes**: CRS overrides are YAML-defined; pipeline is reproducible.
+- **Quarantine-first**: Invalid features are isolated with diagnostic context.
+- **Explicit CRS handling**: Every layer's CRS is detected, assigned, and logged.
+- **Bounds enforcement**: Longitude and latitude ranges are validated.
+- **Auditable**: Each stage emits structured CSV/MD reports.
+- **Containerized**: No host GIS dependencies.
+
+---
+
+## Current System Status
+
+**Operational**
+- Vector normalization pipeline (audit -> normalize -> separate)
+- CRS override catalog (YAML)
+- Geometry validation and quarantine model
+- MapServer WMS/WFS publication
+- PostGIS storage (gold schema)
+- Audit reporting
+
+**In Progress**
+- Incremental orchestration
+- Raster pipeline integration
+- Automated health checks
+
+**Not Implemented**
+- Automated testing suite
+- Real-time incremental updates
+- Full WCS raster configuration
 
 ---
 
