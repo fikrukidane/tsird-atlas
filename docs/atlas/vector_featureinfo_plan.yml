@@ -1,0 +1,408 @@
+schema_version: 1
+purpose: "WMS GetFeatureInfo + labeling plan for TSIRD Atlas"
+generated_from: "docs/atlas/vector_field_inventory.md"
+layers:
+  ethiopia_zones:
+    source_shapefile: Eth_Zones_New.shp
+    geom: polygon
+    crs_hint: EPSG:4326
+    encoding_hint: ISO-8859-1
+    label_field: ZONENAME
+    include_items:
+      - ZONENAME
+  ethiopia_woredas:
+    source_shapefile: EthioWoredasNew.shp
+    geom: polygon
+    crs_hint: EPSG:4326
+    encoding_hint: UTF-8
+    label_field: W_NAME
+    include_items:
+      - W_NAME
+      - REGION_R2I
+      - Area_km2
+      - Pop_04
+      - Pop_Den
+      - Admin_Unit
+    notes: "Large field set; include list focuses on name, region, population, and area metrics."
+  ethiopia_roads_raw:
+    source_shapefile: Ethio_roads.shp
+    geom: line
+    crs_hint: EPSG:4326
+    encoding_hint: ISO-8859-1
+    label_field: null
+    include_items:
+      - RDLNTYPETX
+      - RDLNSTATTX
+      - RDLNTYPE
+      - RDLNSTAT
+      - LENGTH
+  tigray_tabias:
+    source_shapefile: TigraiTabiasNew.shp
+    geom: polygon
+    crs_hint: PROJCRS["WGS 84 / UTM zone 37N",
+    encoding_hint: UTF-8
+    label_field: TABIA
+    include_items:
+      - TABIA
+      - WEREDA
+      - ZONES
+      - SQ_KM
+      - HECTARES
+      - DENSITY
+  tigray_contour:
+    source_shapefile: TigrayContour.shp
+    geom: line
+    crs_hint: PROJCRS["Adindan / UTM zone 37N",
+    encoding_hint: UTF-8
+    label_field: null
+    include_items:
+      - ELEVATION
+      - LENGTH
+  tigray_health_2006:
+    source_shapefile: TigrayHealth2006.shp
+    geom: point
+    crs_hint: (unknown)
+    encoding_hint: UTF-8
+    label_field: null
+    include_items:
+      - Woreda_Nam
+      - Woreda_ID
+      - Type_of_in
+      - Institutio
+      - X_Coordina
+      - Y_Coordina
+    notes: "Warning: CRS unknown; extent appears suspiciously large."
+  tigray_woredas_new:
+    source_shapefile: TigrayNewWoredas.shp
+    geom: polygon
+    crs_hint: PROJCRS["WGS 84 / UTM zone 37N",
+    encoding_hint: unknown
+    label_field: WEREDA
+    include_items:
+      - WEREDA
+      - ZONE_NAME
+      - Tot_Popula
+      - SUM_SQ_KM
+      - SUM_HECTAR
+      - wor_name
+  tigray_roads_2006t:
+    source_shapefile: TigrayRoads2006t.shp
+    geom: line
+    crs_hint: PROJCRS["WGS 84 / UTM zone 37N",
+    encoding_hint: ISO-8859-1
+    label_field: NAME
+    include_items:
+      - NAME
+      - OWNER
+      - ZONE_
+      - RDID
+      - length_KM
+      - LAYER
+  tigray_roads_2006:
+    source_shapefile: TigrayRoadsIn2006.shp
+    geom: line
+    crs_hint: (unknown)
+    encoding_hint: UTF-8
+    label_field: NAME
+    include_items:
+      - NAME
+      - TYPE
+      - OWNER
+      - ZONE_
+      - LENGTH_KM
+      - NEAR_DIST
+    notes: "Warning: CRS unknown."
+  tigray_schools_2006:
+    source_shapefile: TigraySchools2006.shp
+    geom: point
+    crs_hint: PROJCRS["WGS 84 / UTM zone 37N",
+    encoding_hint: ISO-8859-1
+    label_field: null
+    include_items:
+      - Name
+      - Type
+      - Zone_Name
+      - Woreda_Nam
+      - T_Name
+      - X
+      - Y
+  tigray_woreda:
+    source_shapefile: TigrayWoredaNew.shp
+    geom: polygon
+    crs_hint: PROJCRS["WGS 84 / UTM zone 37N",
+    encoding_hint: UTF-8
+    label_field: WEREDA
+    include_items:
+      - WEREDA
+      - ZONE_NAME
+      - Tot_Popula
+      - SUM_SQ_KM
+      - SUM_HECTAR
+      - wor_name
+  tigray_towns:
+    source_shapefile: Tigray_Towns.shp
+    geom: point
+    crs_hint: PROJCRS["Adindan / UTM zone 37N",
+    encoding_hint: UTF-8
+    label_field: TOWN_NAME
+    include_items:
+      - TOWN_NAME
+      - WEREDA
+      - REGION
+      - ZONES
+      - POP
+      - POPTOT
+      - POPURB
+      - POPRUR
+  ethiopia_admin:
+    source_shapefile: admin.shp
+    geom: polygon
+    crs_hint: PROJCRS["Adindan / UTM zone 37N",
+    encoding_hint: ISO-8859-1
+    label_field: null
+    include_items:
+      - NAME1
+      - NAME2
+      - NAME3
+      - COUNTRY
+      - CODE
+      - SQKM
+      - ADMSQKM
+  ethiopia_basins:
+    source_shapefile: basins.shp
+    geom: polygon
+    crs_hint: PROJCRS["Adindan / UTM zone 37N",
+    encoding_hint: ISO-8859-1
+    label_field: BASIN_NAME
+    include_items:
+      - BASIN_NAME
+      - BASIN_NR
+      - BASIN
+      - SQKM
+      - BASIN_COD
+  ethiopia_boundary_level1:
+    source_shapefile: bound01.shp
+    geom: polygon
+    crs_hint: PROJCRS["Adindan / UTM zone 37N",
+    encoding_hint: ISO-8859-1
+    label_field: null
+    include_items:
+      - AREA
+      - PERIMETER
+  ethiopia_boundary_level2:
+    source_shapefile: bound02.shp
+    geom: polygon
+    crs_hint: PROJCRS["Adindan / UTM zone 37N",
+    encoding_hint: ISO-8859-1
+    label_field: REGION
+    include_items:
+      - REGION
+      - AREA
+      - PERIMETER
+  ethiopia_boundary_level3:
+    source_shapefile: bound03.shp
+    geom: polygon
+    crs_hint: PROJCRS["Adindan / UTM zone 37N",
+    encoding_hint: ISO-8859-1
+    label_field: ZONES
+    include_items:
+      - ZONES
+      - AREA
+      - PERIMETER
+  ethiopia_contour:
+    source_shapefile: contour.shp
+    geom: line
+    crs_hint: PROJCRS["Adindan / UTM zone 37N",
+    encoding_hint: ISO-8859-1
+    label_field: null
+    include_items:
+      - ELEVATION
+      - LENGTH
+  ethiopia_wereda:
+    source_shapefile: ethio_wereda.shp
+    geom: polygon
+    crs_hint: EPSG:4326
+    encoding_hint: unknown
+    label_field: null
+    include_items: []
+    notes: "Warning: no fields detected in inventory output."
+  ethiopia_wereda_projected:
+    source_shapefile: ethio_wereda_Project.shp
+    geom: polygon
+    crs_hint: EPSG:4326
+    encoding_hint: UTF-8
+    label_field: null
+    include_items: []
+    notes: "Warning: ogrinfo reported inconsistent record numbers in shapefile."
+  ethiopia_isoheight:
+    source_shapefile: isoght.shp
+    geom: line
+    crs_hint: PROJCRS["Adindan / UTM zone 37N",
+    encoding_hint: ISO-8859-1
+    label_field: null
+    include_items:
+      - CONTOUR
+      - LENGTH
+  ethiopia_lakes:
+    source_shapefile: lakes.shp
+    geom: polygon
+    crs_hint: PROJCRS["Adindan / UTM zone 37N",
+    encoding_hint: ISO-8859-1
+    label_field: null
+    include_items:
+      - CODE
+      - WATER
+      - ACRES
+      - HECTARES
+  ethiopia_major_basins:
+    source_shapefile: mbasins.shp
+    geom: polygon
+    crs_hint: PROJCRS["Adindan / UTM zone 37N",
+    encoding_hint: ISO-8859-1
+    label_field: NAME
+    include_items:
+      - NAME
+      - BASINNAME
+      - TYPE
+      - HY_BAS
+      - HY_SBA
+      - WATRANK
+  ethiopia_soils:
+    source_shapefile: msoils.shp
+    geom: polygon
+    crs_hint: PROJCRS["Adindan / UTM zone 37N",
+    encoding_hint: ISO-8859-1
+    label_field: NAME
+    include_items:
+      - NAME
+      - FAOSOIL
+      - TAXON
+      - SOILTYPE
+      - PHASE1
+      - PHASE2
+      - AWC
+    notes: "Large field set; include list focuses on classification and soil type."
+  ethiopia_ecology:
+    source_shapefile: necolog.shp
+    geom: polygon
+    crs_hint: PROJCRS["Adindan / UTM zone 37N",
+    encoding_hint: ISO-8859-1
+    label_field: null
+    include_items:
+      - LCPYTYPETX
+      - HECTARES
+  ethiopia_national_forest:
+    source_shapefile: nforest.shp
+    geom: polygon
+    crs_hint: PROJCRS["Adindan / UTM zone 37N",
+    encoding_hint: ISO-8859-1
+    label_field: null
+    include_items:
+      - VEGNTX
+      - VEGN
+  ethiopia_national_forests:
+    source_shapefile: nforests.shp
+    geom: polygon
+    crs_hint: PROJCRS["Adindan / UTM zone 37N",
+    encoding_hint: ISO-8859-1
+    label_field: null
+    include_items:
+      - VEGNTX
+      - VEGN
+      - HECTARES
+  ethiopia_national_parks:
+    source_shapefile: nparks.shp
+    geom: polygon
+    crs_hint: PROJCRS["Adindan / UTM zone 37N",
+    encoding_hint: ISO-8859-1
+    label_field: AREANAME
+    include_items:
+      - AREANAME
+      - IUCNCAT
+      - DESIGNATE
+      - YEAR
+      - SIZE
+      - CNTRYNAME
+  ethiopia_rain_pattern:
+    source_shapefile: rain_patrn.shp
+    geom: polygon
+    crs_hint: PROJCRS["Adindan / UTM zone 37N",
+    encoding_hint: ISO-8859-1
+    label_field: null
+    include_items:
+      - PATTER
+      - PATTERN_G
+  ethiopia_rain_stations:
+    source_shapefile: rain_stat.shp
+    geom: point
+    crs_hint: PROJCRS["Adindan / UTM zone 37N",
+    encoding_hint: ISO-8859-1
+    label_field: TOWN_NAME
+    include_items:
+      - TOWN_NAME
+      - STATION_CO
+      - MAIN_TOWN
+      - RAIN_SUM
+      - N_YEARS
+      - JAN
+      - JULY
+      - OCT
+  ethiopia_rivers:
+    source_shapefile: rivers.shp
+    geom: line
+    crs_hint: PROJCRS["Adindan / UTM zone 37N",
+    encoding_hint: ISO-8859-1
+    label_field: RIV_NAME
+    include_items:
+      - RIV_NAME
+      - TYPE
+      - CLASS
+      - RIV_ORDER
+      - LENGTH
+  ethiopia_roads:
+    source_shapefile: roads.shp
+    geom: line
+    crs_hint: PROJCRS["Adindan / UTM zone 37N",
+    encoding_hint: ISO-8859-1
+    label_field: null
+    include_items:
+      - ROAD_TYPE
+      - TYPE
+      - CLASS
+      - LENGTH
+  ethiopia_streams:
+    source_shapefile: streams.shp
+    geom: line
+    crs_hint: PROJCRS["Adindan / UTM zone 37N",
+    encoding_hint: ISO-8859-1
+    label_field: null
+    include_items:
+      - LENGTH
+      - HYDDNETALL
+  ethiopia_towns:
+    source_shapefile: towns.shp
+    geom: point
+    crs_hint: PROJCRS["Adindan / UTM zone 37N",
+    encoding_hint: ISO-8859-1
+    label_field: TOWN_NAME
+    include_items:
+      - TOWN_NAME
+      - WEREDA
+      - REGION
+      - ZONES
+      - POP
+      - POPTOT
+      - POPURB
+  ethiopia_wetlands:
+    source_shapefile: wetlands.shp
+    geom: polygon
+    crs_hint: PROJCRS["Adindan / UTM zone 37N",
+    encoding_hint: ISO-8859-1
+    label_field: NAME
+    include_items:
+      - NAME
+      - CLASS
+      - CLASSTX
+      - DESCRIP
+      - LOCATION
+      - HECTARES

@@ -1,0 +1,5 @@
+overrides:
+  TigrayRoadsIn2006:
+    epsg: 32637
+  ethio_wereda:
+    epsg: 20137

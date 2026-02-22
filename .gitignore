@@ -1,0 +1,80 @@
+# Python
+__pycache__/
+*.py[cod]
+venv/
+env/
+.venv/
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# Node
+node_modules/
+dist/
+build/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment files - SECRETS MUST NOT BE COMMITTED
+.env
+.env.*
+!.env.example
+
+# IDE
+.vscode/
+.idea/
+
+# Logs
+*.log
+logs/
+data/logs/
+
+# Data directories - NO DATASETS OR BINARIES
+data/raw/*
+!data/raw/README.md
+data/staging/*
+!data/staging/README.md
+data/processed/*
+!data/processed/README.md
+data/gold/*
+!data/gold/README.md
+data/source/*
+!data/source/README.md
+backups/
+!backups/README.md
+tmp/
+
+# Geospatial data files - NO SHAPEFILES OR RASTERS
+*.shp
+*.shx
+*.dbf
+*.prj
+*.cpg
+*.qix
+*.sbn
+*.sbx
+*.shp.xml
+*.shp_header.html
+*.shp_query.html
+
+# Raster formats
+*.tif
+*.tiff
+*.vrt
+*.aux
+*.aux.xml
+*.ovr
+*.rrd
+*.tfw
+*.jpgw
+*.iwc
+
+# MapServer/PostGIS exports
+*.dump
+*.sql.gz
+*.bak
+
+# Test outputs
+test.png
+*.test.png

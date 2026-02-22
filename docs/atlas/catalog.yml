@@ -1,0 +1,665 @@
+schema_version: 1
+
+atlas:
+  title: "Tigray Digital Web Atlas"
+  debug_level: 3
+
+endpoints:
+  wms_external: "https://lab.tigrayinsights.net/map/ogc"
+  wms_local: "http://127.0.0.1:18080/map/ogc"
+
+map:
+  mapfile: "Tigrai.map"
+  template_mapfile: "common/template.map"
+  layer_auto_refresh: 1
+  img_format: "png8"
+  alt_img_format: "jpeg"
+  slider_max: "max"
+  slider_min: 10000
+
+  view:
+    crs: "EPSG:4326"
+    extent: [33.0, 3.0, 48.0, 15.5]
+    center: [40.0, 9.0]
+    zoom_hint: 6
+  
+ui:
+  toc_style: "tree"
+  legend_style: "attached"
+  use_categories: 1
+  cat_with_checkbox: 1
+  scale_layers: 1
+  ico_w: 18
+  ico_h: 14
+  legend_keyimage_rewrite: 0
+
+query:
+  limit_result: 300
+  highlight_color: "255 255 0"
+  highlight_selected: 1
+  auto_zoom: ["nquery", "search"]
+  zoom_all: ["search", "nquery"]
+  info_win: "dynwin"
+  align_query_results: 1
+  point_buffer: 10000
+  shape_query_buffer: 0.02
+
+print:
+  print_img_format: "png"
+  print_alt_img_format: "jpeg"
+  pdfres: 2
+
+download:
+  dpi_levels: [150, 200, 300]
+
+locale:
+  default_language: "en"
+  default_charset: "UTF-8"
+  map2unicode: 0
+
+plugins:
+  enabled:
+    - export
+    - scalebar
+    - transparency2
+  config:
+    transparency2:
+      use_opacity: "off"
+    export:
+      formats: ["XLS", "CSV", "PDF"]
+  disabled_available:
+    - coordinates
+    - locateXY
+    - unitAndProj
+    - displaymarker
+    - proj4js
+    - layerselect
+    - transparency
+    - queryeditor
+    - graphicalqueries
+    - searchtool
+    - selectionManagement
+
+toc:
+  categories:
+    - name: cat_mapelements
+      groups: [SAMPLE_GRID, Credits]
+    - name: cat_adminRegional
+      groups: [Regions, TigrayWoredaNew, TigraiTabiasNew, Towns, PopulationDensity2006]
+    - name: cat_infrastructure
+      closed: true
+      groups: [TigraySchools2006, Health_Institutions, TigrayRoadsIn2006, EthiopiaRoadsOld, MetStations]
+    - name: cat_health
+      closed: true
+      groups: [Full_immunization, PNC, Skilled_delivery, CAR, P-LBW, TB_Success_rate, PIHCT_testing_rate, ANC_Tested_PMTCT, Abortion_Ratio]
+    - name: cat_nature
+      closed: true
+      groups: [Streams, Wetlands, Lakes, Basins, Soils, EcoZones, NationalForests, NationalParks, Contour, Isoheight]
+    - name: cat_raster
+      closed: true
+      groups: [DTM, Slope, Hillshade]
+    - name: cat_satimages
+      closed: true
+      groups: [BaseMap, Ethnomap]
+  all_groups:
+    - BaseMap
+    - Ethnomap
+    - NationalBoundary
+    - Regions
+    - Zones
+    - Eth_Zones_New
+    - Administration
+    - Towns
+    - Tigray_Towns
+    - PopulationDensity2006
+    - TigrayWoredaNew
+    - TigrayNewWoredas
+    - TigraiTabiasNew
+    - TigraySchools2006
+    - Health_Institutions
+    - TigrayHealth2006
+    - TigrayRoadsIn2006
+    - TigrayRoads2006t
+    - EthiopiaRoadsOld
+    - EthioWoredasNew
+    - Full_immunization
+    - PNC
+    - Skilled_delivery
+    - CAR
+    - P-LBW
+    - TB_Success_rate
+    - PIHCT_testing_rate
+    - ANC_Tested_PMTCT
+    - Abortion_Ratio
+    - Lakes
+    - Basins
+    - Soils
+    - EcoZones
+    - NationalForests
+    - NationalParks
+    - MetStations
+    - Isoheight
+    - Streams
+    - Wetlands
+    - Contour
+    - DTM
+    - Slope
+    - Hillshade
+    - SAMPLE_GRID
+    - Credits
+  default_groups:
+    - TigraiTabiasNew
+    - Towns
+    - TigrayRoadsIn2006
+    - SAMPLE_GRID
+    - Credits
+    - BaseMap
+    - Hillshade
+
+groups:
+  SAMPLE_GRID:
+    title: SAMPLE_GRID
+    type: unknown
+    wms_layer: ""
+    default_visible: true
+    queryable: false
+    min_scale: null
+    max_scale: null
+    notes: "Placeholder for group config."
+  Credits:
+    title: Credits
+    type: unknown
+    wms_layer: ""
+    default_visible: true
+    queryable: false
+    min_scale: null
+    max_scale: null
+    notes: "Placeholder for group config."
+  NationalBoundary:
+    title: NationalBoundary
+    type: unknown
+    wms_layer: "ethiopia_aoi"
+    z_index: 20
+    default_visible: false
+    queryable: false
+    min_scale: null
+    max_scale: null
+    notes: "Placeholder for group config."
+  Zones:
+    title: Zones
+    type: unknown
+    wms_layer: "ethiopia_zones"
+    default_visible: false
+    queryable: false
+    min_scale: null
+    max_scale: null
+    notes: "Placeholder for group config."
+  Eth_Zones_New:
+    title: Eth_Zones_New
+    type: unknown
+    wms_layer: "ethiopia_zones"
+    default_visible: false
+    queryable: false
+    min_scale: null
+    max_scale: null
+    z_index: 9
+    notes: "Baseline vector layer (polygons)."
+  Administration:
+    title: Administration
+    type: unknown
+    wms_layer: ""
+    default_visible: false
+    queryable: false
+    min_scale: null
+    max_scale: null
+    notes: "Placeholder for group config."
+  Regions:
+    title: Regions
+    type: unknown
+    wms_layer: ""
+    default_visible: false
+    queryable: false
+    min_scale: null
+    max_scale: null
+    notes: "Placeholder for group config."
+  TigrayWoredaNew:
+    title: TigrayWoredaNew
+    type: unknown
+    wms_layer: "tigray_woreda"
+    default_visible: false
+    queryable: false
+    min_scale: null
+    max_scale: null
+    notes: "Placeholder for group config."
+  TigrayNewWoredas:
+    title: TigrayNewWoredas
+    type: unknown
+    wms_layer: "tigray_woredas_new"
+    default_visible: false
+    queryable: false
+    min_scale: null
+    max_scale: null
+    notes: "Placeholder for group config."
+  TigraiTabiasNew:
+    title: TigraiTabiasNew
+    type: unknown
+    wms_layer: "tigray_tabias"
+    default_visible: true
+    queryable: false
+    min_scale: null
+    max_scale: null
+    notes: "Placeholder for group config."
+  Towns:
+    title: Towns
+    type: unknown
+    wms_layer: "tigray_towns"
+    default_visible: true
+    queryable: false
+    min_scale: null
+    max_scale: null
+    notes: "Placeholder for group config."
+  Tigray_Towns:
+    title: Tigray_Towns
+    type: unknown
+    wms_layer: "tigray_towns"
+    default_visible: false
+    queryable: false
+    min_scale: null
+    max_scale: null
+    z_index: 11
+    notes: "Baseline vector layer (points)."
+  PopulationDensity2006:
+    title: PopulationDensity2006
+    type: unknown
+    wms_layer: ""
+    default_visible: false
+    queryable: false
+    min_scale: null
+    max_scale: null
+    notes: "Placeholder for group config."
+  TigraySchools2006:
+    title: TigraySchools2006
+    type: unknown
+    wms_layer: "tigray_schools_2006"
+    default_visible: false
+    queryable: false
+    min_scale: null
+    max_scale: null
+    notes: "Placeholder for group config."
+  Health_Institutions:
+    title: Health_Institutions
+    type: unknown
+    wms_layer: "tigray_health_2006"
+    default_visible: false
+    queryable: false
+    min_scale: null
+    max_scale: null
+    notes: "Placeholder for group config."
+  TigrayHealth2006:
+    title: TigrayHealth2006
+    type: unknown
+    wms_layer: "tigray_health_2006"
+    default_visible: false
+    queryable: false
+    min_scale: null
+    max_scale: null
+    z_index: 12
+    notes: "Baseline vector layer (points)."
+  TigrayRoadsIn2006:
+    title: TigrayRoadsIn2006
+    type: unknown
+    wms_layer: "tigray_roads_2006"
+    z_index: 10
+    default_visible: true
+    queryable: false
+    min_scale: null
+    max_scale: null
+    notes: "Placeholder for group config."
+  TigrayRoads2006t:
+    title: TigrayRoads2006t
+    type: unknown
+    wms_layer: "tigray_roads_2006t"
+    default_visible: false
+    queryable: false
+    min_scale: null
+    max_scale: null
+    notes: "Placeholder for group config."
+  EthiopiaRoadsOld:
+    title: EthiopiaRoadsOld
+    type: unknown
+    wms_layer: ""
+    default_visible: false
+    queryable: false
+    min_scale: null
+    max_scale: null
+    notes: "Placeholder for group config."
+  EthioWoredasNew:
+    title: EthioWoredasNew
+    type: unknown
+    wms_layer: "ethiopia_woredas"
+    default_visible: false
+    queryable: false
+    min_scale: null
+    max_scale: null
+    notes: "Placeholder for group config."
+  MetStations:
+    title: MetStations
+    type: unknown
+    wms_layer: ""
+    default_visible: false
+    queryable: false
+    min_scale: null
+    max_scale: null
+    notes: "Placeholder for group config."
+  Full_immunization:
+    title: Full_immunization
+    type: unknown
+    wms_layer: ""
+    default_visible: false
+    queryable: false
+    min_scale: null
+    max_scale: null
+    notes: "Placeholder for group config."
+  PNC:
+    title: PNC
+    type: unknown
+    wms_layer: ""
+    default_visible: false
+    queryable: false
+    min_scale: null
+    max_scale: null
+    notes: "Placeholder for group config."
+  Skilled_delivery:
+    title: Skilled_delivery
+    type: unknown
+    wms_layer: ""
+    default_visible: false
+    queryable: false
+    min_scale: null
+    max_scale: null
+    notes: "Placeholder for group config."
+  CAR:
+    title: CAR
+    type: unknown
+    wms_layer: ""
+    default_visible: false
+    queryable: false
+    min_scale: null
+    max_scale: null
+    notes: "Placeholder for group config."
+  P-LBW:
+    title: P-LBW
+    type: unknown
+    wms_layer: ""
+    default_visible: false
+    queryable: false
+    min_scale: null
+    max_scale: null
+    notes: "Placeholder for group config."
+  TB_Success_rate:
+    title: TB_Success_rate
+    type: unknown
+    wms_layer: ""
+    default_visible: false
+    queryable: false
+    min_scale: null
+    max_scale: null
+    notes: "Placeholder for group config."
+  PIHCT_testing_rate:
+    title: PIHCT_testing_rate
+    type: unknown
+    wms_layer: ""
+    default_visible: false
+    queryable: false
+    min_scale: null
+    max_scale: null
+    notes: "Placeholder for group config."
+  ANC_Tested_PMTCT:
+    title: ANC_Tested_PMTCT
+    type: unknown
+    wms_layer: ""
+    default_visible: false
+    queryable: false
+    min_scale: null
+    max_scale: null
+    notes: "Placeholder for group config."
+  Abortion_Ratio:
+    title: Abortion_Ratio
+    type: unknown
+    wms_layer: ""
+    default_visible: false
+    queryable: false
+    min_scale: null
+    max_scale: null
+    notes: "Placeholder for group config."
+  Streams:
+    title: Streams
+    type: unknown
+    wms_layer: ""
+    default_visible: false
+    queryable: false
+    min_scale: null
+    max_scale: null
+    notes: "Placeholder for group config."
+  Wetlands:
+    title: Wetlands
+    type: unknown
+    wms_layer: "ethiopia_wetlands"
+    default_visible: false
+    queryable: false
+    min_scale: null
+    max_scale: null
+    notes: "Placeholder for group config."
+  Lakes:
+    title: Lakes
+    type: unknown
+    wms_layer: ""
+    default_visible: false
+    queryable: false
+    min_scale: null
+    max_scale: null
+    notes: "Placeholder for group config."
+  Basins:
+    title: Basins
+    type: unknown
+    wms_layer: ""
+    default_visible: false
+    queryable: false
+    min_scale: null
+    max_scale: null
+    notes: "Placeholder for group config."
+  Soils:
+    title: Soils
+    type: unknown
+    wms_layer: ""
+    default_visible: false
+    queryable: false
+    min_scale: null
+    max_scale: null
+    notes: "Placeholder for group config."
+  EcoZones:
+    title: EcoZones
+    type: unknown
+    wms_layer: ""
+    default_visible: false
+    queryable: false
+    min_scale: null
+    max_scale: null
+    notes: "Placeholder for group config."
+  NationalForests:
+    title: NationalForests
+    type: unknown
+    wms_layer: ""
+    default_visible: false
+    queryable: false
+    min_scale: null
+    max_scale: null
+    notes: "Placeholder for group config."
+  NationalParks:
+    title: NationalParks
+    type: unknown
+    wms_layer: ""
+    default_visible: false
+    queryable: false
+    min_scale: null
+    max_scale: null
+    notes: "Placeholder for group config."
+  Contour:
+    title: Contour
+    type: unknown
+    wms_layer: "tigray_contour"
+    default_visible: false
+    queryable: false
+    min_scale: null
+    max_scale: null
+    notes: "Placeholder for group config."
+  Isoheight:
+    title: Isoheight
+    type: unknown
+    wms_layer: ""
+    default_visible: false
+    queryable: false
+    min_scale: null
+    max_scale: null
+    notes: "Placeholder for group config."
+  DTM:
+    title: DTM
+    type: raster
+    wms_layer: "ethiopia_dem"
+    z_index: 2
+    default_visible: false
+    queryable: false
+    min_scale: null
+    max_scale: null
+    notes: "DEM raster layer."
+  Slope:
+    title: Slope
+    type: raster
+    wms_layer: "ethiopia_slope"
+    wms_layer_alternates: ["ethiopia_slope_rgb"]
+    render_mode: "rgb_preferred"
+    preferred_wms_layer: "ethiopia_slope_rgb"
+    z_index: 3
+    default_visible: false
+    queryable: false
+    min_scale: null
+    max_scale: null
+    notes: "Slope raster layer."
+  Hillshade:
+    title: Hillshade
+    type: raster
+    wms_layer: "ethiopia_hillshade"
+    z_index: 1
+    default_visible: true
+    queryable: false
+    min_scale: null
+    max_scale: null
+    abstract: "Hillshade derived from elevation for terrain visualization."
+    attribution: "TSIRD baseline DEM-derived hillshade, reprojected for web display."
+    notes: "Hillshade raster layer."
+  BaseMap:
+    title: BaseMap
+    type: raster
+    wms_layer: "ethiopia_cia_basemap"
+    z_index: 0
+    default_visible: true
+    queryable: false
+    min_scale: null
+    max_scale: null
+    abstract: "Reference basemap for orientation."
+    attribution: "CIA (source raster), reprojected for web display."
+    notes: "CIA basemap raster."
+  Ethnomap:
+    title: Ethnomap
+    type: raster
+    wms_layer: "ethiopia_language"
+    default_visible: false
+    queryable: false
+    min_scale: null
+    max_scale: null
+    abstract: "Language distribution reference map for Ethiopia."
+    attribution: "TSIRD baseline raster (language map), reprojected for web display."
+    notes: "Language map raster."
+
+search:
+  version: "1.0"
+  dataroot: "$"
+  items:
+    - name: TigrayWoredaNew
+      description: "Search by WEREDA"
+      layer_name: TigrayWoredaNew
+      fields:
+        - name: WEREDA
+          type: string
+          description: "Woreda name"
+          wildcard: true
+    - name: TigrayZones
+      description: "Search by ZONE_NAME"
+      layer_name: TigrayWoredaNew
+      fields:
+        - name: ZONE_NAME
+          type: string
+          description: "Zone name"
+          wildcard: true
+    - name: TigraiTabiasNew
+      description: "Search by TABIA"
+      layer_name: TigraiTabiasNew
+      fields:
+        - name: TABIA
+          type: string
+          description: "Tabia name"
+          wildcard: true
+    - name: RoadName
+      description: "Search by Road Name"
+      layer_name: TigrayRoadsIn2006
+      fields:
+        - name: NAME
+          type: string
+          description: "Road name"
+          wildcard: true
+          definition:
+            keyfield: NAME
+            showfield: NAME
+    - name: TabiaPopulation
+      description: "Tabia population search"
+      layer_name: PopulationDensity2006
+      fields:
+        - name: ZONES
+          type: string
+          description: "Zone name"
+          definition:
+            options: []
+        - name: DENSITY
+          type: number
+          description: "Population density"
+          definition:
+            operator: [">", "=", "<"]
+    - name: BASIN_NAME
+      description: "Search by BASIN_NAME"
+      layer_name: Basins
+      fields:
+        - name: BASIN_NAME
+          type: string
+          description: "Basin name"
+          wildcard: true
+    - name: SoilType
+      description: "Search by Soil Name"
+      layer_name: Soils
+      fields:
+        - name: NAME
+          type: string
+          description: "Soil name"
+          wildcard: true
+          definition:
+            keyfield: NAME
+            showfield: NAME
+
+# --- YAML Validation Checklist ---
+# - Ensure every group in all_groups is present in groups mapping
+# - Ensure every group in default_groups is present in all_groups
+# - Ensure all toc categories reference only groups in all_groups
+# - Ensure all YAML keys are consistently indented (2 spaces)
+# - Ensure all placeholder fields are present for future mapping
+# - Ensure endpoints, map, ui, query, print, download, locale, plugins, toc, groups, search sections exist
+# - Ensure no invented datasets or groups
+# - Ensure valid YAML syntax (use yamllint or similar)
