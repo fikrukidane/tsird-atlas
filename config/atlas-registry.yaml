@@ -146,7 +146,7 @@ categories:
             default_visible: true
             queryable: false
             min_scale: 50000000
-            max_scale: 50000
+            max_scale: 1000001
             identify_fields: []
           
           - id: "tigray_roads_2006"
@@ -156,7 +156,7 @@ categories:
             published: true
             default_visible: false
             queryable: false
-            min_scale: 10000000
+            min_scale: 1000000
             max_scale: 25000
             identify_fields: []
       
@@ -210,7 +210,7 @@ categories:
             default_visible: false
             queryable: true
             min_scale: 10000000
-            max_scale: 50000
+            max_scale: 2000001
             identify_fields: ["TOWN_NAME", "POPULATION"]
           
           - id: "tigray_towns"
@@ -220,7 +220,7 @@ categories:
             published: true
             default_visible: false
             queryable: true
-            min_scale: 5000000
+            min_scale: 2000000
             max_scale: 25000
             identify_fields: ["TOWN_NAME"]
 
@@ -532,4 +532,6 @@ categories:
             identify_fields: []
 
 rules:
-  scale_mutex_pairs: []
+  scale_mutex_pairs:
+    - ["ethiopia_roads", "tigray_roads_2006"]
+    - ["ethiopia_towns", "tigray_towns"]
