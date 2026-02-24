@@ -24,6 +24,7 @@ services:
       MS_ERRORFILE: "stderr"
       CPL_DEBUG: "ON"
       MS_MAPFILE: "/etc/mapserver/tsird.map"
+      MAPSERVER_CONFIG_FILE: "/etc/mapserver.conf"  # Required for Apache/fcgid to pass to mapserv CGI
     volumes:
       - ./infra/mapserver/mapfiles:/etc/mapserver
       - ./infra/mapserver/mapfiles/ms.config:/etc/mapserver.conf:ro
