@@ -84,17 +84,31 @@ Client click → OpenLayers → NGINX (rate limit) → MapServer (query) → Pop
 
 ---
 
-## 6. Technology Stack (FINAL FREEZE)
+## 6. Technology Stack (FINAL FREEZE & APPROVED)
+
+### Selected (Locked) Technology Decisions
+
+| Component | Technology | Decision | Rationale |
+|-----------|-----------|----------|-----------|
+| **Frontend** | **OpenLayers 8+** | ✓ SELECTED | WMS-first, tiled rendering, GetFeatureInfo, future extensibility |
+| **Rendering** | **WMS-first (tiled GetMap)** | ✓ SELECTED | 256×256 tiles, cache-friendly, aligned to OSM grid (EPSG:3857) |
+| **Registry** | **YAML (authoritative)** | ✓ SELECTED | Human-maintainable source-of-truth, JSON artifact optional |
+| **OGC Services** | **WMS only** | ✓ SELECTED | GetCapabilities, GetMap, GetFeatureInfo; WFS disabled Phase 2 |
+| **Rate Limits** | **1/20/5 req/s** | ✓ SELECTED | GetCapabilities: 1 req/s (burst 3), GetMap: 20 req/s (burst 60), GetFeatureInfo: 5 req/s (burst 10) |
+
+### Fixed Infrastructure Components
 
 | Component | Technology | Status |
 |-----------|-----------|--------|
-| Frontend | OpenLayers 8+ | ✓ LOCKED |
-| Rendering | WMS-first (tiled GetMap) | ✓ LOCKED |
-| Registry | YAML → JSON | ✓ LOCKED |
 | Proxy | NGINX 1.25+ | ✓ Fixed |
 | Service | MapServer 8.6 | ✓ Fixed |
 | Database | PostGIS 16-3.4 | ✓ Fixed |
-| Cache | MapCache 1.14+ (Phase 3) | ✗ Deferred |
+
+### Deferred (Phase 3+)
+
+| Component | Technology | Timeline | Note |
+|-----------|-----------|----------|------|
+| Cache | MapCache 1.14+ | Phase 3 | Tier 3 insertion point reserved; Phase 2 enforces cache-forward patterns |
 
 ---
 
@@ -121,14 +135,28 @@ Client click → OpenLayers → NGINX (rate limit) → MapServer (query) → Pop
 
 ---
 
-## 11. Stage 2 Freeze Checklist
+## 11. Stage 2 Freeze Checklist (ALL ITEMS COMPLETE)
 
-✓ Network topology (5-tier, isolated)  
+### Architectural Foundation
+✓ Network topology (5-tier, isolated, private MapServer/PostGIS)  
 ✓ Component responsibilities (clear per tier)  
 ✓ Data flows (GetMap, GetFeatureInfo documented)  
-✓ Security boundaries (4-layer defense)  
-✓ Technology stack LOCKED (OpenLayers, YAML, WMS-only, rate limits)  
-✓ All 5 TBD decisions LOCKED
+✓ Interaction flows (startup, layer toggle, identify)  
+✓ Security boundaries (4-layer defense-in-depth)  
+✓ Threat model (10 threats with mitigations)
+
+### Technology Decisions (ALL 5 LOCKED & APPROVED)
+✓ **A) Frontend**: OpenLayers 8+ (SELECTED)  
+✓ **B) Registry**: YAML authoritative source, JSON artifact optional (SELECTED)  
+✓ **C) OGC Services**: WMS-only Phase 2, WFS disabled (SELECTED)  
+✓ **D) Rate Limits**: 1/20/5 req/s with bursts (SELECTED — tuned for VPS baseline)  
+✓ **E) MapCache**: Deferred to Phase 3, Tier 3 reserved (SELECTED)
+
+### Implementation Readiness
+✓ Performance targets set (< 1s GetMap, < 500ms GetFeatureInfo)  
+✓ Deployment architecture defined (Docker Compose → VPS production)  
+✓ Validation strategy planned (k6 load tests)  
+✓ **NO TBD items remain** — all decisions frozen and approved
 
 ---
 
