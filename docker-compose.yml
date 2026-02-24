@@ -26,6 +26,7 @@ services:
       MS_MAPFILE: "/etc/mapserver/tsird.map"
     volumes:
       - ./infra/mapserver/mapfiles:/etc/mapserver
+      - ./infra/mapserver/mapfiles/ms.config:/etc/mapserver.conf:ro
       - ./data:/data:ro
     networks:
       - tsird-network
