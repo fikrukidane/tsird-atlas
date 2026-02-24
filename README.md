@@ -79,6 +79,17 @@ MapServer Publication
 
 ## Current System Status
 
+### Development Notes
+
+**Frontend - OpenLayers Map Initialization**
+- OpenLayers requires a DOM element with ID `map` as the map target
+- The element must exist before `new ol.Map()` is called and have non-zero dimensions
+- CSS must ensure the map container has explicit height/width (e.g., flexbox with `flex: 1` or `height: 100%`)
+- If the target element is missing or has zero height, the map will not render
+- See [STAGE6_FRONTEND.md](docs/phase2/STAGE6_FRONTEND.md#dom-requirements) for detailed requirements
+
+### System Status
+
 **Operational**
 - Vector normalization pipeline (audit -> normalize -> separate)
 - CRS override catalog (YAML)

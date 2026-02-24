@@ -40,7 +40,7 @@ async function initializeApplication(registryPath = 'data/atlas-registry.json') 
     // ────────────────────────────────────────────────────────────
     console.log('Step 2: Initializing map controller...');
     const mapController = new MapController(
-      'map-container',
+      'map',  // Target the actual map div, not the container
       registry.atlasConfig,
       registry.wmsBaseUrl
     );

@@ -71,13 +71,102 @@ class RegistryLoader {
   }
 
   /**
+   * Validate registry matches frozen CONFIG_MODEL.md schema.
+   * 
+   * Frozen contract requirements:
+   *   - version field must exist
+   *   - atlas, services, ui must exist
+   *   - categories must be array
+   *   - categories[].groups[].layers must be array of STRINGS (layer IDs only)
+   *   - layers must be top-level DICT with full metadata
+   *   - search must exist (can be empty array)
+   *   - rules must exist
+   * 
+   * @private
+   * @throws {Error} If schema is invalid
+   */
+  _validateSchema(raw) {
+    const errors = [];
+
+    // Check required top-level fields
+    if (!raw.version) {
+      errors.push("Missing 'version' field");
+    }
+    if (!raw.atlas) {
+      errors.push("Missing 'atlas' configuration");
+    }
+    if (!raw.services || !raw.services.wms) {
+      errors.push("Missing 'services.wms' configuration");
+    }
+    if (!raw.ui) {
+      errors.push("Missing 'ui' configuration");
+    }
+
+    // Check categories structure
+    if (!Array.isArray(raw.categories)) {
+      errors.push("'categories' must be an array");
+    } else {
+      for (let i = 0; i < raw.categories.length; i++) {
+        const cat = raw.categories[i];
+        if (!Array.isArray(cat.groups)) {
+          errors.push(`categories[${i}] missing 'groups' array`);
+        } else {
+          for (let j = 0; j < cat.groups.length; j++) {
+            const grp = cat.groups[j];
+            if (!Array.isArray(grp.layers)) {
+              errors.push(`categories[${i}].groups[${j}] missing 'layers' array`);
+            } else {
+              // Validate each layer is a STRING (ID), not an object
+              for (let k = 0; k < grp.layers.length; k++) {
+                const layer = grp.layers[k];
+                if (typeof layer !== 'string') {
+                  errors.push(
+                    `categories[${i}].groups[${j}].layers[${k}] must be ID string, ` +
+                    `got ${typeof layer}. (Frozen schema: use layer IDs only, metadata in top-level 'layers' dict)`
+                  );
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+
+    // Check layers dict exists
+    if (typeof raw.layers !== 'object' || raw.layers === null) {
+      errors.push("Missing top-level 'layers' dictionary (must contain full layer metadata)");
+    }
+
+    // Check search exists
+    if (!Array.isArray(raw.search)) {
+      errors.push("Missing 'search' array (can be empty)");
+    }
+
+    // Check rules exists
+    if (!raw.rules) {
+      errors.push("Missing 'rules' object");
+    }
+
+    if (errors.length > 0) {
+      throw new Error(
+        'Registry schema validation failed:\n  - ' + errors.join('\n  - ')
+      );
+    }
+  }
+
+  /**
    * Normalize raw registry into internal model.
-   * Validates basic structure; full validation done by Stage 4 CLI.
+   * Handles frozen CONFIG_MODEL.md schema where:
+   *   - categories[].groups[].layers[] = array of STRING IDs (not objects)
+   *   - full layer metadata in top-level raw.layers[layer_id]
    * 
    * @private
    */
   _normalize(raw) {
-    // Extract atlas config
+    // STEP 1: Validate schema (will throw if invalid)
+    this._validateSchema(raw);
+
+    // STEP 2: Extract atlas config
     const atlas = raw.atlas || {};
     const atlasConfig = {
       title: atlas.title || 'TSIRD Atlas',
@@ -88,14 +177,32 @@ class RegistryLoader {
       extent: atlas.extent || [33.0, 3.0, 48.0, 15.5]
     };
 
-    // Extract WMS base URL
+    // STEP 3: Extract WMS base URL
     const wmsBaseUrl = (raw.services?.wms?.base_url) || '/map/ogc';
 
-    // Build layer definitions dictionary
+    // STEP 4: Build layer definitions from raw.layers dictionary
     const layerDefs = {};
-    const tocModel = [];
+    const layersDict = raw.layers || {};
+    
+    for (const [layerId, layerMeta] of Object.entries(layersDict)) {
+      layerDefs[layerId] = {
+        wms_name: layerMeta.wms_name,
+        label: layerMeta.label || layerMeta.wms_name,
+        type: layerMeta.type,
+        published: layerMeta.published !== false,
+        default_visible: layerMeta.default_visible === true,
+        queryable: layerMeta.queryable === true,
+        min_scale: layerMeta.min_scale,
+        max_scale: layerMeta.max_scale,
+        identify_fields: layerMeta.identify_fields || [],
+        source: layerMeta.source,
+        geometry_type: layerMeta.geometry_type,
+        attribution: layerMeta.attribution
+      };
+    }
 
-    // Traverse categories → groups → layers, maintaining order
+    // STEP 5: Build TOC model from categories[].groups[].layers[] (now strings)
+    const tocModel = [];
     const categories = raw.categories || [];
     
     for (const category of categories) {
@@ -113,29 +220,20 @@ class RegistryLoader {
           layers: []
         };
 
-        const layers = group.layers || [];
-        for (const layer of layers) {
-          // Store full layer definition
-          layerDefs[layer.id] = {
-            wms_name: layer.wms_name,
-            label: layer.label || layer.wms_name,
-            type: layer.type,
-            published: layer.published !== false,  // Default true if missing
-            default_visible: layer.default_visible === true,
-            queryable: layer.queryable === true,
-            min_scale: layer.min_scale,
-            max_scale: layer.max_scale,
-            identify_fields: layer.identify_fields || [],
-            source: layer.source,
-            geometry_type: layer.geometry_type,
-            attribution: layer.attribution
-          };
+        const layerIds = group.layers || [];  // Array of STRINGS now
+        for (const layerId of layerIds) {
+          // Look up layer metadata from raw.layers[layerId]
+          const layerMeta = layersDict[layerId];
+          if (!layerMeta) {
+            console.warn(`[RegistryLoader] Layer '${layerId}' referenced in TOC but not defined in layers dict`);
+            continue;
+          }
 
           // Only add to TOC if published
-          if (layerDefs[layer.id].published) {
+          if (layerMeta.published !== false) {
             groupNode.layers.push({
-              id: layer.id,
-              label: layerDefs[layer.id].label
+              id: layerId,
+              label: layerMeta.label || layerId
             });
           }
         }
@@ -152,7 +250,7 @@ class RegistryLoader {
       }
     }
 
-    // Extract scale mutex pairs
+    // STEP 6: Extract scale mutex pairs
     const scaleMutexPairs = (raw.rules?.scale_mutex_pairs) || [];
 
     return {

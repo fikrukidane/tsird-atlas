@@ -63,6 +63,12 @@ header h1 {
   overflow: hidden;
 }
 
+/* OpenLayers map target */
+#map {
+  width: 100%;
+  height: 100%;
+}
+
 /* OpenLayers specific */
 .ol-viewport {
   width: 100%;

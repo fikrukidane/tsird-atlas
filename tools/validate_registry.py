@@ -399,18 +399,23 @@ class RegistryValidator:
             ))
 
     def _iter_layers(self):
-        """Iterate over all layers in the registry."""
+        """Iterate over all layer objects from top-level layers dict (frozen schema)."""
         if not self.registry:
             return
         
-        for category in self.registry.get('categories', []):
-            for group in category.get('groups', []):
-                for layer in group.get('layers', []):
-                    yield layer
+        # Frozen schema: layers are in top-level 'layers' dictionary
+        layers_dict = self.registry.get('layers', {})
+        for layer_id, layer_meta in layers_dict.items():
+            # Add 'id' field for consistency with validators
+            layer_obj = dict(layer_meta)
+            layer_obj['id'] = layer_id
+            yield layer_obj
 
     def _get_all_layer_ids(self) -> Set[str]:
-        """Return set of all layer IDs."""
-        return {layer.get('id') for layer in self._iter_layers()}
+        """Return set of all layer IDs from top-level layers dict."""
+        if not self.registry:
+            return set()
+        return set(self.registry.get('layers', {}).keys())
 
     def format_text(self) -> str:
         """Format violations as human-readable text."""

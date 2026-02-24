@@ -34,8 +34,14 @@ class MapController {
     // Check target element exists
     const target = document.getElementById(this.mapTargetId);
     if (!target) {
-      throw new Error(`Map target element not found: #${this.mapTargetId}`);
+      const errorMsg = `Map target element not found: #${this.mapTargetId}`;
+      console.error(`[MapController] ${errorMsg}`);
+      this._showError(errorMsg);
+      throw new Error(errorMsg);
     }
+
+    // Hide loading message
+    this._hideLoadingMessage();
 
     // Transform center from canonical (EPSG:4326) to view CRS (EPSG:3857)
     const centerEPSG4326 = this.atlasConfig.center;  // [lon, lat]
@@ -78,6 +84,37 @@ class MapController {
     });
 
     console.log('[MapController] Map initialized successfully');
+
+    // Register map render event to confirm tiles loading
+    this.map.once('rendercomplete', () => {
+      console.log('[MapController] First render complete');
+    });
+  }
+
+  /**
+   * Hide the loading message after map initialization.
+   */
+  _hideLoadingMessage() {
+    const loadingEl = document.getElementById('map-loading');
+    if (loadingEl) {
+      loadingEl.style.display = 'none';
+      console.log('[MapController] Loading message hidden');
+    }
+  }
+
+  /**
+   * Show error message if map cannot initialize.
+   */
+  _showError(message) {
+    const container = document.getElementById('map-container');
+    if (container) {
+      const errorDiv = document.createElement('div');
+      errorDiv.className = 'loading error';
+      errorDiv.style.color = '#d32f2f';
+      errorDiv.style.fontWeight = 'bold';
+      errorDiv.textContent = `⚠️ ${message}`;
+      container.appendChild(errorDiv);
+    }
   }
 
   /**

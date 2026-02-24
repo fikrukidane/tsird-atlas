@@ -383,6 +383,51 @@ const registry = {
 
 ## 3. Map Initialization Sequence
 
+### DOM Requirements
+
+**Critical**: OpenLayers requires a real DOM element as the map target. This element must:
+
+1. **Exist in the DOM** before `new ol.Map()` is called
+2. **Have non-zero dimensions** (width and height > 0)
+3. **Be properly styled** with explicit height (e.g., `height: 100%` on parent with fixed height)
+
+If the target element is missing or has zero height, OpenLayers will not render tiles and may fail silently.
+
+**Implementation**:
+```html
+<div id="map-container">
+  <div id="map" class="map"></div>  <!-- OpenLayers target -->
+</div>
+```
+
+```css
+#map-container {
+  flex: 7;
+  width: 70%;
+  height: 100%;  /* Must have explicit height */
+}
+
+#map {
+  width: 100%;
+  height: 100%;  /* Must have explicit dimensions */
+}
+```
+
+```javascript
+const map = new ol.Map({
+  target: 'map',  // Must match the element ID
+  view: new ol.View({ /* ... */ })
+});
+```
+
+**Error Handling**: If the target element is missing, fail fast with a visible error message:
+```javascript
+const target = document.getElementById('map');
+if (!target) {
+  throw new Error('Map container missing — cannot initialize map.');
+}
+```
+
 ### Required Behavior (in order)
 
 1. **Load Registry**
