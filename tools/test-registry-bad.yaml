@@ -1,0 +1,103 @@
+---
+# SYNTHETIC BAD REGISTRY - FOR VALIDATOR TESTING ONLY
+# Contains deliberate violations of each constraint rule
+
+atlas:
+  title: "Bad Test Atlas"
+  canonical_crs: "EPSG:4326"
+  view_crs: "EPSG:3857"
+  center: [38.5, 13.5]
+  zoom: 7
+  extent: [33.0, 3.0, 48.0, 15.5]
+
+services:
+  wms:
+    base_url: "/map/ogc"
+    # R8: Missing required GetCapabilities
+    allowed_requests:
+      - "GetMap"
+      - "GetFeatureInfo"
+      - "GetFeature"  # R8: WFS is forbidden Phase 2
+
+categories:
+  - id: "cat_test"
+    label: "Test Category"
+    groups:
+      - id: "grp_test"
+        label: "Test Group"
+        layers:
+          # R2: First layer (OK)
+          - id: "layer_good"
+            wms_name: "good_layer"
+            label: "Good Layer"
+            type: "vector"
+            published: true
+            default_visible: false
+            queryable: false
+          
+          # R2: Duplicate wms_name (VIOLATION)
+          - id: "layer_dup"
+            wms_name: "good_layer"
+            label: "Duplicate WMS Name"
+            type: "vector"
+            published: true
+            default_visible: false
+            queryable: false
+          
+          # R4: queryable=true but no identify_fields (VIOLATION)
+          - id: "layer_query_no_fields"
+            wms_name: "queryable_no_fields"
+            label: "Queryable with No Fields"
+            type: "vector"
+            published: true
+            default_visible: false
+            queryable: true
+          
+          # R5: min_scale <= max_scale (VIOLATION - should be min > max)
+          - id: "layer_bad_scale"
+            wms_name: "bad_scale"
+            label: "Bad Scale Range"
+            type: "vector"
+            published: true
+            default_visible: false
+            queryable: false
+            min_scale: 100000  # This is less than max_scale (VIOLATION)
+            max_scale: 1000000
+          
+          # R5: Negative scale (VIOLATION)
+          - id: "layer_neg_scale"
+            wms_name: "neg_scale"
+            label: "Negative Scale"
+            type: "vector"
+            published: true
+            default_visible: false
+            queryable: false
+            min_scale: -50000
+            max_scale: -10000
+          
+          # R3: published is not boolean (VIOLATION)
+          - id: "layer_pub_string"
+            wms_name: "pub_string"
+            label: "Published as String"
+            type: "vector"
+            published: "yes"
+            default_visible: false
+            queryable: false
+          
+          # R4: queryable=false but has identify_fields (WARNING)
+          - id: "layer_warn_unreachable"
+            wms_name: "warn_unreachable"
+            label: "Unreachable Fields"
+            type: "vector"
+            published: true
+            default_visible: false
+            queryable: false
+            identify_fields: ["NAME"]
+
+rules:
+  # R1 & R6 tests
+  scale_mutex_pairs:
+    # R1: References undefined layers
+    - ["layer_good", "undefined_layer"]
+    # R6: Both must have scale rules to be in mutex
+    - ["layer_bad_scale", "layer_neg_scale"]

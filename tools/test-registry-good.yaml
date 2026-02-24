@@ -1,0 +1,83 @@
+---
+# SYNTHETIC GOOD REGISTRY - PASSES ALL STAGE 4 CONSTRAINTS
+# Uses as test validate and as template reference
+
+atlas:
+  title: "Valid Test Atlas"
+  canonical_crs: "EPSG:4326"
+  view_crs: "EPSG:3857"
+  center: [38.5, 13.5]
+  zoom: 7
+  extent: [33.0, 3.0, 48.0, 15.5]
+
+services:
+  wms:
+    base_url: "/map/ogc"
+    allowed_requests:
+      - "GetCapabilities"
+      - "GetMap"
+      - "GetFeatureInfo"
+
+categories:
+  - id: "cat_admin"
+    label: "Administrative"
+    groups:
+      - id: "grp_national"
+        label: "National"
+        layers:
+          - id: "national_zones"
+            wms_name: "national_zones"
+            label: "National Zones"
+            type: "vector"
+            published: true
+            default_visible: false
+            queryable: true
+            min_scale: 50000000
+            max_scale: 2000000
+            identify_fields: ["NAME", "CODE"]
+      
+      - id: "grp_regional"
+        label: "Regional"
+        layers:
+          - id: "tigray_woredas"
+            wms_name: "tigray_woredas"
+            label: "Tigray Woredas"
+            type: "vector"
+            published: true
+            default_visible: false
+            queryable: true
+            min_scale: 2000000
+            max_scale: 100000
+            identify_fields: ["NAME", "ADMIN_LEVEL"]
+
+  - id: "cat_transport"
+    label: "Transportation"
+    groups:
+      - id: "grp_roads"
+        label: "Roads"
+        layers:
+          - id: "national_roads"
+            wms_name: "national_roads"
+            label: "Ethiopia Roads"
+            type: "vector"
+            published: true
+            default_visible: true
+            queryable: true
+            min_scale: 50000000
+            max_scale: 500000
+            identify_fields: ["CLASS", "CONDITION"]
+          
+          - id: "regional_roads"
+            wms_name: "regional_roads"
+            label: "Tigray Roads"
+            type: "vector"
+            published: true
+            default_visible: false
+            queryable: true
+            min_scale: 490000
+            max_scale: 50000
+            identify_fields: ["CLASS", "CONDITION"]
+
+rules:
+  scale_mutex_pairs:
+    - ["national_roads", "regional_roads"]
