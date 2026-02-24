@@ -64,12 +64,13 @@ class LayerFactory {
   }
 
   /**
-   * Create a single TileWMS layer.
+   * Create a single ImageWMS layer with MapServer-compatible sizing.
    * 
    * @private
    */
   _createTileWMSLayer(layerId, layerDef) {
     // Create WMS source with stable parameters
+    // Use imageLoadFunction to constrain image dimensions to MapServer limits (1-4096px)
     const source = new ol.source.ImageWMS({
       url: this.wmsBaseUrl,
       params: {
@@ -78,10 +79,39 @@ class LayerFactory {
         'FORMAT': 'image/png',  // Fixed format
         'STYLES': ''  // Default/empty
       },
-      serverType: 'mapserver'  // MapServer-specific optimizations
+      serverType: 'mapserver',  // MapServer-specific optimizations
+      ratio: 1  // Request image at exact viewport size (no over-request)
     });
 
-    // Create image layer (simpler than TileWMS, better MapServer compatibility)
+    // Custom image load function to enforce MapServer dimension constraints
+    const originalLoadFunction = source.getImageLoadFunction();
+    source.setImageLoadFunction(function(image, src) {
+      // Parse URL to extract WIDTH and HEIGHT parameters
+      const url = new URL(src, window.location.href);
+      let width = parseInt(url.searchParams.get('WIDTH')) || 256;
+      let height = parseInt(url.searchParams.get('HEIGHT')) || 256;
+
+      // Constrain to MapServer limits (1-4096 pixels)
+      const MAX_SIZE = 4096;
+      if (width > MAX_SIZE || height > MAX_SIZE) {
+        // Scale down proportionally
+        const scale = Math.min(MAX_SIZE / width, MAX_SIZE / height);
+        width = Math.floor(width * scale);
+        height = Math.floor(height * scale);
+        
+        // Reconstruct URL with constrained dimensions
+        url.searchParams.set('WIDTH', width);
+        url.searchParams.set('HEIGHT', height);
+        src = url.toString();
+        
+        console.log(`[LayerFactory] Constrained image size: ${width}x${height}px (from WMS request)`);
+      }
+
+      // Call original load function with adjusted URL
+      originalLoadFunction.call(this, image, src);
+    });
+
+    // Create image layer
     const layer = new ol.layer.Image({
       source: source,
       title: layerDef.label,
@@ -93,7 +123,7 @@ class LayerFactory {
     layer.layerDef = layerDef;
 
     // Log WMS request parameters for debugging
-    console.debug(`[LayerFactory] ${layerId}: WMS params = LAYERS:${layerDef.wms_name}, FORMAT:image/png, TRANSPARENT:true`);
+    console.debug(`[LayerFactory] ${layerId}: WMS params = LAYERS:${layerDef.wms_name}, FORMAT:image/png, TRANSPARENT:true, ratio:1 (constrained to 4096px max)`);
 
     return layer;
   }
