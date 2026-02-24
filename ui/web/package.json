@@ -1,0 +1,23 @@
+{
+  "name": "tsird-phase2-frontend",
+  "version": "0.1.0",
+  "description": "TSIRD Phase 2 - Stage 6 Milestone 1 Frontend (OpenLayers + Registry)",
+  "main": "src/main.js",
+  "scripts": {
+    "start": "npx http-server . -p 8000 -o",
+    "serve": "npx http-server . -p 8000",
+    "validate": "cd ../.. && python3 tools/validate_registry.py ui/web/data/atlas-registry.json",
+    "test": "echo 'Tests deferred to Milestone 2'"
+  },
+  "keywords": ["openlayers", "wms", "gis", "tigray"],
+  "author": "TSIRD Team",
+  "license": "MIT",
+  "dependencies": {
+    "comment": "External dependencies served via CDN in index.html",
+    "openlayers": "8.1.0",
+    "js-yaml": "4.1.0"
+  },
+  "devDependencies": {
+    "comment": "Add testing tools in Milestone 2"
+  }
+}

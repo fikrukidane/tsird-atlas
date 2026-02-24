@@ -1,17 +1,72 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>TSIRD</title>
-  <base href="/map/">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TSIRD Phase 2 — Tigray Insights Web Atlas</title>
+
+  <!-- OpenLayers CSS -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@8.1.0/ol.css" />
+
+  <!-- Application CSS -->
+  <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
-  <h1>TSIRD – Tigray Spatial Intelligence & Resilience Dashboard</h1>
-  <ul>
-    <li><a href="/map/ogc?SERVICE=WMS&REQUEST=GetCapabilities">OGC Capabilities</a></li>
-    <li><a href="/map/health">Health</a></li>
-  </ul>
-  <p>Minimal static landing page. UI to be expanded in later phases.</p>
+  <div id="app-container">
+    <!-- Header -->
+    <header>
+      <h1>🗺️ TSIRD Phase 2 — Tigray Insights Digital Atlas</h1>
+    </header>
+
+    <!-- Main Content: Map + TOC -->
+    <div id="main-container">
+      <!-- Map Container (70%) -->
+      <div id="map-container">
+        <div class="loading">Loading map...</div>
+      </div>
+
+      <!-- TOC Sidebar (30%) -->
+      <div id="toc-container">
+        <div class="loading">Loading layers...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═════════════════════════════════════════════════════════════ -->
+  <!-- External Libraries -->
+  <!-- ═════════════════════════════════════════════════════════════ -->
+
+  <!-- OpenLayers (WMS & map rendering) -->
+  <script src="https://cdn.jsdelivr.net/npm/ol@8.1.0/dist/ol.js"></script>
+
+  <!-- js-yaml (YAML registry parsing) -->
+  <script src="https://cdn.jsdelivr.net/npm/js-yaml@4.1.0/dist/js-yaml.min.js"></script>
+
+  <!-- ═════════════════════════════════════════════════════════════ -->
+  <!-- Application Modules -->
+  <!-- ═════════════════════════════════════════════════════════════ -->
+
+  <!-- Registry Loading -->
+  <script src="src/registry/RegistryLoader.js"></script>
+
+  <!-- Map Management -->
+  <script src="src/map/MapController.js"></script>
+  <script src="src/map/LayerFactory.js"></script>
+
+  <!-- Interactions -->
+  <script src="src/interactions/InteractionController.js"></script>
+
+  <!-- Application Orchestration -->
+  <script src="src/main.js"></script>
+
+  <!-- ═════════════════════════════════════════════════════════════ -->
+  <!-- Development Console Log -->
+  <!-- ═════════════════════════════════════════════════════════════ -->
+  <script>
+    console.log('TSIRD Phase 2 Milestone 1 — Frontend Loaded');
+    console.log('Registry path: data/atlas-registry.json');
+    console.log('Open DevTools (F12) to view initialization logs.');
+    console.log('Network tab: watch for WMS GetMap requests (no WFS GetFeature)');
+  </script>
 </body>
 </html>
