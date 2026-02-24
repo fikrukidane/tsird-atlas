@@ -177,8 +177,37 @@ class RegistryLoader {
       extent: atlas.extent || [33.0, 3.0, 48.0, 15.5]
     };
 
-    // STEP 3: Extract WMS base URL
-    const wmsBaseUrl = (raw.services?.wms?.base_url) || '/map/ogc';
+    // STEP 3: Extract WMS base URL with environment override
+    let wmsBaseUrl = (raw.services?.wms?.base_url) || '/map/ogc';
+    
+    // Environment override: check for window.TSIRD_WMS_BASE_URL
+    if (window.TSIRD_WMS_BASE_URL) {
+      console.warn(
+        `[RegistryLoader] WMS base_url overridden by environment: ${window.TSIRD_WMS_BASE_URL}`
+      );
+      wmsBaseUrl = window.TSIRD_WMS_BASE_URL;
+    }
+    
+    // Safety guard: warn if relative URL in production-like context
+    if (wmsBaseUrl.startsWith('/')) {
+      console.warn(
+        `[RegistryLoader] WMS base_url is relative: '${wmsBaseUrl}'. ` +
+        `This will resolve to the frontend origin (${window.location.origin}), not MapServer. ` +
+        `For local dev, use: http://localhost:18080/map/ogc. ` +
+        `For production, use absolute URL or set window.TSIRD_WMS_BASE_URL override.`
+      );
+      
+      // In dev mode, attempt to resolve to known dev MapServer if on localhost:8001
+      if (window.location.hostname === 'localhost' && window.location.port === '8001') {
+        const devUrl = 'http://localhost:18080/map/ogc';
+        console.warn(
+          `[RegistryLoader] Auto-resolving to dev MapServer: ${devUrl}`
+        );
+        wmsBaseUrl = devUrl;
+      }
+    }
+    
+    console.log(`[RegistryLoader] Final WMS base URL: ${wmsBaseUrl}`);
 
     // STEP 4: Build layer definitions from raw.layers dictionary
     const layerDefs = {};

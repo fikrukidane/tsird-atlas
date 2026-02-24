@@ -88,6 +88,23 @@ MapServer Publication
 - If the target element is missing or has zero height, the map will not render
 - See [STAGE6_FRONTEND.md](docs/phase2/STAGE6_FRONTEND.md#dom-requirements) for detailed requirements
 
+**Frontend - WMS Endpoint Configuration**
+- Default WMS endpoint: defined in `config/atlas-registry.yaml` → `services.wms.base_url`
+- **Local Development**: Registry points to `http://localhost:18080/map/ogc` (edge proxy)
+- **Environment Override**: Set `window.TSIRD_WMS_BASE_URL` before loading app to override registry value
+  
+  Example: Add to `index.html` before loading scripts:
+  ```html
+  <script>
+    // Override WMS endpoint for custom dev environment
+    window.TSIRD_WMS_BASE_URL = 'http://localhost:18080/map/ogc';
+  </script>
+  ```
+
+- **Production**: Use absolute URL pointing to proxy/domain: `https://yourdomain.com/map/ogc`
+- **Safety Guard**: RegistryLoader warns if `base_url` is relative (e.g., `/map/ogc`) and auto-resolves in dev mode
+- **Verification**: Check DevTools Network tab → WMS GetMap requests should target MapServer port (18080), not frontend port (8001)
+
 ### System Status
 
 **Operational**
