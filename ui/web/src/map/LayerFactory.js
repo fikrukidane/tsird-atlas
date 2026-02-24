@@ -70,11 +70,10 @@ class LayerFactory {
    */
   _createTileWMSLayer(layerId, layerDef) {
     // Create WMS source with stable parameters
-    const source = new ol.source.TileWMS({
+    const source = new ol.source.ImageWMS({
       url: this.wmsBaseUrl,
       params: {
         'LAYERS': layerDef.wms_name,
-        'TILED': true,
         'TRANSPARENT': true,
         'FORMAT': 'image/png',  // Fixed format
         'STYLES': ''  // Default/empty
@@ -82,8 +81,8 @@ class LayerFactory {
       serverType: 'mapserver'  // MapServer-specific optimizations
     });
 
-    // Create tile layer
-    const layer = new ol.layer.Tile({
+    // Create image layer (simpler than TileWMS, better MapServer compatibility)
+    const layer = new ol.layer.Image({
       source: source,
       title: layerDef.label,
       visible: false  // Will be set by InteractionController
@@ -94,7 +93,7 @@ class LayerFactory {
     layer.layerDef = layerDef;
 
     // Log WMS request parameters for debugging
-    console.debug(`[LayerFactory] ${layerId}: WMS params = LAYERS:${layerDef.wms_name}, FORMAT:image/png, TRANSPARENT:true, TILED:true`);
+    console.debug(`[LayerFactory] ${layerId}: WMS params = LAYERS:${layerDef.wms_name}, FORMAT:image/png, TRANSPARENT:true`);
 
     return layer;
   }

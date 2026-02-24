@@ -53,7 +53,7 @@ async function initializeApplication(registryPath = 'data/atlas-registry.json') 
     // ────────────────────────────────────────────────────────────
     // Step 3: Create layers
     // ────────────────────────────────────────────────────────────
-    console.log('Step 3: Creating TileWMS layers...');
+    console.log('Step 3: Creating WMS layers...');
     const layerFactory = new LayerFactory(
       registry.wmsBaseUrl,
       registry.layerDefs,
@@ -61,11 +61,11 @@ async function initializeApplication(registryPath = 'data/atlas-registry.json') 
     );
     const layers = layerFactory.createLayers();
     layerFactory.setAllLayers(layers);
-    console.log(`✓ Created ${layers.length} TileWMS layers`);
+    console.log(`✓ Created ${layers.length} WMS layers`);
     console.log('  WMS Request Sanity Check:');
     console.log('    - FORMAT: image/png (fixed)');
     console.log('    - TRANSPARENT: true (for overlays)');
-    console.log('    - TILED: true (cache-friendly)');
+    console.log('    - Source: ImageWMS (MapServer compatible)');
     console.log('    - No WFS calls (GetFeatureInfo deferred to Milestone 2)');
     console.log('');
 
@@ -143,7 +143,7 @@ async function initializeApplication(registryPath = 'data/atlas-registry.json') 
     console.log('  ✓ Toggling layers updates visibility');
     console.log('  ✓ Only published layers appear');
     console.log('  ✓ WMS tile requests to services.wms.base_url');
-    console.log('  ✓ No WFS network traffic');
+    console.log('  ✓ No WFS traffic (GetFeatureInfo only on click)');
     console.log('  ✓ Scale constraints enforced (layers auto-hide/show on zoom)');
     console.log('  ✓ Mutex pairs enforced (roads/towns never overlap)');
     console.log('  ✓ GetFeatureInfo on click (queryable layers only)');

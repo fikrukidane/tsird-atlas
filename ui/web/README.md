@@ -114,11 +114,12 @@ Should output: `✓ All constraints passed`
 
 ### LayerFactory
 
-**Purpose**: Create TileWMS layers from registry
+**Purpose**: Create OpenLayers WMS layers from registry
 
 **Features**:
 - Published layers only
-- Stable WMS params (FORMAT=image/png, TRANSPARENT=true, TILED=true)
+- ImageWMS source (simpler, better MapServer compatibility)
+- Stable WMS params (FORMAT=image/png, TRANSPARENT=true)
 - No WFS
 - Metadata attached to layers
 
