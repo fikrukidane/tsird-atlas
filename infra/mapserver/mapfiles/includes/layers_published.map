@@ -178,5 +178,13 @@ LAYER
   METADATA
     "wms_title" "Tigray Health Facilities (2006)"
     "wms_enable_request" "*"
+    "wms_queryable" "true"
+  END
+  CLASS
+    STYLE
+      SYMBOL "circle"
+      SIZE 6
+      COLOR 50 150 50
+    END
   END
 END
