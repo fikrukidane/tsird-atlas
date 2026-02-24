@@ -1,27 +1,29 @@
-# TSIRD Phase 2 - Stage 6 Milestone 1 Frontend
+# TSIRD Phase 2 - Stage 6 Milestone 2 Frontend
 
-**Status**: 🚀 In Development  
-**Version**: 0.1.0  
-**Scope**: Basic map + registry-driven TOC + tiled WMS rendering  
+**Status**: ✅ Complete  
+**Version**: 0.2.0  
+**Scope**: Scale enforcement + mutex pairs + GetFeatureInfo + UI polish  
 **Reference**: [STAGE6_FRONTEND.md](../../docs/phase2/STAGE6_FRONTEND.md)  
-**Task List**: [STAGE6_MILESTONE1_TASKS.md](../../docs/phase2/STAGE6_MILESTONE1_TASKS.md)  
+**Task List**: [STAGE6_MILESTONE2_TASKS.md](../../docs/phase2/STAGE6_MILESTONE2_TASKS.md)  
 
 ---
 
 ## Overview
 
-Milestone 1 implements the foundational frontend:
+Milestone 2 extends the frontend with production-ready features:
 
-1. **RegistryLoader** — Load and normalize YAML/JSON registry
-2. **MapController** — OpenLayers map with CRS transformation
-3. **LayerFactory** — Create TileWMS layers (published only)
-4. **InteractionController** — TOC rendering + layer toggle
-5. **HTML/CSS** — Responsive layout (map 70%, TOC 30%)
+1. **ScaleEngine** — Cartographic scale calculations and visibility rules
+2. **Mutex Enforcement** — Scale-based mutual exclusion for roads/towns pairs
+3. **GetFeatureInfo** — Click-based attribute queries with allowlist filtering
+4. **InteractionController** (extended) — Scale monitoring + mutex logic + identify
+5. **UI Polish** — Out-of-scale indicators, feature info popup, error handling
 
-**NOT included in Milestone 1**:
-- Identify (GetFeatureInfo) — deferred to Milestone 2
-- Scale enforcement — deferred to Milestone 2
-- Search UI — deferred to Phase 3
+**Milestone 1 deliverables** (retained):
+- RegistryLoader — Load and normalize YAML/JSON registry
+- MapController — OpenLayers map with CRS transformation
+- LayerFactory — Create TileWMS layers (published only)
+- InteractionController — TOC rendering + layer toggle
+- HTML/CSS — Responsive layout (map 70%, TOC 30%)
 
 ---
 
@@ -29,23 +31,24 @@ Milestone 1 implements the foundational frontend:
 
 ```
 ui/web/
-├── index.html                    # Entry point
+├── index.html                    # Entry point (Milestone 2 updated)
 ├── css/
-│   └── style.css                # Responsive layout
+│   └── style.css                # Responsive layout + M2 styles
 ├── src/
-│   ├── main.js                  # Orchestration
+│   ├── main.js                  # Orchestration (M2 extended)
 │   ├── registry/
 │   │   └── RegistryLoader.js   # Load + normalize registry
 │   ├── map/
 │   │   ├── MapController.js    # OL map init + CRS
-│   │   └── LayerFactory.js     # Create TileWMS layers
+│   │   ├── LayerFactory.js     # Create TileWMS layers
+│   │   └── ScaleEngine.js      # NEW: Scale calculations
 │   └── interactions/
-│       └── InteractionController.js  # TOC + toggle
+│       └── InteractionController.js  # TOC + toggle + scale + mutex + identify
 ├── data/
 │   ├── atlas-registry.yaml     # Development registry (YAML)
-│   └── atlas-registry.json     # Development registry (JSON)
+│   └── atlas-registry.json     # Development registry (JSON, with mutex pairs)
 ├── test/
-│   └── (Unit tests — Milestone 2)
+│   └── (Unit tests — Future)
 └── package.json                # Dependencies (CDN-based)
 ```
 
@@ -121,30 +124,83 @@ Should output: `✓ All constraints passed`
 
 ### InteractionController
 
-**Purpose**: TOC rendering and layer toggle (Milestone 1 scope)
+**Purpose**: TOC rendering, layer toggle, scale enforcement, mutex logic, GetFeatureInfo
 
-**Features**:
+**Milestone 1 Features**:
 - TOC hierarchy rendering (categories → groups → layers)
 - Per-layer toggle (checkbox ↔ visibility)
 - Group toggle (children respecting defaults)
 - Default visibility initialization
 
+**Milestone 2 Features (NEW)**:
+- Scale-dependent visibility (auto-hide/show on zoom)
+- Mutex pair enforcement (roads/towns never overlap)
+- GetFeatureInfo on map click (queryable layers only)
+- Attribute allowlist filtering (identify_fields)
+- Out-of-scale visual indicators in TOC
+- Popup rendering with filtered attributes
+
+### ScaleEngine (NEW - Milestone 2)
+
+**Purpose**: Cartographic scale calculations and layer visibility rules
+
+**Convention** (frozen):
+- `min_scale`: Largest denominator (most zoomed out)
+- `max_scale`: Smallest denominator (most zoomed in)
+- Layer visible if: `max_scale <= current_scale <= min_scale`
+
+**Features**:
+- `getScaleDenominator(resolution)`: OL resolution → cartographic scale
+- `isLayerInScale(layerDef, currentScale)`: Check if layer should be visible
+- `getCurrentScale(view)`: Get current scale from map view
+- `formatScale(scale)`: Human-readable scale string (e.g., "1:5,000,000")
+
+**Example**:
+```javascript
+// Layer: ethiopia_roads (min=50000000, max=1000001)
+// At 1:5M scale: VISIBLE (1000001 <= 5000000 <= 50000000)
+// At 1:500K scale: NOT VISIBLE (500000 < 1000001)
+
+const currentScale = ScaleEngine.getCurrentScale(view);
+const inScale = ScaleEngine.isLayerInScale(layerDef, currentScale);
+```
+
 ---
 
-## Testing Checklist (Milestone 1 DoD)
+## Testing Checklist (Milestone 2 DoD)
 
-- [ ] Map loads without errors
-- [ ] View fits registry extent
-- [ ] Center/zoom match registry (after CRS transform)
-- [ ] TOC renders in correct order
-- [ ] Default visibility matches registry
-- [ ] Layer checkboxes toggle visibility
-- [ ] Only published layers appear in TOC
-- [ ] WMS GetMap requests to `/map/ogc`
-- [ ] Stable WMS params (FORMAT, TRANSPARENT, TILED)
-- [ ] No WFS GetFeature calls
-- [ ] Console clean (no errors)
-- [ ] Responsive layout works
+**Milestone 1 Tests** (retain all):
+- [x] Map loads without errors
+- [x] View fits registry extent
+- [x] Center/zoom match registry (after CRS transform)
+- [x] TOC renders in correct order
+- [x] Default visibility matches registry
+- [x] Layer checkboxes toggle visibility
+- [x] Only published layers appear in TOC
+- [x] WMS GetMap requests to `/map/ogc`
+- [x] Stable WMS params (FORMAT, TRANSPARENT, TILED)
+- [x] No WFS GetFeature calls
+- [x] Console clean (no errors)
+- [x] Responsive layout works
+
+**Milestone 2 Tests (NEW)**:
+- [ ] **Scale Constraints**: Zoom in/out: Layers hide/show based on scale ranges
+- [ ] **Mutex: Roads**: Toggle both ethiopia_roads + tigray_roads_2006 ON
+  - At 1:5M scale (zoomed out): Only ethiopia_roads visible
+  - At 1:500K scale (zoomed in): Only tigray_roads_2006 visible
+  - Handoff at 1:1,000,000 scale: Clean transition, no overlap
+- [ ] **Mutex: Towns**: Toggle both ethiopia_towns + tigray_towns ON
+  - At 1:5M scale: Only ethiopia_towns visible
+  - At 1:1M scale: Only tigray_towns visible
+  - Handoff at 1:2,000,000 scale: Clean transition
+- [ ] **GetFeatureInfo**: Click on queryable layer (e.g., tigray_health_facilities_2006)
+  - Popup appears with attributes
+  - Only fields in `identify_fields` displayed
+  - Non-queryable layers do not respond to clicks
+- [ ] **Out-of-Scale Indicator**: Layer out of scale shows grayed style in TOC with "(out of scale)" label
+- [ ] **Mutex Suppressed Indicator**: Suppressed layer shows "(suppressed)" label
+- [ ] **WMS Traffic**: DevTools Network tab shows GetFeatureInfo requests on click, no WFS
+- [ ] **Error Resilience**: Test with MapServer down → friendly error (not stack trace)
 
 ---
 

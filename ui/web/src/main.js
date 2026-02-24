@@ -85,7 +85,9 @@ async function initializeApplication(registryPath = 'data/atlas-registry.json') 
       'toc-container',
       layers,
       registry.tocModel,
-      registry.layerDefs
+      registry.layerDefs,
+      mapController,  // Milestone 2: needed for scale monitoring
+      registry.scaleMutexPairs  // Milestone 2: mutex enforcement
     );
     interaction.renderTOC();
     console.log('✓ TOC rendered');
@@ -100,33 +102,62 @@ async function initializeApplication(registryPath = 'data/atlas-registry.json') 
     console.log('');
 
     // ────────────────────────────────────────────────────────────
-    // Step 7: Example: Log WMS requests for debugging
+    // Step 7: Initialize scale monitoring (Milestone 2)
     // ────────────────────────────────────────────────────────────
-    console.log('Step 7: Monitoring WMS requests (check DevTools Network tab)...');
-    console.log('  - Ensure only GetMap requests (no GetFeatureInfo, no GetFeature/WFS)');
-    console.log('  - Verify stable parameters: FORMAT=image/png, TRANSPARENT=true');
-    console.log('  - Scale Mutex (roads/towns) enforcement deferred to Milestone 2');
+    console.log('Step 7: Initializing scale monitoring...');
+    interaction.initializeScaleMonitoring();
+    console.log('✓ Scale monitoring active');
+    console.log(`  - Mutex pairs: ${registry.scaleMutexPairs.length}`);
+    console.log(`  - Scale engine: ${ScaleEngine.name || 'ScaleEngine'}`);
+    console.log('');
+
+    // ────────────────────────────────────────────────────────────
+    // Step 8: Initialize GetFeatureInfo (Milestone 2)
+    // ────────────────────────────────────────────────────────────
+    console.log('Step 8: Initializing GetFeatureInfo...');
+    interaction.initializeGetFeatureInfo(registry.wmsBaseUrl);
+    console.log('✓ GetFeatureInfo enabled');
+    console.log('  - Click queryable layers to view attributes');
+    console.log('  - Attributes filtered by identify_fields allowlist');
+    console.log('');
+
+    // ────────────────────────────────────────────────────────────
+    // Step 9: Log final state
+    // ────────────────────────────────────────────────────────────
+    console.log('Step 9: Monitoring WMS requests (check DevTools Network tab)...');
+    console.log('  - Ensure only GetMap requests for tiles');
+    console.log('  - GetFeatureInfo requests on click (queryable layers only)');
+    console.log('  - No WFS traffic');
     console.log('');
 
     // ────────────────────────────────────────────────────────────
     // Initialization complete
     // ────────────────────────────────────────────────────────────
     console.log('═══════════════════════════════════════════════════════════');
-    console.log('✓ APPLICATION INITIALIZED SUCCESSFULLY');
+    console.log('✓ APPLICATION INITIALIZED SUCCESSFULLY (MILESTONE 2)');
     console.log('═══════════════════════════════════════════════════════════');
     console.log('');
-    console.log('Milestone 1 Definition of Done:');
+    console.log('Milestone 2 Definition of Done:');
     console.log('  ✓ Map loads, view fits registry extent');
     console.log('  ✓ TOC renders in correct order');
     console.log('  ✓ Toggling layers updates visibility');
     console.log('  ✓ Only published layers appear');
     console.log('  ✓ WMS tile requests to services.wms.base_url');
     console.log('  ✓ No WFS network traffic');
-    console.log('  ✗ Identify (GetFeatureInfo) — Deferred to Milestone 2');
-    console.log('  ✗ Scale enforcement — Deferred to Milestone 2');
+    console.log('  ✓ Scale constraints enforced (layers auto-hide/show on zoom)');
+    console.log('  ✓ Mutex pairs enforced (roads/towns never overlap)');
+    console.log('  ✓ GetFeatureInfo on click (queryable layers only)');
+    console.log('  ✓ Attribute allowlist filtering (identify_fields)');
+    console.log('  ✓ Out-of-scale visual indicators in TOC');
     console.log('  ✗ Search UI — Deferred to Phase 3 (search: [] in registry)');
     console.log('');
-    console.log('Next: Test in browser, verify DevTools Network, then Milestone 2');
+    console.log('Test Checklist (Manual):');
+    console.log('  1. Zoom in/out: Roads swap at 1:1M, Towns swap at 1:2M');
+    console.log('  2. Toggle both roads ON: Only in-scale one visible');
+    console.log('  3. Click health facilities: Only allowlisted fields shown');
+    console.log('  4. Out-of-scale layers: TOC shows disabled style');
+    console.log('');
+    console.log('Ready for: Final testing + deployment');
     console.log('');
 
     return {
