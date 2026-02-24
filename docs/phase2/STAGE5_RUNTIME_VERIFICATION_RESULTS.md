@@ -7,13 +7,36 @@
 
 ---
 
+## Important: Runtime Configuration Mount Paths
+
+**CRITICAL**: MapServer configuration and mapfiles are bind-mounted from the repo at runtime. Edits must be made in the repo, not inside the container.
+
+### Source of Truth (Repo Paths)
+
+| File | Mounts To | Mode | Purpose |
+|------|-----------|------|---------|
+| `infra/mapserver/mapfiles/ms.config` | `/etc/mapserver.conf` | Read-only | MapServer CONFIG dict (security patterns, env vars) |
+| `infra/mapserver/mapfiles/` | `/etc/mapserver/` | Read-write | Mapfiles directory (tsird.map, layers_published.map) |
+| `data/` | `/data/` | Read-only | Raster/vector data files (DEM, slope, roads) |
+
+### Editing Workflow
+
+1. **Edit in repo**: Edit files in `infra/mapserver/mapfiles/` or `infra/mapserver/mapfiles/ms.config`
+2. **Restart container**: `docker compose restart tsird-mapserver`
+3. **Container picks up changes**: Bind mount makes new version available immediately
+4. **Verify in logs**: `docker logs tsird-mapserver`
+
+**DO NOT**: Manually edit files inside container (`docker exec ... vi /etc/mapserver.conf`). Changes will be lost on restart.
+
+---
+
 ## Executive Summary
 
 **OVERALL STATUS**: ✅ **PASS** - Stage 5 implementation complete, publication contract enforced
 
 **Stage 5 Implementation Complete**: MapServer mapfiles modularized to enforce `published=true → physical inclusion` contract. GetCapabilities now advertises exactly 12 layers matching registry. Critical discovery: MapServer `STATUS OFF` does NOT prevent GetCapabilities advertising — required physical exclusion strategy.
 
-**Infrastructure Issue Resolved**: ✅ MapServer container health fixed (ms.config mount added to docker-compose.yml, commit c65b868)
+**Infrastructure Issue Resolved**: ✅ MapServer container health fixed (MAPSERVER_CONFIG_FILE env var added to docker-compose.yml, commit 4bddb1c)
 
 **Implementation Summary**:
 - Created production atlas-registry.yaml (39 layers: 12 published, 27 unpublished)

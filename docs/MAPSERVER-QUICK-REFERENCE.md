@@ -1,5 +1,29 @@
 # Quick Reference: MapServer Configuration Changes
 
+## Editor's Note: MS_MAPFILE_PATTERN Configuration
+
+MapServer 8.x uses the directive **`MS_MAPFILE_PATTERN`** (not `MS_MAP_PATTERN`). This pattern is defined in:
+
+**File**: `infra/mapserver/mapfiles/ms.config` (mounted to `/etc/mapserver.conf` at runtime)
+
+```
+CONFIG
+  ENV
+    MS_MAPFILE_PATTERN "^(/mapfiles/|/etc/mapserver/).*\.map$"
+    MS_MAPFILE "/etc/mapserver/tsird.map"
+  END
+END
+```
+
+If you see the warning during MapServer startup:
+```
+Warning 1: Unknown configuration option 'MS_MAP_PATTERN'.
+```
+
+It means the config file still uses the old `MS_MAP_PATTERN` directive. Update it to `MS_MAPFILE_PATTERN`.
+
+---
+
 ## Problem → Solution Summary
 
 | Issue | Solution | Files |
@@ -10,6 +34,7 @@
 | MAP extent using UTM coordinates | Changed to geographic: 33.0 3.0 48.0 15.5 | tsird.map |
 | GetFeatureInfo not queryable | Added `wms_queryable="true"` to all 35 layers | vectors_raw.map |
 | Missing WMS CRS advertisement | Added `wms_srs` to MAP WEB metadata | tsird.map |
+| Unknown config option `MS_MAP_PATTERN` | Changed to `MS_MAPFILE_PATTERN` (MapServer 8.x) | ms.config |
 
 ## Key Configuration Changes
 
