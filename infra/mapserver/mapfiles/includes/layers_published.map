@@ -57,6 +57,33 @@ LAYER
 END
 
 LAYER
+  NAME "tigray_tabias"
+  STATUS ON
+  TYPE POLYGON
+  STATUS ON
+  CONNECTIONTYPE OGR
+  CONNECTION "/data/gold/atlas_4326/TigraiTabiasNew.shp"
+  DATA "TigraiTabiasNew"
+  METADATA
+    "wms_title" "Tigray - Tabias"
+    "wms_srs" "EPSG:3857 EPSG:4326"
+    "wms_enable_request" "*"
+    "wms_queryable" "true"
+    "wms_feature_info_mime_type" "text/plain"
+    "gml_include_items" "TABIA,WEREDA,ZONES,SQ_KM,HECTARES,DENSITY"
+    "wms_include_items" "TABIA,WEREDA,ZONES,SQ_KM,HECTARES,DENSITY"
+  END
+  TEMPLATE "dummy.html"
+  CLASS
+    STYLE
+      OUTLINECOLOR 100 100 100
+      COLOR 220 220 220
+      WIDTH 1
+    END
+  END
+END
+
+LAYER
   NAME "tigray_roads_2006"
   STATUS ON
   TYPE LINE

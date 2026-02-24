@@ -4,14 +4,14 @@ atlas:
   canonical_crs: EPSG:4326
   view_crs: EPSG:3857
   center:
-  - 39.5
-  - 13.5
-  zoom: 7
+  - 38.0
+  - 13.6
+  zoom: 8
   extent:
-  - 33.0
-  - 3.0
-  - 48.0
-  - 15.5
+  - 36.3
+  - 12.2
+  - 40.3
+  - 14.9
 services:
   wms:
     base_url: http://localhost:18080/map/ogc
@@ -26,126 +26,97 @@ ui:
   identify:
     enabled: true
 categories:
-- id: cat_admin
-  label: Administrative Boundaries
+- id: cat_mapelements
+  label: Map Elements
+  closed: false
   groups:
-  - id: grp_admin_national
-    label: National Level
+  - id: grp_sample_grid
+    label: SAMPLE_GRID
+    layers: []
+  - id: grp_credits
+    label: Credits
+    layers: []
+- id: cat_adminRegional
+  label: Administrative (Regional)
+  closed: false
+  groups:
+  - id: grp_regions
+    label: Regions
     layers:
-    - ethiopia_aoi
     - ethiopia_zones
-    - ethiopia_admin
-  - id: grp_admin_subnational
-    label: Subnational Units
+  - id: grp_tigray_woreda_new
+    label: TigrayWoredaNew
     layers:
-    - ethiopia_woredas
     - tigray_woreda
+  - id: grp_tigrai_tabias_new
+    label: TigraiTabiasNew
+    layers:
     - tigray_tabias
-  - id: grp_admin_alternate
-    label: Alternate Datasets
-    layers:
-    - ethiopia_boundary_level1
-    - ethiopia_boundary_level2
-    - ethiopia_boundary_level3
-- id: cat_transport
-  label: Transportation
-  groups:
-  - id: grp_roads_gold
-    label: Roads - Gold
-    layers:
-    - ethiopia_roads
-    - tigray_roads_2006
-  - id: grp_roads_raw
-    label: Roads - Raw Sources
-    layers:
-    - ethiopia_roads_raw
-    - ethiopia_roads_baseline
-    - tigray_roads_2006t
-- id: cat_settlements
-  label: Settlements
-  groups:
   - id: grp_towns
-    label: Towns & Cities
+    label: Towns
     layers:
     - ethiopia_towns
     - tigray_towns
-- id: cat_facilities
-  label: Facilities
+  - id: grp_population_density_2006
+    label: PopulationDensity2006
+    layers: []
+- id: cat_infrastructure
+  label: Infrastructure
+  closed: true
   groups:
-  - id: grp_health
-    label: Health
-    layers:
-    - tigray_health_facilities_2006
-  - id: grp_education
-    label: Education
+  - id: grp_tigray_schools_2006
+    label: TigraySchools2006
     layers:
     - tigray_schools_2006
-- id: cat_topography
-  label: Topography
+  - id: grp_health_institutions
+    label: Health_Institutions
+    layers:
+    - tigray_health_facilities_2006
+  - id: grp_tigray_roads_2006
+    label: TigrayRoadsIn2006
+    layers:
+    - tigray_roads_2006
+  - id: grp_ethiopia_roads_old
+    label: EthiopiaRoadsOld
+    layers:
+    - ethiopia_roads
+  - id: grp_met_stations
+    label: MetStations
+    layers: []
+- id: cat_health
+  label: Health
+  closed: true
+  groups:
+  - id: grp_health_indicators
+    label: Indicators
+    layers: []
+- id: cat_nature
+  label: Nature
+  closed: true
+  groups:
+  - id: grp_nature_baseline
+    label: Baseline
+    layers: []
+- id: cat_raster
+  label: Raster
+  closed: true
   groups:
   - id: grp_elevation
     label: Elevation & DEM
     layers:
     - ethiopia_dem
-    - ethiopia_hillshade
   - id: grp_slope
     label: Slope
     layers:
     - ethiopia_slope
     - ethiopia_slope_rgb
-  - id: grp_contours
-    label: Contours
-    layers:
-    - ethiopia_contour
-    - ethiopia_isoheight
-    - tigray_contour
-- id: cat_hydrology
-  label: Water Resources
+- id: cat_satimages
+  label: Satellite Images
+  closed: true
   groups:
-  - id: grp_basins
-    label: Basins
-    layers:
-    - ethiopia_basins
-    - ethiopia_major_basins
-  - id: grp_waterbodies
-    label: Water Bodies
-    layers:
-    - ethiopia_lakes
-    - ethiopia_wetlands
-  - id: grp_streams
-    label: Rivers & Streams
-    layers:
-    - ethiopia_rivers
-    - ethiopia_streams
-- id: cat_environment
-  label: Environment
-  groups:
-  - id: grp_protected
-    label: Protected Areas
-    layers:
-    - ethiopia_national_parks
-    - ethiopia_national_forests
-  - id: grp_landcover
-    label: Land Cover
-    layers:
-    - ethiopia_ecology
-    - ethiopia_soils
-- id: cat_climate
-  label: Climate
-  groups:
-  - id: grp_rainfall
-    label: Rainfall
-    layers:
-    - ethiopia_rainfall_pattern
-    - ethiopia_rainfall_stations
-- id: cat_reference
-  label: Reference
-  groups:
-  - id: grp_basemaps
-    label: Basemaps
-    layers:
-    - ethiopia_cia_basemap
-    - ethiopia_language
+  - id: grp_satimagery
+    label: Imagery
+    layers: []
 layers:
   ethiopia_aoi:
     wms_name: ethiopia_aoi
@@ -208,12 +179,19 @@ layers:
     wms_name: tigray_tabias
     label: Tigray - Tabias
     type: vector
-    published: false
-    default_visible: false
-    queryable: false
+    published: true
+    default_visible: true
+    queryable: true
     min_scale: 1000000
     max_scale: 10000
-    identify_fields: []
+    identify_fields:
+    - TABIA
+    - WEREDA
+    - ZONES
+    - SQ_KM
+    - HECTARES
+    - DENSITY
+    attribution: "Source: Tigrai Tabias New"
   ethiopia_boundary_level1:
     wms_name: ethiopia_boundary_level1
     label: Level 1 Boundaries
@@ -249,7 +227,7 @@ layers:
     label: Ethiopia - Roads (PostGIS Gold)
     type: vector
     published: true
-    default_visible: true
+    default_visible: false
     queryable: false
     min_scale: 50000000
     max_scale: 1000001
@@ -259,11 +237,12 @@ layers:
     label: Tigray - Roads (2006)
     type: vector
     published: true
-    default_visible: false
+    default_visible: true
     queryable: false
     min_scale: 1000000
     max_scale: 25000
     identify_fields: []
+    attribution: "Source: Tigray Roads 2006 (TSIRD)"
   ethiopia_roads_raw:
     wms_name: ethiopia_roads_raw
     label: Ethiopia Roads (Raw Shapefile)
@@ -299,24 +278,26 @@ layers:
     label: Ethiopia - Towns
     type: vector
     published: true
-    default_visible: false
+    default_visible: true
     queryable: true
     min_scale: 10000000
     max_scale: 2000001
     identify_fields:
     - TOWN_NAME
     - POPULATION
+    attribution: "Source: Ethiopia Towns (EGI)"
   tigray_towns:
     wms_name: tigray_towns
     label: Tigray - Towns
     type: vector
     published: true
-    default_visible: false
+    default_visible: true
     queryable: true
     min_scale: 2000000
     max_scale: 25000
     identify_fields:
     - TOWN_NAME
+    attribution: "Source: Tigray Towns 2006 (TSIRD)"
   tigray_health_facilities_2006:
     wms_name: tigray_health_facilities_2006
     label: Tigray - Health Facilities (2006)
