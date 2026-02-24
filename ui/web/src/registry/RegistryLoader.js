@@ -238,6 +238,7 @@ class RegistryLoader {
       const categoryNode = {
         id: category.id || `cat_${categories.indexOf(category)}`,
         label: category.label || 'Category',
+        closed: category.closed === true,
         groups: []
       };
 
@@ -246,6 +247,7 @@ class RegistryLoader {
         const groupNode = {
           id: group.id || `grp_${groups.indexOf(group)}`,
           label: group.label || 'Group',
+          closed: group.closed === true,
           layers: []
         };
 
@@ -267,16 +269,12 @@ class RegistryLoader {
           }
         }
 
-        // Only add group to TOC if it has layers
-        if (groupNode.layers.length > 0) {
-          categoryNode.groups.push(groupNode);
-        }
+        // Always include group to preserve folder structure
+        categoryNode.groups.push(groupNode);
       }
 
-      // Only add category to TOC if it has groups
-      if (categoryNode.groups.length > 0) {
-        tocModel.push(categoryNode);
-      }
+      // Always include category to preserve folder structure
+      tocModel.push(categoryNode);
     }
 
     // STEP 6: Extract scale mutex pairs

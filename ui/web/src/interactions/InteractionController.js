@@ -36,6 +36,18 @@ class InteractionController {
     layers.forEach(layer => {
       this.userVisibilityState[layer.layerId] = layer.layerDef.default_visible || false;
     });
+
+    this.defaultGroupIds = new Set([
+      'grp_tigrai_tabias_new',
+      'grp_towns',
+      'grp_tigray_roads_2006',
+      'grp_sample_grid',
+      'grp_credits'
+    ]);
+
+    this.creditsPanel = null;
+    this.creditsBody = null;
+    this.creditsList = null;
   }
 
   /**
@@ -58,6 +70,9 @@ class InteractionController {
       container.appendChild(categoryElement);
     }
 
+    // Credits panel (UI-only)
+    this._renderCreditsPanel(container);
+
     console.log('[InteractionController] TOC rendered successfully');
   }
 
@@ -74,20 +89,45 @@ class InteractionController {
     const headerDiv = document.createElement('div');
     headerDiv.className = 'toc-category-header';
 
-    const categoryLabel = document.createElement('h3');
-    categoryLabel.textContent = category.label;
-    headerDiv.appendChild(categoryLabel);
+    const toggle = document.createElement('span');
+    toggle.className = 'toc-toggle';
+    const isCollapsed = category.closed === true;
+    toggle.textContent = isCollapsed ? '+' : '-';
 
+    const categoryLabel = document.createElement('h3');
+    categoryLabel.className = 'toc-category-label';
+    categoryLabel.textContent = category.label;
+
+    headerDiv.appendChild(toggle);
+    headerDiv.appendChild(categoryLabel);
     categoryDiv.appendChild(headerDiv);
 
     // Groups
     const groupsDiv = document.createElement('div');
     groupsDiv.className = 'toc-groups';
 
+    if (isCollapsed) {
+      categoryDiv.classList.add('is-collapsed');
+      groupsDiv.style.display = 'none';
+    }
+
     for (const group of category.groups) {
       const groupElement = this._renderGroup(group);
       groupsDiv.appendChild(groupElement);
     }
+
+    if (category.groups.length === 0) {
+      const emptyNote = document.createElement('div');
+      emptyNote.className = 'toc-empty-note';
+      emptyNote.textContent = '(coming later)';
+      groupsDiv.appendChild(emptyNote);
+    }
+
+    headerDiv.addEventListener('click', () => {
+      const collapsed = categoryDiv.classList.toggle('is-collapsed');
+      groupsDiv.style.display = collapsed ? 'none' : 'block';
+      toggle.textContent = collapsed ? '+' : '-';
+    });
 
     categoryDiv.appendChild(groupsDiv);
     return categoryDiv;
@@ -102,23 +142,44 @@ class InteractionController {
     groupDiv.className = 'toc-group';
     groupDiv.setAttribute('data-group-id', group.id);
 
-    // Group header with checkbox (for group toggle)
+    const groupHasLayers = group.layers.length > 0;
+    const groupHasDefaultVisible = this._groupHasDefaultVisible(group);
+    const isDefaultGroup = groupHasDefaultVisible || this._isDefaultGroup(group);
+
+    if (!isDefaultGroup) {
+      groupDiv.classList.add('is-muted');
+    }
+
+    if (!groupHasLayers) {
+      groupDiv.classList.add('toc-group-empty');
+    }
+
+    // Group header
     const headerDiv = document.createElement('div');
     headerDiv.className = 'toc-group-header';
 
-    const groupCheckbox = document.createElement('input');
-    groupCheckbox.type = 'checkbox';
-    groupCheckbox.className = 'toc-group-checkbox';
-    groupCheckbox.checked = false;  // Default unchecked
-    groupCheckbox.addEventListener('change', (e) => {
-      this._onGroupToggle(group.id, e.target.checked);
-    });
+    let toggle = null;
+    if (groupHasLayers) {
+      toggle = document.createElement('span');
+      toggle.className = 'toc-toggle';
+      headerDiv.appendChild(toggle);
+    }
+
+    if (groupHasLayers) {
+      const groupCheckbox = document.createElement('input');
+      groupCheckbox.type = 'checkbox';
+      groupCheckbox.className = 'toc-group-checkbox';
+      groupCheckbox.checked = false;
+      groupCheckbox.addEventListener('change', (e) => {
+        this._onGroupToggle(group.id, e.target.checked);
+      });
+      groupCheckbox.addEventListener('click', (e) => e.stopPropagation());
+      headerDiv.appendChild(groupCheckbox);
+    }
 
     const groupLabel = document.createElement('label');
     groupLabel.className = 'toc-group-label';
-    groupLabel.textContent = group.label;
-
-    headerDiv.appendChild(groupCheckbox);
+    groupLabel.textContent = groupHasLayers ? group.label : `${group.label} (coming later)`;
     headerDiv.appendChild(groupLabel);
     groupDiv.appendChild(headerDiv);
 
@@ -129,6 +190,28 @@ class InteractionController {
     for (const layerRef of group.layers) {
       const layerElement = this._renderLayer(layerRef, group.id);
       layersDiv.appendChild(layerElement);
+    }
+
+    if (groupHasLayers) {
+      const defaultOpen = group.closed === true ? false : group.closed === false ? true : isDefaultGroup;
+      const isCollapsed = !defaultOpen;
+
+      if (toggle) {
+        toggle.textContent = isCollapsed ? '+' : '-';
+      }
+
+      if (isCollapsed) {
+        groupDiv.classList.add('is-collapsed');
+        layersDiv.style.display = 'none';
+      }
+
+      headerDiv.addEventListener('click', () => {
+        const collapsed = groupDiv.classList.toggle('is-collapsed');
+        layersDiv.style.display = collapsed ? 'none' : 'block';
+        if (toggle) {
+          toggle.textContent = collapsed ? '+' : '-';
+        }
+      });
     }
 
     groupDiv.appendChild(layersDiv);
@@ -146,6 +229,10 @@ class InteractionController {
     const layerDiv = document.createElement('div');
     layerDiv.className = 'toc-layer';
     layerDiv.setAttribute('data-layer-id', layerId);
+
+    if (!layerDef.default_visible) {
+      layerDiv.classList.add('is-muted');
+    }
 
     // Layer checkbox
     const layerCheckbox = document.createElement('input');
@@ -167,6 +254,86 @@ class InteractionController {
     layerDiv.appendChild(layerLabel);
 
     return layerDiv;
+  }
+
+  _groupHasDefaultVisible(group) {
+    return group.layers.some(layerRef => {
+      const layerDef = this.layerDefs[layerRef.id];
+      return layerDef?.default_visible === true;
+    });
+  }
+
+  _isDefaultGroup(group) {
+    return this.defaultGroupIds.has(group.id);
+  }
+
+  _renderCreditsPanel(container) {
+    const panel = document.createElement('div');
+    panel.className = 'toc-credits';
+
+    const header = document.createElement('div');
+    header.className = 'toc-credits-header';
+
+    const toggle = document.createElement('span');
+    toggle.className = 'toc-toggle';
+    toggle.textContent = '-';
+
+    const label = document.createElement('span');
+    label.className = 'toc-credits-label';
+    label.textContent = 'Credits';
+
+    header.appendChild(toggle);
+    header.appendChild(label);
+    panel.appendChild(header);
+
+    const body = document.createElement('div');
+    body.className = 'toc-credits-body';
+
+    const list = document.createElement('ul');
+    list.className = 'toc-credits-list';
+    body.appendChild(list);
+
+    header.addEventListener('click', () => {
+      const collapsed = panel.classList.toggle('is-collapsed');
+      body.style.display = collapsed ? 'none' : 'block';
+      toggle.textContent = collapsed ? '+' : '-';
+    });
+
+    panel.appendChild(body);
+    container.appendChild(panel);
+
+    this.creditsPanel = panel;
+    this.creditsBody = body;
+    this.creditsList = list;
+
+    this._refreshCreditsPanel();
+  }
+
+  _refreshCreditsPanel() {
+    if (!this.creditsList) return;
+
+    const attributions = new Set();
+    this.layers.forEach(layer => {
+      if (layer.getVisible() && layer.layerDef?.attribution) {
+        attributions.add(layer.layerDef.attribution);
+      }
+    });
+
+    this.creditsList.innerHTML = '';
+
+    if (attributions.size === 0) {
+      const emptyItem = document.createElement('li');
+      emptyItem.className = 'toc-credits-empty';
+      emptyItem.textContent = 'No attributions provided.';
+      this.creditsList.appendChild(emptyItem);
+      return;
+    }
+
+    for (const item of attributions) {
+      const li = document.createElement('li');
+      li.textContent = item;
+      this.creditsList.appendChild(li);
+    }
   }
 
   /**
@@ -229,6 +396,7 @@ class InteractionController {
     if (!userWantsVisible) {
       layer.setVisible(false);
       this._updateLayerCheckboxState(layerId, false, null);
+      this._refreshCreditsPanel();
       return;
     }
 
@@ -240,6 +408,7 @@ class InteractionController {
       layer.setVisible(false);
       this._updateLayerCheckboxState(layerId, false, 'out-of-scale');
       console.log(`[InteractionController] ${layerId}: OUT OF SCALE (${ScaleEngine.formatScale(currentScale)})`);
+      this._refreshCreditsPanel();
       return;
     }
 
@@ -249,12 +418,14 @@ class InteractionController {
       layer.setVisible(false);
       this._updateLayerCheckboxState(layerId, false, 'mutex-suppressed');
       console.log(`[InteractionController] ${layerId}: SUPPRESSED by mutex pair with ${mutexBlocker}`);
+      this._refreshCreditsPanel();
       return;
     }
 
     // All constraints satisfied: show layer
     layer.setVisible(true);
     this._updateLayerCheckboxState(layerId, true, null);
+    this._refreshCreditsPanel();
     console.log(`[InteractionController] ${layerId}: VISIBLE`);
   }
 

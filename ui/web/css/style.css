@@ -116,6 +116,29 @@ header h1 {
   letter-spacing: 0.5px;
 }
 
+.toc-category-header {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.toc-category-label {
+  margin: 0 0 8px 0;
+}
+
+.toc-toggle {
+  display: inline-block;
+  width: 14px;
+  text-align: center;
+  font-weight: 700;
+  color: #777;
+  margin-right: 6px;
+}
+
+.toc-category.is-collapsed .toc-groups {
+  display: none;
+}
+
 .toc-groups {
   margin-left: 0;
 }
@@ -152,6 +175,29 @@ header h1 {
   flex: 1;
 }
 
+.toc-group.is-muted .toc-group-label {
+  font-size: 12px;
+  color: #777;
+  font-weight: 400;
+}
+
+.toc-group.is-collapsed .toc-layers {
+  display: none;
+}
+
+.toc-group-empty .toc-group-label {
+  font-size: 12px;
+  color: #999;
+  font-style: italic;
+  cursor: default;
+}
+
+.toc-empty-note {
+  font-size: 12px;
+  color: #999;
+  margin-left: 20px;
+}
+
 .toc-layers {
   margin-top: 4px;
   margin-left: 0;
@@ -183,6 +229,54 @@ header h1 {
   font-size: 13px;
   cursor: pointer;
   flex: 1;
+}
+
+.toc-layer.is-muted .toc-layer-label {
+  font-size: 12px;
+  color: #777;
+}
+
+/* ─────────────────────────────────────── */
+/* Credits Panel */
+/* ─────────────────────────────────────── */
+
+.toc-credits {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--color-border);
+}
+
+.toc-credits-header {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.toc-credits-label {
+  flex: 1;
+}
+
+.toc-credits-body {
+  margin-top: 8px;
+}
+
+.toc-credits-list {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 12px;
+  color: #666;
+}
+
+.toc-credits-list li {
+  margin-bottom: 4px;
+}
+
+.toc-credits-empty {
+  color: #999;
+  font-style: italic;
 }
 
 /* ─────────────────────────────────────── */

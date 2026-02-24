@@ -105,6 +105,13 @@ MapServer Publication
 - **Safety Guard**: RegistryLoader warns if `base_url` is relative (e.g., `/map/ogc`) and auto-resolves in dev mode
 - **Verification**: Check DevTools Network tab → WMS GetMap requests should target MapServer port (18080), not frontend port (8001)
 
+**Phase 2 v1 Default View + TOC Folder Behavior**
+- Default map view is Tigray-focused (center/extent in `atlas-registry.yaml`).
+- TOC always renders full category/group folder structure, even when groups are empty.
+- Categories start collapsed except Map Elements + Administrative (Regional).
+- Default-visible layers: Tabias, Towns, Tigray Roads 2006; others start OFF and de-emphasized.
+- Credits panel is UI-only and lists attribution text from registry for currently visible layers.
+
 ### System Status
 
 **Operational**
