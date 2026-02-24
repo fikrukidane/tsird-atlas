@@ -80,7 +80,8 @@ class LayerFactory {
         'STYLES': ''  // Default/empty
       },
       serverType: 'mapserver',  // MapServer-specific optimizations
-      ratio: 1  // Request image at exact viewport size (no over-request)
+      ratio: 1,  // Request image at exact viewport size (no over-request)
+      wmsVersion: '1.3.0'  // Enable proper EPSG:4326 axis order handling (lat,lon for geographic)
     });
 
     // Custom image load function to enforce MapServer dimension constraints
