@@ -32,8 +32,9 @@ MAP
     POINTS 0 0 0 1 1 1 1 0 0 0 END
   END
 
-  INCLUDE "includes/vectors_gold.map"
+  INCLUDE "includes/layers_published.map"
 
+  # PostGIS Gold Layers (main mapfile)
   LAYER
   NAME "ethiopia_roads"
   TYPE LINE
@@ -43,7 +44,7 @@ MAP
   END
   CONNECTIONTYPE POSTGIS
   # NOTE: Replace YOUR_DB_PASSWORD with actual password from .env.tsird
-  CONNECTION "host=tsird-postgis dbname=tsird user=tsird password=YOUR_DB_PASSWORD port=5432"
+  CONNECTION "host=tsird-postgis dbname=tsird user=tsird password=change_me_strong port=5432"
 
   # Roads stored in EPSG:4326, MapServer will handle reprojection
   DATA "geom FROM gold.roads USING UNIQUE road_id USING SRID=4326"
@@ -71,7 +72,7 @@ END
   END
   CONNECTIONTYPE POSTGIS
   # NOTE: Replace YOUR_DB_PASSWORD with actual password from .env.tsird
-  CONNECTION "host=tsird-postgis dbname=tsird user=tsird password=YOUR_DB_PASSWORD port=5432"
+  CONNECTION "host=tsird-postgis dbname=tsird user=tsird password=change_me_strong port=5432"
   DATA "geom FROM gold.aoi_ethiopia USING UNIQUE aoi_id USING SRID=4326"
   METADATA
     "wms_title" "Area of Interest"
@@ -149,58 +150,11 @@ END
   END
   END
 
-  LAYER
-  NAME "ethiopia_cia_basemap"
-  TYPE RASTER
-  STATUS OFF
-  PROJECTION
-    "init=epsg:3857"
-  END
-  DATA "/data/gold/rasters_web/cia_basemap_3857.tif"
-  METADATA
-    "wms_title" "CIA Basemap"
-    "wms_enable_request" "*"
-    "wms_srs" "EPSG:3857 EPSG:4326"
-  END
-  END
-
-  LAYER
-  NAME "ethiopia_language"
-  TYPE RASTER
-  STATUS OFF
-  PROJECTION
-    "init=epsg:3857"
-  END
-  DATA "/data/gold/rasters_web/ethiopia_language_3857.tif"
-  METADATA
-    "wms_title" "Ethiopia Language Map"
-    "wms_enable_request" "*"
-    "wms_srs" "EPSG:3857 EPSG:4326"
-  END
-  END
-
-  LAYER
-  NAME "ethiopia_hillshade"
-  TYPE RASTER
-  STATUS OFF
-  PROJECTION
-    "init=epsg:3857"
-  END
-  DATA "/data/gold/rasters_web/ethiopia_hillshade_3857.tif"
-  METADATA
-    "wms_title" "Ethiopia Hillshade"
-    "wms_enable_request" "*"
-    "wms_srs" "EPSG:3857 EPSG:4326"
-  END
-  END
-
-# Changelog (2026-02-17)
-# - Standardized WMS layer IDs:
-#   roads -> ethiopia_roads
-#   aoi -> ethiopia_aoi
-#   dem -> ethiopia_dem
-#   slope -> ethiopia_slope
-#   slope_rgb -> ethiopia_slope_rgb
-# - Added new raster layers: ethiopia_cia_basemap, ethiopia_language, ethiopia_hillshade
-
 END
+
+# Changelog
+# 2026-02-24: Stage 5 - Enforced publication contract (R5.1)
+#   - Created layers_published.map with ONLY published layers
+#   - Removed 3 unpublished raster layers (ethiopia_cia_basemap, ethiopia_language, ethiopia_hillshade)
+#   - Total published: 12 layers (7 from layers_published.map + 5 in main mapfile)
+# 2026-02-17: Standardized WMS layer IDs

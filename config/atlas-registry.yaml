@@ -1,0 +1,535 @@
+# TSIRD Atlas Registry - Production (Phase 2 Stage 5)
+# Schema: CONFIG_MODEL.md | Validator: tools/validate_registry.py
+# Last Updated: 2026-02-24
+# Layers: 39 (12 published, 27 unpublished archived)
+
+---
+atlas:
+  title: "TSIRD Atlas v2.0"
+  canonical_crs: "EPSG:4326"
+  view_crs: "EPSG:3857"
+  center: [39.5, 13.5]
+  zoom: 7
+  extent: [33.0, 3.0, 48.0, 15.5]
+
+services:
+  wms:
+    base_url: "/map/ogc"
+    allowed_requests:
+      - "GetCapabilities"
+      - "GetMap"
+      - "GetFeatureInfo"
+
+categories:
+  - id: "cat_admin"
+    label: "Administrative Boundaries"
+    groups:
+      - id: "grp_admin_national"
+        label: "National Level"
+        layers:
+          - id: "ethiopia_aoi"
+            wms_name: "ethiopia_aoi"
+            label: "Ethiopia - Area of Interest"
+            type: "vector"
+            published: true
+            default_visible: false
+            queryable: false
+            min_scale: 50000000
+            max_scale: 10000
+            identify_fields: []
+          
+          - id: "ethiopia_zones"
+            wms_name: "ethiopia_zones"
+            label: "Ethiopia - Administrative Zones"
+            type: "vector"
+            published: true
+            default_visible: false
+            queryable: true
+            min_scale: 20000000
+            max_scale: 100000
+            identify_fields: ["ZONES", "AREA", "PERIMETER"]
+          
+          - id: "ethiopia_admin"
+            wms_name: "ethiopia_admin"
+            label: "Ethiopia - Admin Regions"
+            type: "vector"
+            published: false
+            default_visible: false
+            queryable: false
+            min_scale: 50000000
+            max_scale: 10000
+            identify_fields: []
+      
+      - id: "grp_admin_subnational"
+        label: "Subnational Units"
+        layers:
+          - id: "ethiopia_woredas"
+            wms_name: "ethiopia_woredas"
+            label: "Ethiopia - Woredas"
+            type: "vector"
+            published: true
+            default_visible: false
+            queryable: true
+            min_scale: 10000000
+            max_scale: 50000
+            identify_fields: ["W_NAME", "REGION_R2I", "Area_km2", "Pop_04"]
+          
+          - id: "tigray_woreda"
+            wms_name: "tigray_woreda"
+            label: "Tigray - Woredas"
+            type: "vector"
+            published: false
+            default_visible: false
+            queryable: false
+            min_scale: 5000000
+            max_scale: 50000
+            identify_fields: []
+          
+          - id: "tigray_tabias"
+            wms_name: "tigray_tabias"
+            label: "Tigray - Tabias"
+            type: "vector"
+            published: false
+            default_visible: false
+            queryable: false
+            min_scale: 1000000
+            max_scale: 10000
+            identify_fields: []
+      
+      - id: "grp_admin_alternate"
+        label: "Alternate Datasets"
+        layers:
+          - id: "ethiopia_boundary_level1"
+            wms_name: "ethiopia_boundary_level1"
+            label: "Level 1 Boundaries"
+            type: "vector"
+            published: false
+            default_visible: false
+            queryable: false
+            min_scale: 50000000
+            max_scale: 10000
+            identify_fields: []
+          
+          - id: "ethiopia_boundary_level2"
+            wms_name: "ethiopia_boundary_level2"
+            label: "Level 2 Boundaries"
+            type: "vector"
+            published: false
+            default_visible: false
+            queryable: false
+            min_scale: 50000000
+            max_scale: 10000
+            identify_fields: []
+          
+          - id: "ethiopia_boundary_level3"
+            wms_name: "ethiopia_boundary_level3"
+            label: "Level 3 Boundaries"
+            type: "vector"
+            published: false
+            default_visible: false
+            queryable: false
+            min_scale: 50000000
+            max_scale: 10000
+            identify_fields: []
+
+  - id: "cat_transport"
+    label: "Transportation"
+    groups:
+      - id: "grp_roads_gold"
+        label: "Roads - Gold"
+        layers:
+          - id: "ethiopia_roads"
+            wms_name: "ethiopia_roads"
+            label: "Ethiopia - Roads (PostGIS Gold)"
+            type: "vector"
+            published: true
+            default_visible: true
+            queryable: false
+            min_scale: 50000000
+            max_scale: 50000
+            identify_fields: []
+          
+          - id: "tigray_roads_2006"
+            wms_name: "tigray_roads_2006"
+            label: "Tigray - Roads (2006)"
+            type: "vector"
+            published: true
+            default_visible: false
+            queryable: false
+            min_scale: 10000000
+            max_scale: 25000
+            identify_fields: []
+      
+      - id: "grp_roads_raw"
+        label: "Roads - Raw Sources"
+        layers:
+          - id: "ethiopia_roads_raw"
+            wms_name: "ethiopia_roads_raw"
+            label: "Ethiopia Roads (Raw Shapefile)"
+            type: "vector"
+            published: false
+            default_visible: false
+            queryable: false
+            min_scale: 50000000
+            max_scale: 50000
+            identify_fields: []
+          
+          - id: "ethiopia_roads_baseline"
+            wms_name: "ethiopia_roads_baseline"
+            label: "Ethiopia Roads (Baseline)"
+            type: "vector"
+            published: false
+            default_visible: false
+            queryable: false
+            min_scale: 50000000
+            max_scale: 50000
+            identify_fields: []
+          
+          - id: "tigray_roads_2006t"
+            wms_name: "tigray_roads_2006t"
+            label: "Tigray Roads 2006 (Alt)"
+            type: "vector"
+            published: false
+            default_visible: false
+            queryable: false
+            min_scale: 10000000
+            max_scale: 25000
+            identify_fields: []
+
+  - id: "cat_settlements"
+    label: "Settlements"
+    groups:
+      - id: "grp_towns"
+        label: "Towns & Cities"
+        layers:
+          - id: "ethiopia_towns"
+            wms_name: "ethiopia_towns"
+            label: "Ethiopia - Towns"
+            type: "vector"
+            published: true
+            default_visible: false
+            queryable: true
+            min_scale: 10000000
+            max_scale: 50000
+            identify_fields: ["TOWN_NAME", "POPULATION"]
+          
+          - id: "tigray_towns"
+            wms_name: "tigray_towns"
+            label: "Tigray - Towns"
+            type: "vector"
+            published: true
+            default_visible: false
+            queryable: true
+            min_scale: 5000000
+            max_scale: 25000
+            identify_fields: ["TOWN_NAME"]
+
+  - id: "cat_facilities"
+    label: "Facilities"
+    groups:
+      - id: "grp_health"
+        label: "Health"
+        layers:
+          - id: "tigray_health_facilities_2006"
+            wms_name: "tigray_health_facilities_2006"
+            label: "Tigray - Health Facilities (2006)"
+            type: "vector"
+            published: true
+            default_visible: false
+            queryable: true
+            min_scale: 5000000
+            max_scale: 25000
+            identify_fields: ["NAME", "TYPE", "WOREDA"]
+      
+      - id: "grp_education"
+        label: "Education"
+        layers:
+          - id: "tigray_schools_2006"
+            wms_name: "tigray_schools_2006"
+            label: "Tigray - Schools (2006)"
+            type: "vector"
+            published: true
+            default_visible: false
+            queryable: true
+            min_scale: 5000000
+            max_scale: 25000
+            identify_fields: ["NAME", "TYPE", "WOREDA"]
+
+  - id: "cat_topography"
+    label: "Topography"
+    groups:
+      - id: "grp_elevation"
+        label: "Elevation & DEM"
+        layers:
+          - id: "ethiopia_dem"
+            wms_name: "ethiopia_dem"
+            label: "Ethiopia - DEM"
+            type: "raster"
+            published: true
+            default_visible: false
+            queryable: false
+            min_scale: 50000000
+            max_scale: 50000
+            identify_fields: []
+          
+          - id: "ethiopia_hillshade"
+            wms_name: "ethiopia_hillshade"
+            label: "Ethiopia - Hillshade"
+            type: "raster"
+            published: false
+            default_visible: false
+            queryable: false
+            min_scale: 50000000
+            max_scale: 50000
+            identify_fields: []
+      
+      - id: "grp_slope"
+        label: "Slope"
+        layers:
+          - id: "ethiopia_slope"
+            wms_name: "ethiopia_slope"
+            label: "Ethiopia - Slope (Grayscale)"
+            type: "raster"
+            published: true
+            default_visible: false
+            queryable: false
+            min_scale: 50000000
+            max_scale: 50000
+            identify_fields: []
+          
+          - id: "ethiopia_slope_rgb"
+            wms_name: "ethiopia_slope_rgb"
+            label: "Ethiopia - Slope (RGB)"
+            type: "raster"
+            published: true
+            default_visible: false
+            queryable: false
+            min_scale: 50000000
+            max_scale: 50000
+            identify_fields: []
+      
+      - id: "grp_contours"
+        label: "Contours"
+        layers:
+          - id: "ethiopia_contour"
+            wms_name: "ethiopia_contour"
+            label: "Ethiopia - Contours"
+            type: "vector"
+            published: false
+            default_visible: false
+            queryable: false
+            min_scale: 5000000
+            max_scale: 25000
+            identify_fields: []
+          
+          - id: "ethiopia_isoheight"
+            wms_name: "ethiopia_isoheight"
+            label: "Ethiopia - Isoheight"
+            type: "vector"
+            published: false
+            default_visible: false
+            queryable: false
+            min_scale: 5000000
+            max_scale: 25000
+            identify_fields: []
+          
+          - id: "tigray_contour"
+            wms_name: "tigray_contour"
+            label: "Tigray - Contours"
+            type: "vector"
+            published: false
+            default_visible: false
+            queryable: false
+            min_scale: 2000000
+            max_scale: 25000
+            identify_fields: []
+
+  - id: "cat_hydrology"
+    label: "Water Resources"
+    groups:
+      - id: "grp_basins"
+        label: "Basins"
+        layers:
+          - id: "ethiopia_basins"
+            wms_name: "ethiopia_basins"
+            label: "Ethiopia - Basins"
+            type: "vector"
+            published: false
+            default_visible: false
+            queryable: false
+            min_scale: 50000000
+            max_scale: 100000
+            identify_fields: []
+          
+          - id: "ethiopia_major_basins"
+            wms_name: "ethiopia_major_basins"
+            label: "Ethiopia - Major Basins"
+            type: "vector"
+            published: false
+            default_visible: false
+            queryable: false
+            min_scale: 50000000
+            max_scale: 100000
+            identify_fields: []
+      
+      - id: "grp_waterbodies"
+        label: "Water Bodies"
+        layers:
+          - id: "ethiopia_lakes"
+            wms_name: "ethiopia_lakes"
+            label: "Ethiopia - Lakes"
+            type: "vector"
+            published: false
+            default_visible: false
+            queryable: false
+            min_scale: 20000000
+            max_scale: 50000
+            identify_fields: []
+          
+          - id: "ethiopia_wetlands"
+            wms_name: "ethiopia_wetlands"
+            label: "Ethiopia - Wetlands"
+            type: "vector"
+            published: false
+            default_visible: false
+            queryable: false
+            min_scale: 10000000
+            max_scale: 50000
+            identify_fields: []
+      
+      - id: "grp_streams"
+        label: "Rivers & Streams"
+        layers:
+          - id: "ethiopia_rivers"
+            wms_name: "ethiopia_rivers"
+            label: "Ethiopia - Rivers"
+            type: "vector"
+            published: false
+            default_visible: false
+            queryable: false
+            min_scale: 50000000
+            max_scale: 100000
+            identify_fields: []
+          
+          - id: "ethiopia_streams"
+            wms_name: "ethiopia_streams"
+            label: "Ethiopia - Streams"
+            type: "vector"
+            published: false
+            default_visible: false
+            queryable: false
+            min_scale: 10000000
+            max_scale: 50000
+            identify_fields: []
+
+  - id: "cat_environment"
+    label: "Environment"
+    groups:
+      - id: "grp_protected"
+        label: "Protected Areas"
+        layers:
+          - id: "ethiopia_national_parks"
+            wms_name: "ethiopia_national_parks"
+            label: "Ethiopia - National Parks"
+            type: "vector"
+            published: false
+            default_visible: false
+            queryable: false
+            min_scale: 50000000
+            max_scale: 100000
+            identify_fields: []
+          
+          - id: "ethiopia_national_forests"
+            wms_name: "ethiopia_national_forests"
+            label: "Ethiopia - National Forests"
+            type: "vector"
+            published: false
+            default_visible: false
+            queryable: false
+            min_scale: 50000000
+            max_scale: 100000
+            identify_fields: []
+      
+      - id: "grp_landcover"
+        label: "Land Cover"
+        layers:
+          - id: "ethiopia_ecology"
+            wms_name: "ethiopia_ecology"
+            label: "Ethiopia - Ecology"
+            type: "vector"
+            published: false
+            default_visible: false
+            queryable: false
+            min_scale: 50000000
+            max_scale: 100000
+            identify_fields: []
+          
+          - id: "ethiopia_soils"
+            wms_name: "ethiopia_soils"
+            label: "Ethiopia - Soils"
+            type: "vector"
+            published: false
+            default_visible: false
+            queryable: false
+            min_scale: 20000000
+            max_scale: 100000
+            identify_fields: []
+
+  - id: "cat_climate"
+    label: "Climate"
+    groups:
+      - id: "grp_rainfall"
+        label: "Rainfall"
+        layers:
+          - id: "ethiopia_rainfall_pattern"
+            wms_name: "ethiopia_rainfall_pattern"
+            label: "Ethiopia - Rainfall Patterns"
+            type: "vector"
+            published: false
+            default_visible: false
+            queryable: false
+            min_scale: 50000000
+            max_scale: 100000
+            identify_fields: []
+          
+          - id: "ethiopia_rainfall_stations"
+            wms_name: "ethiopia_rainfall_stations"
+            label: "Ethiopia - Rainfall Stations"
+            type: "vector"
+            published: false
+            default_visible: false
+            queryable: false
+            min_scale: 20000000
+            max_scale: 50000
+            identify_fields: []
+
+  - id: "cat_reference"
+    label: "Reference"
+    groups:
+      - id: "grp_basemaps"
+        label: "Basemaps"
+        layers:
+          - id: "ethiopia_cia_basemap"
+            wms_name: "ethiopia_cia_basemap"
+            label: "Ethiopia - CIA Basemap"
+            type: "raster"
+            published: false
+            default_visible: false
+            queryable: false
+            min_scale: 50000000
+            max_scale: 50000
+            identify_fields: []
+          
+          - id: "ethiopia_language"
+            wms_name: "ethiopia_language"
+            label: "Ethiopia - Language Map"
+            type: "raster"
+            published: false
+            default_visible: false
+            queryable: false
+            min_scale: 50000000
+            max_scale: 100000
+            identify_fields: []
+
+rules:
+  scale_mutex_pairs: []

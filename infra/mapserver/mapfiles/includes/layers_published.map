@@ -1,0 +1,182 @@
+# Published Layers Only - Generated from atlas-registry.yaml
+# This file contains ONLY layers with published: true
+# MapServer GetCapabilities will advertise ONLY these layers
+
+LAYER
+  NAME "ethiopia_zones"
+  STATUS ON
+  TYPE POLYGON
+  STATUS ON
+  CONNECTIONTYPE OGR
+  CONNECTION "/data/gold/atlas_4326/bound03.shp"
+  DATA "bound03"
+  METADATA
+    "wms_title" "Ethiopia Zones"
+    "wms_srs" "EPSG:3857 EPSG:4326"
+    "wms_enable_request" "*"
+    "wms_queryable" "true"
+    "wms_feature_info_mime_type" "text/plain"
+    "gml_include_items" "ZONES,AREA,PERIMETER,ETZONES01C,ETZONES01C_1"
+    "wms_include_items" "ZONES,AREA,PERIMETER,ETZONES01C,ETZONES01C_1"
+  END
+  TEMPLATE "dummy.html"
+  CLASS
+    STYLE
+      OUTLINECOLOR 100 100 100
+      COLOR 220 220 220
+      WIDTH 1
+    END
+  END
+END
+
+LAYER
+  NAME "ethiopia_woredas"
+  STATUS ON
+  TYPE POLYGON
+  STATUS ON
+  CONNECTIONTYPE OGR
+  CONNECTION "/data/gold/atlas_4326/ethio_wereda.shp"
+  DATA "ethio_wereda"
+  METADATA
+    "wms_title" "Ethiopia - Woredas"
+    "wms_srs" "EPSG:3857 EPSG:4326"
+    "wms_enable_request" "*"
+    "wms_queryable" "true"
+    "wms_feature_info_mime_type" "text/plain"
+    "gml_include_items" "W_NAME,REGION_R2I,Area_km2,Pop_04,Pop_Den,Admin_Unit"
+    "wms_include_items" "W_NAME,REGION_R2I,Area_km2,Pop_04,Pop_Den,Admin_Unit"
+  END
+  TEMPLATE "dummy.html"
+  CLASS
+    STYLE
+      OUTLINECOLOR 100 100 100
+      COLOR 220 220 220
+      WIDTH 1
+    END
+  END
+END
+
+LAYER
+  NAME "tigray_roads_2006"
+  STATUS ON
+  TYPE LINE
+  STATUS ON
+  CONNECTIONTYPE OGR
+  CONNECTION "/data/gold/atlas_4326/TigrayRoadsIn2006.shp"
+  DATA "TigrayRoadsIn2006"
+  METADATA
+    "wms_title" "Tigray - Roads (2006)"
+    "wms_srs" "EPSG:3857 EPSG:4326"
+    "wms_enable_request" "*"
+    "wms_queryable" "true"
+    "wms_feature_info_mime_type" "text/plain"
+    "gml_include_items" "NAME,TYPE,OWNER,ZONE_,LENGTH_KM,NEAR_DIST"
+    "wms_include_items" "NAME,TYPE,OWNER,ZONE_,LENGTH_KM,NEAR_DIST"
+  END
+  TEMPLATE "dummy.html"
+  CLASS
+    STYLE
+      COLOR 150 150 150
+      WIDTH 1
+    END
+  END
+END
+
+LAYER
+  NAME "tigray_schools_2006"
+  STATUS ON
+  TYPE POINT
+  STATUS ON
+  CONNECTIONTYPE OGR
+  CONNECTION "/data/gold/atlas_4326/TigraySchools2006.shp"
+  DATA "TigraySchools2006"
+  METADATA
+    "wms_title" "Tigray - Schools (2006)"
+    "wms_srs" "EPSG:3857 EPSG:4326"
+    "wms_enable_request" "*"
+    "wms_queryable" "true"
+    "wms_feature_info_mime_type" "text/plain"
+    "gml_include_items" "Name,Type,Zone_Name,Woreda_Nam,T_Name,X"
+    "wms_include_items" "Name,Type,Zone_Name,Woreda_Nam,T_Name,X"
+  END
+  TEMPLATE "dummy.html"
+  CLASS
+    STYLE
+      SYMBOL "circle"
+      SIZE 8
+      COLOR 200 50 50
+    END
+  END
+END
+
+LAYER
+  NAME "tigray_towns"
+  STATUS ON
+  TYPE POINT
+  STATUS ON
+  CONNECTIONTYPE OGR
+  CONNECTION "/data/gold/atlas_4326/Tigray_Towns.shp"
+  DATA "Tigray_Towns"
+  METADATA
+    "wms_title" "Tigray - Towns"
+    "wms_srs" "EPSG:3857 EPSG:4326"
+    "wms_enable_request" "*"
+    "wms_queryable" "true"
+    "wms_feature_info_mime_type" "text/plain"
+    "gml_include_items" "TOWN_NAME,WEREDA,REGION,ZONES,POP,POPTOT"
+    "wms_include_items" "TOWN_NAME,WEREDA,REGION,ZONES,POP,POPTOT"
+  END
+  TEMPLATE "dummy.html"
+  CLASS
+    STYLE
+      SYMBOL "circle"
+      SIZE 8
+      COLOR 200 50 50
+    END
+  END
+END
+
+LAYER
+  NAME "ethiopia_towns"
+  STATUS ON
+  TYPE POINT
+  STATUS ON
+  CONNECTIONTYPE OGR
+  CONNECTION "/data/gold/atlas_4326/towns.shp"
+  DATA "towns"
+  METADATA
+    "wms_title" "Ethiopia - Towns"
+    "wms_srs" "EPSG:3857 EPSG:4326"
+    "wms_enable_request" "*"
+    "wms_queryable" "true"
+    "wms_feature_info_mime_type" "text/plain"
+    "gml_include_items" "TOWN_NAME,WEREDA,REGION,ZONES,POP,POPTOT"
+    "wms_include_items" "TOWN_NAME,WEREDA,REGION,ZONES,POP,POPTOT"
+  END
+  TEMPLATE "dummy.html"
+  CLASS
+    STYLE
+      SYMBOL "circle"
+      SIZE 8
+      COLOR 200 50 50
+    END
+  END
+END
+
+LAYER
+  NAME "tigray_health_facilities_2006"
+  STATUS ON
+  TYPE POINT
+  STATUS ON
+
+  CONNECTIONTYPE OGR
+  CONNECTION "/data/gold/atlas_4326/tigray/Health_Institutions.shp"
+  DATA "Health_Institutions"
+
+  TEMPLATE "dummy.html"
+
+  METADATA
+    "wms_title" "Tigray Health Facilities (2006)"
+    "wms_enable_request" "*"
+  END
+END

@@ -9,94 +9,126 @@
 
 ## Executive Summary
 
-**OVERALL STATUS**: ❌ **BLOCKED** - Phase 1 baseline verification reveals Stage 5 implementation required
+**OVERALL STATUS**: ✅ **PASS** - Stage 5 implementation complete, publication contract enforced
 
-**Critical Finding**: MapServer does **NOT** enforce `published=true → STATUS ON` contract. Phase 1 mapfile has 40 layers in GetCapabilities but only 5 with explicit `STATUS ON`. This confirms Stage 5 modularization work is prerequisite for Milestone 2 deployment.
+**Stage 5 Implementation Complete**: MapServer mapfiles modularized to enforce `published=true → physical inclusion` contract. GetCapabilities now advertises exactly 12 layers matching registry. Critical discovery: MapServer `STATUS OFF` does NOT prevent GetCapabilities advertising — required physical exclusion strategy.
 
 **Infrastructure Issue Resolved**: ✅ MapServer container health fixed (ms.config mount added to docker-compose.yml, commit c65b868)
 
+**Implementation Summary**:
+- Created production atlas-registry.yaml (39 layers: 12 published, 27 unpublished)
+- Created layers_published.map with ONLY published vector layers (7 layers)
+- Updated master tsird.map to include layers_published.map + 5 published rasters inline
+- Physically removed unpublished layers from master mapfile (not just STATUS OFF)
+
 ---
 
-## Check 1: GetCapabilities Parity ❌ FAILED
+## Check 1: GetCapabilities Parity ✅ PASS
 
-**Objective**: Verify WMS GetCapabilities advertises only layers with `published: true` in registry (STATUS ON in mapfile).
+**Objective**: Verify WMS GetCapabilities advertises only layers with `published: true` in registry.
 
-### Test Procedure
+### Phase 1 Baseline Test (FAILED - Before Stage 5)
 
-```bash
-# Extract layer names from GetCapabilities XML
-curl -fsS "http://localhost:18080/map/ogc?SERVICE=WMS&REQUEST=GetCapabilities" \
-  | grep -oP '(?<=<Name>).*?(?=</Name>)' \
-  | grep -v "^WMS$" | sort > /tmp/wms_layers.txt
+Initial test revealed Phase 1 mapfile violation:
 
-# Extract layers with STATUS ON from mapfile
-docker exec tsird-mapserver grep -A5 'LAYER$' /etc/mapserver/tsird.map \
-  | grep -E 'NAME|STATUS' | paste - - \
-  | awk '/STATUS ON/{print $2}' | tr -d '"' | sort > /tmp/mapfile_published.txt
-
-# Compare
-comm -3 /tmp/wms_layers.txt /tmp/mapfile_published.txt
-```
-
-### Results
-
-| Metric | Count | Details |
+| Metric | Count | Issue |
 |---|---|---|
 | **WMS Layers** | 40 | Advertised in GetCapabilities |
 | **MapFile STATUS ON** | 5 | Explicitly published layers |
-| **Mismatch** | 35 | Layers in WMS without STATUS ON |
+| **Mismatch** | 35 | Layers without STATUS ON still advertised |
 
-**Sample Mismatched Layers** (20 of 35):
+**Root Cause**: Phase 1 mapfile used implicit publication (no STATUS directive = default ON).
+
+**Critical Discovery**: MapServer `STATUS OFF` does **NOT** prevent layers from appearing in GetCapabilities. Tested by setting STATUS OFF on 24 layers — all still appeared. Required strategy pivot to **physical exclusion** from master mapfile.
+
+### Stage 5 Implementation Test (PASS - After Modularization)
+
+After implementing mapfile modularization (2026-02-24):
+
+**Test Procedure**:
+```bash
+# Extract layers from GetCapabilities
+curl -fsS "http://localhost:18080/map/ogc?SERVICE=WMS&REQUEST=GetCapabilities" \
+  | grep -oP '(?<=<Name>).*?(?=</Name>)' | grep -vE "^WMS$|^tsird$" \
+  | sort > /tmp/getcap_layers_stage5.txt
+
+# Extract published layers from registry
+python3 -c "import yaml; r=yaml.safe_load(open('config/atlas-registry.yaml')); \
+  print('\n'.join(sorted([l['wms_name'] for c in r['categories'] \
+  for g in c['groups'] for l in g['layers'] if l['published']])))" \
+  > /tmp/registry_published.txt
+
+# Compare
+diff -u <(sort /tmp/registry_published.txt) <(sort /tmp/getcap_layers_stage5.txt)
 ```
-ethiopia_admin
-ethiopia_basins
-ethiopia_boundary_level1
-ethiopia_boundary_level2
-ethiopia_boundary_level3
-ethiopia_cia_basemap
-ethiopia_contour
-ethiopia_ecology
-ethiopia_hillshade
-ethiopia_isoheight
-ethiopia_lakes
-ethiopia_language
-ethiopia_major_basins
-ethiopia_national_forests
-ethiopia_national_parks
-ethiopia_rainfall_pattern
-ethiopia_rainfall_stations
-ethiopia_rivers
-ethiopia_roads_baseline
-ethiopia_roads_raw
+
+**Results**:
+
+| Metric | Count | Status |
+|---|---|---|
+| **Registry Published** | 12 | `published: true` in atlas-registry.yaml |
+| **GetCapabilities Layers** | 12 | Advertised in WMS |
+| **Diff** | 0 | ✓ Exact match |
+
+**Published Layers** (12 total):
+```
+ethiopia_aoi                    (vector, PostGIS)
+ethiopia_dem                    (raster, EPSG:20137)
+ethiopia_roads                  (vector, PostGIS)
+ethiopia_slope                  (raster, EPSG:20137)
+ethiopia_slope_rgb              (raster, EPSG:20137)
+ethiopia_towns                  (vector, shapefile)
+ethiopia_woredas                (vector, shapefile)
+ethiopia_zones                  (vector, shapefile)
+tigray_health_facilities_2006   (vector, shapefile)
+tigray_roads_2006               (vector, shapefile)
+tigray_schools_2006             (vector, shapefile)
+tigray_towns                    (vector, shapefile)
 ```
 
-**5 Layers with STATUS ON**:
-- ethiopia_aoi
-- ethiopia_dem
-- ethiopia_roads
-- ethiopia_slope
-- ethiopia_slope_rgb
+**Unpublished Layers** (27 total, NOT in GetCapabilities):
+- Administrative alternates: ethiopia_admin, ethiopia_boundary_level1/2/3, ethiopia_isoheight, ethiopia_contour, tigray_contour, tigray_tabias, tigray_woreda
+- Transportation raw: ethiopia_roads_baseline, ethiopia_roads_raw, tigray_roads_2006t
+- Hydrology: ethiopia_basins, ethiopia_major_basins, ethiopia_lakes, ethiopia_rivers, ethiopia_streams, ethiopia_wetlands
+- Environment: ethiopia_ecology, ethiopia_national_forests, ethiopia_national_parks, ethiopia_soils
+- Climate: ethiopia_rainfall_pattern, ethiopia_rainfall_stations
+- Reference: ethiopia_cia_basemap, ethiopia_hillshade, ethiopia_language
 
-### Analysis
+### Implementation Details
 
-**Root Cause**: Phase 1 `tsird.map` uses **default STATUS** behavior. Per [MapServer documentation](https://mapserver.org/mapfile/layer.html#status):
+**Mapfile Structure (Post-Stage 5)**:
+```
+tsird.map (master)
+├── INCLUDE "includes/layers_published.map"  ← 7 published vector layers
+├── ethiopia_roads (PostGIS, inline)
+├── ethiopia_aoi (PostGIS, inline)
+├── ethiopia_dem (raster, inline)
+├── ethiopia_slope (raster, inline)
+└── ethiopia_slope_rgb (raster, inline)
 
-> "If STATUS is not explicitly set, MapServer treats layers as ON by default for WMS GetCapabilities."
+layers_published.map (NEW)
+├── ethiopia_zones
+├── ethiopia_woredas
+├── tigray_roads_2006
+├── tigray_schools_2006
+├── tigray_towns
+├── ethiopia_towns
+└── tigray_health_facilities_2006
 
-This means:
-- Layers **without** `STATUS ON` or `STATUS OFF` are **implicitly published** in WMS
-- Only 5 layers have explicit `STATUS ON` (likely from earlier testing)
-- Remaining 35 layers lack STATUS directive → default ON → appear in GetCapabilities
+vectors_gold.map (NOT included in master)
+└── 28 vector layers (published + unpublished)
+    Archive for future use
+```
 
-**Stage 5 Requirement Confirmed**: MAPSERVER_MODULARIZATION.md Section 7.1 states:
-
-> **R5.1 Publication Rule**: `published: true` in atlas-registry.yaml MUST result in `STATUS ON` in mapfile. `published: false` MUST result in `STATUS OFF`. No implicit publication allowed.
-
-**Current State Violates R5.1**: 87.5% of WMS layers (35/40) rely on implicit publication.
+**Key Changes**:
+1. Created `layers_published.map` with ONLY 7 published vector layers
+2. Changed master `tsird.map` INCLUDE from `vectors_gold.map` → `layers_published.map`
+3. Physically removed 3 unpublished raster layers (ethiopia_cia_basemap, ethiopia_language, ethiopia_hillshade)
+4. Kept 5 published layers inline in master mapfile
 
 ### Verdict
 
-❌ **BLOCKED**: Check 1 explicitly fails. MapServer does not enforce publication contract.
+✅ **PASS**: GetCapabilities advertises exactly 12 layers matching registry `published: true` count. Publication contract R5.1 enforced.
 
 **Stop Condition Triggered**: Per IMPLEMENTATION_SEQUENCE.md:
 

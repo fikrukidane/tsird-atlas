@@ -21,6 +21,7 @@
 
 LAYER
   NAME "ethiopia_zones"
+  STATUS ON
   TYPE POLYGON
   STATUS ON
   CONNECTIONTYPE OGR
@@ -70,6 +71,7 @@ END
 
 LAYER
   NAME "ethiopia_woredas"
+  STATUS ON
   TYPE POLYGON
   STATUS ON
   CONNECTIONTYPE OGR
@@ -96,6 +98,7 @@ END
 
 LAYER
   NAME "ethiopia_roads_raw"
+  STATUS OFF
   TYPE LINE
   STATUS OFF
   CONNECTIONTYPE OGR
@@ -121,6 +124,7 @@ END
 
 LAYER
   NAME "tigray_tabias"
+  STATUS OFF
   TYPE POLYGON
   STATUS OFF
   CONNECTIONTYPE OGR
@@ -147,6 +151,7 @@ END
 
 LAYER
   NAME "tigray_contour"
+  STATUS OFF
   TYPE LINE
   STATUS OFF
   CONNECTIONTYPE OGR
@@ -171,56 +176,57 @@ LAYER
 END
 
 LAYER
-  NAME "tigray_health_2006"
-  TYPE POINT
-  STATUS ON
-  # Note: Some features may have invalid coordinates; filter in client if needed
-  CONNECTIONTYPE OGR
-  CONNECTION "/data/gold/atlas_4326/TigrayHealth2006.shp"
-  DATA "TigrayHealth2006"
-  METADATA
-    "wms_title" "Tigray - Health Facilities (2006)"
-    "wms_srs" "EPSG:3857 EPSG:4326"
-    "wms_enable_request" "*"
-    "wms_queryable" "true"
-    "wms_feature_info_mime_type" "text/plain"
-    "gml_include_items" "Woreda_Nam,Woreda_ID,Type_of_in,Institutio,X_Coordina,Y_Coordina"
-    "wms_include_items" "Woreda_Nam,Woreda_ID,Type_of_in,Institutio,X_Coordina,Y_Coordina"
-  END
-  TEMPLATE "dummy.html"
-  CLASS
-    STYLE
-      SYMBOL "circle"
-      SIZE 8
-      COLOR 200 50 50
-    END
-  END
-  TYPE POLYGON
-  STATUS OFF
-  CONNECTIONTYPE OGR
-  CONNECTION "/data/gold/atlas_4326/TigrayNewWoredas.shp"
-  DATA "TigrayNewWoredas"
-  METADATA
-    "wms_title" "Tigray - Woredas (New)"
-    "wms_srs" "EPSG:3857 EPSG:4326"
-    "wms_enable_request" "*"
-    "wms_queryable" "true"
-    "wms_feature_info_mime_type" "text/plain"
-    "gml_include_items" "WEREDA,ZONE_NAME,Tot_Popula,SUM_SQ_KM,SUM_HECTAR,wor_name"
-    "wms_include_items" "WEREDA,ZONE_NAME,Tot_Popula,SUM_SQ_KM,SUM_HECTAR,wor_name"
-  END
-  TEMPLATE "dummy.html"
-  CLASS
-    STYLE
-      OUTLINECOLOR 100 100 100
-      COLOR 220 220 220
-      WIDTH 1
-    END
-  END
-END
+#   NAME "tigray_health_2006"
+#   TYPE POINT
+#   STATUS ON
+#   # Note: Some features may have invalid coordinates; filter in client if needed
+#   CONNECTIONTYPE OGR
+#   CONNECTION "/data/gold/atlas_4326/TigrayHealth2006.shp"
+#   DATA "TigrayHealth2006"
+#   METADATA
+#     "wms_title" "Tigray - Health Facilities (2006)"
+#     "wms_srs" "EPSG:3857 EPSG:4326"
+#     "wms_enable_request" "*"
+#     "wms_queryable" "true"
+#     "wms_feature_info_mime_type" "text/plain"
+#     "gml_include_items" "Woreda_Nam,Woreda_ID,Type_of_in,Institutio,X_Coordina,Y_Coordina"
+#     "wms_include_items" "Woreda_Nam,Woreda_ID,Type_of_in,Institutio,X_Coordina,Y_Coordina"
+#   END
+#   TEMPLATE "dummy.html"
+#   CLASS
+#     STYLE
+#       SYMBOL "circle"
+#       SIZE 8
+#       COLOR 200 50 50
+#     END
+#   END
+#   TYPE POLYGON
+#   STATUS OFF
+#   CONNECTIONTYPE OGR
+#   CONNECTION "/data/gold/atlas_4326/TigrayNewWoredas.shp"
+#   DATA "TigrayNewWoredas"
+#   METADATA
+#     "wms_title" "Tigray - Woredas (New)"
+#     "wms_srs" "EPSG:3857 EPSG:4326"
+#     "wms_enable_request" "*"
+#     "wms_queryable" "true"
+#     "wms_feature_info_mime_type" "text/plain"
+#     "gml_include_items" "WEREDA,ZONE_NAME,Tot_Popula,SUM_SQ_KM,SUM_HECTAR,wor_name"
+#     "wms_include_items" "WEREDA,ZONE_NAME,Tot_Popula,SUM_SQ_KM,SUM_HECTAR,wor_name"
+#   END
+#   TEMPLATE "dummy.html"
+#   CLASS
+#     STYLE
+#       OUTLINECOLOR 100 100 100
+#       COLOR 220 220 220
+#       WIDTH 1
+#     END
+#   END
+# END
 
 LAYER
   NAME "tigray_roads_2006t"
+  STATUS OFF
   TYPE LINE
   STATUS OFF
   CONNECTIONTYPE OGR
@@ -246,6 +252,7 @@ END
 
 LAYER
   NAME "tigray_roads_2006"
+  STATUS ON
   TYPE LINE
   STATUS ON
   CONNECTIONTYPE OGR
@@ -271,6 +278,7 @@ END
 
 LAYER
   NAME "tigray_schools_2006"
+  STATUS ON
   TYPE POINT
   STATUS ON
   CONNECTIONTYPE OGR
@@ -297,6 +305,7 @@ END
 
 LAYER
   NAME "tigray_woreda"
+  STATUS OFF
   TYPE POLYGON
   STATUS OFF
   CONNECTIONTYPE OGR
@@ -323,6 +332,7 @@ END
 
 LAYER
   NAME "tigray_towns"
+  STATUS ON
   TYPE POINT
   STATUS ON
   CONNECTIONTYPE OGR
@@ -349,6 +359,7 @@ END
 
 LAYER
   NAME "ethiopia_admin"
+  STATUS OFF
   TYPE POLYGON
   STATUS OFF
   CONNECTIONTYPE OGR
@@ -375,6 +386,7 @@ END
 
 LAYER
   NAME "ethiopia_basins"
+  STATUS OFF
   TYPE POLYGON
   STATUS OFF
   CONNECTIONTYPE OGR
@@ -401,6 +413,7 @@ END
 
 LAYER
   NAME "ethiopia_boundary_level1"
+  STATUS OFF
   TYPE POLYGON
   STATUS OFF
   CONNECTIONTYPE OGR
@@ -427,6 +440,7 @@ END
 
 LAYER
   NAME "ethiopia_boundary_level2"
+  STATUS OFF
   TYPE POLYGON
   STATUS OFF
   CONNECTIONTYPE OGR
@@ -453,6 +467,7 @@ END
 
 LAYER
   NAME "ethiopia_boundary_level3"
+  STATUS OFF
   TYPE POLYGON
   STATUS OFF
   CONNECTIONTYPE OGR
@@ -479,6 +494,7 @@ END
 
 LAYER
   NAME "ethiopia_contour"
+  STATUS OFF
   TYPE LINE
   STATUS OFF
   CONNECTIONTYPE OGR
@@ -503,30 +519,30 @@ LAYER
 END
 
 LAYER
-  NAME "ethiopia_wereda"
-  TYPE POLYGON
-  STATUS ON
-  CONNECTIONTYPE OGR
-  CONNECTION "/data/gold/atlas_4326/ethio_wereda.shp"
-  DATA "ethio_wereda"
-  METADATA
-    "wms_title" "Ethiopia - Wereda"
-    "wms_srs" "EPSG:3857 EPSG:4326"
-    "wms_enable_request" "*"
-    "wms_queryable" "true"
-    "wms_feature_info_mime_type" "text/plain"
-    "gml_include_items" "all"
-    "wms_include_items" "all"
-  END
-  TEMPLATE "dummy.html"
-  CLASS
-    STYLE
-      OUTLINECOLOR 100 100 100
-      COLOR 220 220 220
-      WIDTH 1
-    END
-  END
-END
+#   NAME "ethiopia_wereda"
+#   TYPE POLYGON
+#   STATUS ON
+#   CONNECTIONTYPE OGR
+#   CONNECTION "/data/gold/atlas_4326/ethio_wereda.shp"
+#   DATA "ethio_wereda"
+#   METADATA
+#     "wms_title" "Ethiopia - Wereda"
+#     "wms_srs" "EPSG:3857 EPSG:4326"
+#     "wms_enable_request" "*"
+#     "wms_queryable" "true"
+#     "wms_feature_info_mime_type" "text/plain"
+#     "gml_include_items" "all"
+#     "wms_include_items" "all"
+#   END
+#   TEMPLATE "dummy.html"
+#   CLASS
+#     STYLE
+#       OUTLINECOLOR 100 100 100
+#       COLOR 220 220 220
+#       WIDTH 1
+#     END
+#   END
+# END
 
 # QUARANTINED: 2026-02-19 - Normalization failed for ethio_wereda_Project.shp (input file corruption)
 #LAYER
@@ -556,6 +572,7 @@ END
 
 LAYER
   NAME "ethiopia_isoheight"
+  STATUS OFF
   TYPE LINE
   STATUS OFF
   CONNECTIONTYPE OGR
@@ -581,6 +598,7 @@ END
 
 LAYER
   NAME "ethiopia_lakes"
+  STATUS OFF
   TYPE POLYGON
   STATUS OFF
   CONNECTIONTYPE OGR
@@ -607,6 +625,7 @@ END
 
 LAYER
   NAME "ethiopia_major_basins"
+  STATUS OFF
   TYPE POLYGON
   STATUS OFF
   CONNECTIONTYPE OGR
@@ -633,6 +652,7 @@ END
 
 LAYER
   NAME "ethiopia_soils"
+  STATUS OFF
   TYPE POLYGON
   STATUS OFF
   CONNECTIONTYPE OGR
@@ -659,6 +679,7 @@ END
 
 LAYER
   NAME "ethiopia_ecology"
+  STATUS OFF
   TYPE POLYGON
   STATUS OFF
   CONNECTIONTYPE OGR
@@ -688,6 +709,7 @@ END
 
 LAYER
   NAME "ethiopia_national_forests"
+  STATUS OFF
   TYPE POLYGON
   STATUS OFF
   CONNECTIONTYPE OGR
@@ -714,6 +736,7 @@ END
 
 LAYER
   NAME "ethiopia_national_parks"
+  STATUS OFF
   TYPE POLYGON
   STATUS OFF
   CONNECTIONTYPE OGR
@@ -740,6 +763,7 @@ END
 
 LAYER
   NAME "ethiopia_rainfall_pattern"
+  STATUS OFF
   TYPE POLYGON
   STATUS OFF
   CONNECTIONTYPE OGR
@@ -766,6 +790,7 @@ END
 
 LAYER
   NAME "ethiopia_rainfall_stations"
+  STATUS OFF
   TYPE POLYGON
   STATUS OFF
   CONNECTIONTYPE OGR
@@ -792,6 +817,7 @@ END
 
 LAYER
   NAME "ethiopia_rivers"
+  STATUS OFF
   TYPE LINE
   STATUS OFF
   CONNECTIONTYPE OGR
@@ -817,6 +843,7 @@ END
 
 LAYER
   NAME "ethiopia_roads_baseline"
+  STATUS OFF
   TYPE LINE
   STATUS OFF
   CONNECTIONTYPE OGR
@@ -842,6 +869,7 @@ END
 
 LAYER
   NAME "ethiopia_streams"
+  STATUS OFF
   TYPE LINE
   STATUS OFF
   CONNECTIONTYPE OGR
@@ -867,6 +895,7 @@ END
 
 LAYER
   NAME "ethiopia_towns"
+  STATUS ON
   TYPE POINT
   STATUS ON
   CONNECTIONTYPE OGR
@@ -893,6 +922,7 @@ END
 
 LAYER
   NAME "ethiopia_wetlands"
+  STATUS OFF
   TYPE POLYGON
   STATUS OFF
   CONNECTIONTYPE OGR
@@ -914,5 +944,24 @@ LAYER
       COLOR 220 220 220
       WIDTH 1
     END
+  END
+END
+
+# --- Canonical Health Layer (Authoritative Replacement) ---
+LAYER
+  NAME "tigray_health_facilities_2006"
+  STATUS ON
+  TYPE POINT
+  STATUS ON
+
+  CONNECTIONTYPE OGR
+  CONNECTION "/data/gold/atlas_4326/tigray/Health_Institutions.shp"
+  DATA "Health_Institutions"
+
+  TEMPLATE "dummy.html"
+
+  METADATA
+    "wms_title" "Tigray Health Facilities (2006)"
+    "wms_enable_request" "*"
   END
 END
