@@ -501,7 +501,7 @@ class InteractionController {
           viewResolution,
           projection,
           {
-            'INFO_FORMAT': 'application/json',
+            'INFO_FORMAT': 'text/xml',  // Changed from application/json to text/xml
             'FEATURE_COUNT': 10
           }
         );
@@ -509,13 +509,15 @@ class InteractionController {
         if (url) {
           const response = await fetch(url);
           if (response.ok) {
-            const data = await response.json();
-            if (data.features && data.features.length > 0) {
+            const xmlText = await response.text();  // Changed from response.json()
+            const features = this._parseGetFeatureInfoXML(xmlText);
+            
+            if (features && features.length > 0) {
               results.push({
                 layerId: layer.layerId,
                 layerLabel: layer.layerDef.label,
                 layerDef: layer.layerDef,
-                features: data.features
+                features: features
               });
             }
           }
@@ -531,6 +533,75 @@ class InteractionController {
     } else {
       this.popup.setPosition(undefined);
     }
+  }
+
+  /**
+   * Parse WMS GetFeatureInfo XML response.
+   * Extracts feature attributes from MapServer XML format.
+   * @private
+   */
+  _parseGetFeatureInfoXML(xmlText) {
+    const parser = new DOMParser();
+    const xmlDoc = parser.parseFromString(xmlText, 'text/xml');
+    
+    // Check for XML parsing errors
+    const parserError = xmlDoc.querySelector('parsererror');
+    if (parserError) {
+      console.error('[InteractionController] XML parsing error:', parserError.textContent);
+      return [];
+    }
+
+    const features = [];
+    
+    // MapServer GetFeatureInfo XML format typically uses <FeatureInfoResponse> or similar
+    // Extract feature elements (adjust selector based on actual MapServer response)
+    const featureElements = xmlDoc.querySelectorAll('FeatureInfoResponse > FIELDS, Layer > Feature, FeatureInfo');
+    
+    if (featureElements.length === 0) {
+      // Try alternative common formats
+      const altFeatures = xmlDoc.querySelectorAll('FeatureCollection > featureMember, msGMLOutput > *_layer > *_feature');
+      
+      if (altFeatures.length > 0) {
+        altFeatures.forEach(featureEl => {
+          const properties = {};
+          
+          // Extract all child elements as properties
+          Array.from(featureEl.children).forEach(child => {
+            const key = child.tagName.replace(/.*:/, ''); // Remove namespace prefix
+            const value = child.textContent.trim();
+            properties[key] = value;
+          });
+          
+          if (Object.keys(properties).length > 0) {
+            features.push({ properties });
+          }
+        });
+      }
+    } else {
+      // Parse standard FeatureInfoResponse format
+      featureElements.forEach(featureEl => {
+        const properties = {};
+        
+        // Extract attributes from XML element
+        Array.from(featureEl.attributes).forEach(attr => {
+          properties[attr.name] = attr.value;
+        });
+        
+        // Also check child elements
+        Array.from(featureEl.children).forEach(child => {
+          const key = child.tagName.replace(/.*:/, ''); // Remove namespace prefix
+          const value = child.textContent.trim();
+          properties[key] = value;
+        });
+        
+        if (Object.keys(properties).length > 0) {
+          features.push({ properties });
+        }
+      });
+    }
+    
+    console.log(`[InteractionController] Parsed ${features.length} features from XML`);
+    return features;
   }
 
   /**
