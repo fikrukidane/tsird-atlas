@@ -346,7 +346,7 @@ class InteractionController {
     this.olLayers.forEach(layer => {
       const def = layer.get('layerDef');
       if (def?.type === 'vector' && def?.geometry_type === 'polygon') {
-        layer.setOpacity(anyRasterVisible ? 0.10 : 1.0);
+        layer.setOpacity(anyRasterVisible ? 0.20 : 1.0);
       }
     });
   }
