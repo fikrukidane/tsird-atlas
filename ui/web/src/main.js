@@ -217,7 +217,7 @@ function displayErrorPage(message) {
 
 // Auto-initialize when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
-  initializeApplication('data/atlas-registry.json');
+  initializeApplication('data/atlas-registry.json?v=20260225');
 });
 
 // Export for testing

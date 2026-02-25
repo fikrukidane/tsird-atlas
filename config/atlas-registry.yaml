@@ -132,6 +132,7 @@ layers:
     wms_name: ethiopia_zones
     label: Ethiopia - Administrative Zones
     type: vector
+    geometry_type: polygon
     published: true
     default_visible: false
     queryable: true
@@ -155,6 +156,7 @@ layers:
     wms_name: ethiopia_woredas
     label: Ethiopia - Woredas
     type: vector
+    geometry_type: polygon
     published: true
     default_visible: false
     queryable: true
@@ -169,6 +171,7 @@ layers:
     wms_name: tigray_woreda
     label: Tigray - Woredas
     type: vector
+    geometry_type: polygon
     published: false
     default_visible: false
     queryable: false
@@ -179,6 +182,7 @@ layers:
     wms_name: tigray_tabias
     label: Tigray - Tabias
     type: vector
+    geometry_type: polygon
     published: true
     default_visible: true
     queryable: true
@@ -226,6 +230,7 @@ layers:
     wms_name: ethiopia_roads
     label: Ethiopia - Roads (PostGIS Gold)
     type: vector
+    geometry_type: linestring
     published: true
     default_visible: false
     queryable: false
@@ -236,6 +241,7 @@ layers:
     wms_name: tigray_roads_2006
     label: Tigray - Roads (2006)
     type: vector
+    geometry_type: linestring
     published: true
     default_visible: true
     queryable: false
@@ -277,6 +283,7 @@ layers:
     wms_name: ethiopia_towns
     label: Ethiopia - Towns
     type: vector
+    geometry_type: point
     published: true
     default_visible: true
     queryable: true
@@ -290,6 +297,7 @@ layers:
     wms_name: tigray_towns
     label: Tigray - Towns
     type: vector
+    geometry_type: point
     published: true
     default_visible: true
     queryable: true
@@ -302,6 +310,7 @@ layers:
     wms_name: tigray_health_facilities_2006
     label: Tigray - Health Facilities (2006)
     type: vector
+    geometry_type: point
     published: true
     default_visible: false
     queryable: true
@@ -315,6 +324,7 @@ layers:
     wms_name: tigray_schools_2006
     label: Tigray - Schools (2006)
     type: vector
+    geometry_type: point
     published: true
     default_visible: false
     queryable: true
