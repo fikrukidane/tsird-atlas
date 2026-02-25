@@ -43,44 +43,35 @@ class MapController {
     // Hide loading message
     this._hideLoadingMessage();
 
-    // Transform center from canonical (EPSG:4326) to view CRS (EPSG:3857)
+    const { fromLonLat, transformExtent } = ol.proj;
+    const canonicalCrs = this.atlasConfig.canonical_crs || 'EPSG:4326';
+    const viewCrs = this.atlasConfig.view_crs || 'EPSG:3857';
+
     const centerEPSG4326 = this.atlasConfig.center;  // [lon, lat]
-    const centerEPSG3857 = ol.proj.transform(
-      centerEPSG4326,
-      'EPSG:4326',
-      'EPSG:3857'
+    const centerEPSG3857 = fromLonLat(centerEPSG4326);
+
+    const extentEPSG4326 = this.atlasConfig.extent;  // [minx, miny, maxx, maxy]
+    const extentEPSG3857 = transformExtent(
+      extentEPSG4326,
+      canonicalCrs,
+      viewCrs
     );
 
-    console.log(`[MapController] Center: ${centerEPSG4326} (EPSG:4326) → ${centerEPSG3857} (EPSG:3857)`);
+    console.log(`[MapController] Center: ${centerEPSG4326} (EPSG:4326) → ${centerEPSG3857} (${viewCrs})`);
+    console.log(`[MapController] Extent: ${extentEPSG4326} (${canonicalCrs}) → ${extentEPSG3857} (${viewCrs})`);
 
-    // Create view with transformed center
     this.view = new ol.View({
-      projection: ol.proj.get('EPSG:3857'),
-      center: centerEPSG3857,
-      zoom: this.atlasConfig.zoom
+      projection: ol.proj.get(viewCrs)
     });
+    this.view.setCenter(centerEPSG3857);
+    this.view.setZoom(this.atlasConfig.zoom);
+    this.view.setExtent(extentEPSG3857);
 
     // Create map
     this.map = new ol.Map({
       target: this.mapTargetId,
       view: this.view,
       layers: [] // Will be populated by LayerFactory
-    });
-
-    // Apply extent constraint (fit to boundaries)
-    const extentEPSG4326 = this.atlasConfig.extent;  // [minx, miny, maxx, maxy]
-    const extentEPSG3857 = ol.proj.transformExtent(
-      extentEPSG4326,
-      'EPSG:4326',
-      'EPSG:3857'
-    );
-
-    console.log(`[MapController] Extent: ${extentEPSG4326} (EPSG:4326) → ${extentEPSG3857} (EPSG:3857)`);
-
-    // Fit view to extent with padding
-    this.view.fit(extentEPSG3857, {
-      padding: [50, 50, 50, 50],
-      maxZoom: this.atlasConfig.zoom
     });
 
     console.log('[MapController] Map initialized successfully');
