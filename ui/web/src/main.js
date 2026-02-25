@@ -51,6 +51,15 @@ async function initializeApplication(registryPath = 'data/atlas-registry.json') 
     console.log('');
 
     // ────────────────────────────────────────────────────────────
+    // Step 2.5: Auto-zoom to satisfy default-visible layer scales
+    // ────────────────────────────────────────────────────────────
+    console.log('Step 2.5: Auto-zooming for default-visible layers...');
+    mapController.autoZoomForDefaultLayers(registry.layerDefs, 11);
+    const postAutoZoomScale = mapController.getCurrentScaleDenominator();
+    console.log(`✓ Post-auto-zoom scale: ${ScaleEngine.formatScale(postAutoZoomScale)}`);
+    console.log('');
+
+    // ────────────────────────────────────────────────────────────
     // Step 3: Create layers
     // ────────────────────────────────────────────────────────────
     console.log('Step 3: Creating WMS layers...');

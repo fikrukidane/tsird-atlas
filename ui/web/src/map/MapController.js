@@ -152,6 +152,72 @@ class MapController {
   }
 
   /**
+   * Auto-adjust zoom on startup to satisfy default-visible layer scale ranges.
+   * 
+   * Algorithm:
+   * - Collect default_visible layers with scale constraints
+   * - Zoom in (incrementally by 1 level) until all are in-scale
+   * - Stop at maxZoomCap to prevent excessive zoom
+   * - Do not zoom out automatically
+   * 
+   * @param {Object} layerDefs - Layer definitions from registry (all layers)
+   * @param {number} maxZoomCap - Maximum zoom level to prevent over-zoom (default 11)
+   */
+  autoZoomForDefaultLayers(layerDefs, maxZoomCap = 11) {
+    console.log('[MapController] Auto-zooming to satisfy default-visible layer scale ranges...');
+    
+    // Collect default-visible layers with scale constraints
+    const constrainedDefaultLayers = Object.entries(layerDefs)
+      .filter(([key, def]) => {
+        return def.published && 
+               def.default_visible && 
+               def.min_scale && 
+               def.max_scale;
+      })
+      .map(([key, def]) => ({ wms_name: key, ...def }));
+
+    if (constrainedDefaultLayers.length === 0) {
+      console.log('[MapController] No default-visible layers with scale constraints. Skipping auto-zoom.');
+      return;
+    }
+
+    console.log(`[MapController] Checking ${constrainedDefaultLayers.length} default-visible layers with scale constraints:`);
+    constrainedDefaultLayers.forEach(layer => {
+      console.log(`  - ${layer.wms_name}: ${layer.min_scale.toLocaleString()} - ${layer.max_scale.toLocaleString()}`);
+    });
+
+    // Auto-zoom: zoom in until all layers are in-scale or reach maxZoomCap
+    let zoomAdjusted = false;
+    let currentZoom = this.view.getZoom();
+    const startZoom = currentZoom;
+
+    while (currentZoom < maxZoomCap) {
+      const currentScale = ScaleEngine.getCurrentScale(this.view);
+      const anyOutOfScale = constrainedDefaultLayers.some(layer => 
+        !ScaleEngine.isLayerInScale(layer, currentScale)
+      );
+
+      if (!anyOutOfScale) {
+        // All layers are in-scale
+        break;
+      }
+
+      // Zoom in by 1 level
+      currentZoom = this.view.getZoom() + 1;
+      this.view.setZoom(currentZoom);
+      zoomAdjusted = true;
+    }
+
+    if (zoomAdjusted) {
+      const finalZoom = this.view.getZoom();
+      const finalScale = ScaleEngine.getCurrentScale(this.view);
+      console.log(`[MapController] Auto-zoom complete: ${startZoom} → ${finalZoom} (scale: ${ScaleEngine.formatScale(finalScale)})`);
+    } else {
+      console.log('[MapController] All default-visible layers are already in-scale. No zoom adjustment needed.');
+    }
+  }
+
+  /**
    * Add a layer to the map.
    */
   addLayer(layer) {
