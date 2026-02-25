@@ -60,11 +60,11 @@ class MapController {
     console.log(`[MapController] Extent: ${extentEPSG4326} (${canonicalCrs}) → ${extentEPSG3857} (${viewCrs})`);
 
     this.view = new ol.View({
-      projection: ol.proj.get(viewCrs)
+      projection: ol.proj.get(viewCrs),
+      center: centerEPSG3857,
+      zoom: this.atlasConfig.zoom,
+      extent: extentEPSG3857
     });
-    this.view.setCenter(centerEPSG3857);
-    this.view.setZoom(this.atlasConfig.zoom);
-    this.view.setExtent(extentEPSG3857);
 
     // Create map
     this.map = new ol.Map({
