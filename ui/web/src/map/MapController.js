@@ -43,15 +43,14 @@ class MapController {
     // Hide loading message
     this._hideLoadingMessage();
 
-    const { fromLonLat, transformExtent } = ol.proj;
     const canonicalCrs = this.atlasConfig.canonical_crs || 'EPSG:4326';
     const viewCrs = this.atlasConfig.view_crs || 'EPSG:3857';
 
     const centerEPSG4326 = this.atlasConfig.center;  // [lon, lat]
-    const centerEPSG3857 = fromLonLat(centerEPSG4326);
+    const centerEPSG3857 = ol.proj.fromLonLat(centerEPSG4326);
 
     const extentEPSG4326 = this.atlasConfig.extent;  // [minx, miny, maxx, maxy]
-    const extentEPSG3857 = transformExtent(
+    const extentEPSG3857 = ol.proj.transformExtent(
       extentEPSG4326,
       canonicalCrs,
       viewCrs
