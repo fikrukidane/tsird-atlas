@@ -18,6 +18,7 @@ class InteractionController {
   constructor(tocContainerId, layers, tocModel, layerDefs, mapController, scaleMutexPairs = []) {
     this.tocContainerId = tocContainerId;
     this.layers = layers;  // Array of ol.layer.Tile objects
+    this.olLayers = layers;  // Alias for opacity updates
     this.tocModel = tocModel;  // Hierarchy: categories → groups → layers
     this.layerDefs = layerDefs;  // Metadata: { [id]: { ... } }
     this.mapController = mapController;  // MapController instance (Milestone 2)
@@ -336,6 +337,20 @@ class InteractionController {
     }
   }
 
+  _updatePolygonOpacity() {
+    const anyRasterVisible = this.olLayers.some(layer => {
+      const def = layer.get('layerDef');
+      return def?.type === 'raster' && layer.getVisible();
+    });
+
+    this.olLayers.forEach(layer => {
+      const def = layer.get('layerDef');
+      if (def?.type === 'vector' && def?.geometry_type === 'polygon') {
+        layer.setOpacity(anyRasterVisible ? 0.75 : 1.0);
+      }
+    });
+  }
+
   /**
    * Initialize layer visibility based on default_visible.
    * Called after layers are added to map.
@@ -357,6 +372,8 @@ class InteractionController {
 
       console.log(`[InteractionController] ${layerId}: default_visible=${isVisible}`);
     }
+
+    this._updatePolygonOpacity();
   }
 
   /**
@@ -397,6 +414,7 @@ class InteractionController {
       layer.setVisible(false);
       this._updateLayerCheckboxState(layerId, false, null);
       this._refreshCreditsPanel();
+      this._updatePolygonOpacity();
       return;
     }
 
@@ -409,6 +427,7 @@ class InteractionController {
       this._updateLayerCheckboxState(layerId, false, 'out-of-scale');
       console.log(`[InteractionController] ${layerId}: OUT OF SCALE (${ScaleEngine.formatScale(currentScale)})`);
       this._refreshCreditsPanel();
+      this._updatePolygonOpacity();
       return;
     }
 
@@ -419,6 +438,7 @@ class InteractionController {
       this._updateLayerCheckboxState(layerId, false, 'mutex-suppressed');
       console.log(`[InteractionController] ${layerId}: SUPPRESSED by mutex pair with ${mutexBlocker}`);
       this._refreshCreditsPanel();
+      this._updatePolygonOpacity();
       return;
     }
 
@@ -426,6 +446,7 @@ class InteractionController {
     layer.setVisible(true);
     this._updateLayerCheckboxState(layerId, true, null);
     this._refreshCreditsPanel();
+    this._updatePolygonOpacity();
     console.log(`[InteractionController] ${layerId}: VISIBLE`);
   }
 
@@ -578,6 +599,8 @@ class InteractionController {
 
       console.log(`[InteractionController]   └─ ${layerId}: ${shouldBeVisible}`);
     }
+
+    this._updatePolygonOpacity();
   }
 
   /**

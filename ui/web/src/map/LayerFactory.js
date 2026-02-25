@@ -125,6 +125,8 @@ class LayerFactory {
     // Attach metadata for later reference
     layer.layerId = layerId;
     layer.layerDef = layerDef;
+    layer.set('layerId', layerId);
+    layer.set('layerDef', layerDef);
 
     // Log WMS request parameters for debugging
     console.debug(`[LayerFactory] ${layerId}: WMS params = LAYERS:${layerDef.wms_name}, FORMAT:image/png, TRANSPARENT:true, ratio:1 (constrained to 4096px max)`);
