@@ -1,0 +1,967 @@
+# Raw vector layers from /data/gold/atlas_4326/
+# Generated for TSIRD mapserver - canonical EPSG:4326 shapefile atlas
+#
+# CHANGELOG 2026-02-21:
+# - Fixed all OGR DATA field names (now correctly reference actual shapefile layer names)
+# - Removed all PROJECTION blocks (data is canonically EPSG:4326, MAP-level projection handles reprojection)
+# - Verified all CONNECTION paths map to existing files in /data/gold/atlas_4326/
+#
+# GetFeatureInfo Metadata Strategy:
+# - GetFeatureInfo is enabled via METADATA keywords: wms_include_items, gml_include_items, wms_feature_info_mime_type
+# - Each layer includes TEMPLATE "dummy.html" for HTML output format
+# - The DUMP keyword (unsupported in MapServer 8.6.0) has been removed; METADATA + TEMPLATE provide feature attributes
+# - Each layer includes curated field lists for meaningful attribute queries
+# - See docs/atlas/vector_featureinfo_plan.yml for field curation rationale
+#
+# Projection Handling:
+# - All data is EPSG:4326 (WGS 84 geographic)
+# - MAP-level PROJECTION is EPSG:4326, no layer-level projection blocks needed
+# - OGR layers do not have PROJECTION declarations (relies on MAP-level projection)
+# - MapServer automatically handles CRS conversion from EPSG:4326 as needed
+
+LAYER
+  NAME "ethiopia_zones"
+  STATUS ON
+  TYPE POLYGON
+  STATUS ON
+  CONNECTIONTYPE OGR
+  CONNECTION "/data/gold/atlas_4326/bound03.shp"
+  DATA "bound03"
+  METADATA
+    "wms_title" "Ethiopia Zones"
+    "wms_srs" "EPSG:3857 EPSG:4326"
+    "wms_enable_request" "*"
+    "wms_queryable" "true"
+    "wms_feature_info_mime_type" "text/plain"
+    "gml_include_items" "ZONES,AREA,PERIMETER,ETZONES01C,ETZONES01C_1"
+    "wms_include_items" "ZONES,AREA,PERIMETER,ETZONES01C,ETZONES01C_1"
+  END
+  TEMPLATE "dummy.html"
+  CLASS
+    STYLE
+      OUTLINECOLOR 100 100 100
+      COLOR 220 220 220
+      WIDTH 1
+    END
+  END
+END
+
+# DISABLED 2026-02-19: Redundant zones layer - inferior to ethiopia_zones (bound03)
+# This layer has only ZONENAME field; ethiopia_zones has ZONES, AREA, PERIMETER, and codes
+# Entire LAYER block commented out to prevent it from appearing in WMS GetCapabilities
+#LAYER
+#  NAME "ethiopia_zones_new"
+#  TYPE POLYGON
+#  STATUS ON
+#  CONNECTIONTYPE OGR
+#  CONNECTION "/data/gold/atlas_4326/Eth_Zones_New.shp"
+#  DATA "Eth_Zones_New"
+#  METADATA
+#    "gml_include_items" "ZONENAME"
+#  END
+#  TEMPLATE "dummy.html"
+#  CLASS
+#    STYLE
+#      OUTLINECOLOR 100 100 100
+#      COLOR 220 220 220
+#      WIDTH 1
+#    END
+#  END
+#END
+
+LAYER
+  NAME "ethiopia_woredas"
+  STATUS ON
+  TYPE POLYGON
+  STATUS ON
+  CONNECTIONTYPE OGR
+  CONNECTION "/data/gold/atlas_4326/ethio_wereda.shp"
+  DATA "ethio_wereda"
+  METADATA
+    "wms_title" "Ethiopia - Woredas"
+    "wms_srs" "EPSG:3857 EPSG:4326"
+    "wms_enable_request" "*"
+    "wms_queryable" "true"
+    "wms_feature_info_mime_type" "text/plain"
+    "gml_include_items" "W_NAME,REGION_R2I,Area_km2,Pop_04,Pop_Den,Admin_Unit"
+    "wms_include_items" "W_NAME,REGION_R2I,Area_km2,Pop_04,Pop_Den,Admin_Unit"
+  END
+  TEMPLATE "dummy.html"
+  CLASS
+    STYLE
+      OUTLINECOLOR 100 100 100
+      COLOR 220 220 220
+      WIDTH 1
+    END
+  END
+END
+
+LAYER
+  NAME "ethiopia_roads_raw"
+  STATUS ON
+  TYPE LINE
+  STATUS ON
+  CONNECTIONTYPE OGR
+  CONNECTION "/data/gold/atlas_4326/Ethio_roads.shp"
+  DATA "Ethio_roads"
+  METADATA
+    "wms_title" "Ethiopia - Roads"
+    "wms_srs" "EPSG:3857 EPSG:4326"
+    "wms_enable_request" "*"
+    "wms_queryable" "true"
+    "wms_feature_info_mime_type" "text/plain"
+    "gml_include_items" "RDLNTYPETX,RDLNSTATTX,RDLNTYPE,RDLNSTAT,LENGTH"
+    "wms_include_items" "RDLNTYPETX,RDLNSTATTX,RDLNTYPE,RDLNSTAT,LENGTH"
+  END
+  TEMPLATE "dummy.html"
+  CLASS
+    STYLE
+      COLOR 150 150 150
+      WIDTH 1
+    END
+  END
+END
+
+LAYER
+  NAME "tigray_tabias"
+  STATUS ON
+  TYPE POLYGON
+  STATUS ON
+  CONNECTIONTYPE OGR
+  CONNECTION "/data/gold/atlas_4326/TigraiTabiasNew.shp"
+  DATA "TigraiTabiasNew"
+  METADATA
+    "wms_title" "Tigray - Tabias"
+    "wms_srs" "EPSG:3857 EPSG:4326"
+    "wms_enable_request" "*"
+    "wms_queryable" "true"
+    "wms_feature_info_mime_type" "text/plain"
+    "gml_include_items" "TABIA,WEREDA,ZONES,SQ_KM,HECTARES,DENSITY"
+    "wms_include_items" "TABIA,WEREDA,ZONES,SQ_KM,HECTARES,DENSITY"
+  END
+  TEMPLATE "dummy.html"
+  CLASS
+    STYLE
+      OUTLINECOLOR 100 100 100
+      COLOR 220 220 220
+      WIDTH 1
+    END
+  END
+END
+
+LAYER
+  NAME "tigray_contour"
+  STATUS ON
+  TYPE LINE
+  STATUS ON
+  CONNECTIONTYPE OGR
+  CONNECTION "/data/gold/atlas_4326/TigrayContour.shp"
+  DATA "TigrayContour"
+  METADATA
+    "wms_title" "Tigray - Contour Lines"
+    "wms_srs" "EPSG:3857 EPSG:4326"
+    "wms_enable_request" "*"
+    "wms_queryable" "true"
+    "wms_feature_info_mime_type" "text/plain"
+    "gml_include_items" "ELEVATION,LENGTH"
+    "wms_include_items" "ELEVATION,LENGTH"
+  END
+  TEMPLATE "dummy.html"
+  CLASS
+    STYLE
+      COLOR 150 150 150
+      WIDTH 1
+    END
+  END
+END
+
+LAYER
+#   NAME "tigray_health_2006"
+#   TYPE POINT
+#   STATUS ON
+#   # Note: Some features may have invalid coordinates; filter in client if needed
+#   CONNECTIONTYPE OGR
+#   CONNECTION "/data/gold/atlas_4326/TigrayHealth2006.shp"
+#   DATA "TigrayHealth2006"
+#   METADATA
+#     "wms_title" "Tigray - Health Facilities (2006)"
+#     "wms_srs" "EPSG:3857 EPSG:4326"
+#     "wms_enable_request" "*"
+#     "wms_queryable" "true"
+#     "wms_feature_info_mime_type" "text/plain"
+#     "gml_include_items" "Woreda_Nam,Woreda_ID,Type_of_in,Institutio,X_Coordina,Y_Coordina"
+#     "wms_include_items" "Woreda_Nam,Woreda_ID,Type_of_in,Institutio,X_Coordina,Y_Coordina"
+#   END
+#   TEMPLATE "dummy.html"
+#   CLASS
+#     STYLE
+#       SYMBOL "circle"
+#       SIZE 8
+#       COLOR 200 50 50
+#     END
+#   END
+#   TYPE POLYGON
+#   STATUS ON
+#   CONNECTIONTYPE OGR
+#   CONNECTION "/data/gold/atlas_4326/TigrayNewWoredas.shp"
+#   DATA "TigrayNewWoredas"
+#   METADATA
+#     "wms_title" "Tigray - Woredas (New)"
+#     "wms_srs" "EPSG:3857 EPSG:4326"
+#     "wms_enable_request" "*"
+#     "wms_queryable" "true"
+#     "wms_feature_info_mime_type" "text/plain"
+#     "gml_include_items" "WEREDA,ZONE_NAME,Tot_Popula,SUM_SQ_KM,SUM_HECTAR,wor_name"
+#     "wms_include_items" "WEREDA,ZONE_NAME,Tot_Popula,SUM_SQ_KM,SUM_HECTAR,wor_name"
+#   END
+#   TEMPLATE "dummy.html"
+#   CLASS
+#     STYLE
+#       OUTLINECOLOR 100 100 100
+#       COLOR 220 220 220
+#       WIDTH 1
+#     END
+#   END
+# END
+
+LAYER
+  NAME "tigray_roads_2006t"
+  STATUS ON
+  TYPE LINE
+  STATUS ON
+  CONNECTIONTYPE OGR
+  CONNECTION "/data/gold/atlas_4326/TigrayRoads2006t.shp"
+  DATA "TigrayRoads2006t"
+  METADATA
+    "wms_title" "Tigray - Roads (2006t)"
+    "wms_srs" "EPSG:3857 EPSG:4326"
+    "wms_enable_request" "*"
+    "wms_queryable" "true"
+    "wms_feature_info_mime_type" "text/plain"
+    "gml_include_items" "NAME,OWNER,ZONE_,RDID,length_KM,LAYER"
+    "wms_include_items" "NAME,OWNER,ZONE_,RDID,length_KM,LAYER"
+  END
+  TEMPLATE "dummy.html"
+  CLASS
+    STYLE
+      COLOR 150 150 150
+      WIDTH 1
+    END
+  END
+END
+
+LAYER
+  NAME "tigray_roads_2006"
+  STATUS ON
+  TYPE LINE
+  STATUS ON
+  CONNECTIONTYPE OGR
+  CONNECTION "/data/gold/atlas_4326/TigrayRoadsIn2006.shp"
+  DATA "TigrayRoadsIn2006"
+  METADATA
+    "wms_title" "Tigray - Roads (2006)"
+    "wms_srs" "EPSG:3857 EPSG:4326"
+    "wms_enable_request" "*"
+    "wms_queryable" "true"
+    "wms_feature_info_mime_type" "text/plain"
+    "gml_include_items" "NAME,TYPE,OWNER,ZONE_,LENGTH_KM,NEAR_DIST"
+    "wms_include_items" "NAME,TYPE,OWNER,ZONE_,LENGTH_KM,NEAR_DIST"
+  END
+  TEMPLATE "dummy.html"
+  CLASS
+    STYLE
+      COLOR 150 150 150
+      WIDTH 1
+    END
+  END
+END
+
+LAYER
+  NAME "tigray_schools_2006"
+  STATUS ON
+  TYPE POINT
+  STATUS ON
+  CONNECTIONTYPE OGR
+  CONNECTION "/data/gold/atlas_4326/TigraySchools2006.shp"
+  DATA "TigraySchools2006"
+  METADATA
+    "wms_title" "Tigray - Schools (2006)"
+    "wms_srs" "EPSG:3857 EPSG:4326"
+    "wms_enable_request" "*"
+    "wms_queryable" "true"
+    "wms_feature_info_mime_type" "text/plain"
+    "gml_include_items" "Name,Type,Zone_Name,Woreda_Nam,T_Name,X"
+    "wms_include_items" "Name,Type,Zone_Name,Woreda_Nam,T_Name,X"
+  END
+  TEMPLATE "dummy.html"
+  CLASS
+    STYLE
+      SYMBOL "circle"
+      SIZE 8
+      COLOR 200 50 50
+    END
+  END
+END
+
+LAYER
+  NAME "tigray_woreda"
+  STATUS ON
+  TYPE POLYGON
+  STATUS ON
+  CONNECTIONTYPE OGR
+  CONNECTION "/data/gold/atlas_4326/TigrayWoredaNew.shp"
+  DATA "TigrayWoredaNew"
+  METADATA
+    "wms_title" "Tigray - Woreda"
+    "wms_srs" "EPSG:3857 EPSG:4326"
+    "wms_enable_request" "*"
+    "wms_queryable" "true"
+    "wms_feature_info_mime_type" "text/plain"
+    "gml_include_items" "WEREDA,ZONE_NAME,Tot_Popula,SUM_SQ_KM,SUM_HECTAR,wor_name"
+    "wms_include_items" "WEREDA,ZONE_NAME,Tot_Popula,SUM_SQ_KM,SUM_HECTAR,wor_name"
+  END
+  TEMPLATE "dummy.html"
+  CLASS
+    STYLE
+      OUTLINECOLOR 100 100 100
+      COLOR 220 220 220
+      WIDTH 1
+    END
+  END
+END
+
+LAYER
+  NAME "tigray_towns"
+  STATUS ON
+  TYPE POINT
+  STATUS ON
+  CONNECTIONTYPE OGR
+  CONNECTION "/data/gold/atlas_4326/Tigray_Towns.shp"
+  DATA "Tigray_Towns"
+  METADATA
+    "wms_title" "Tigray - Towns"
+    "wms_srs" "EPSG:3857 EPSG:4326"
+    "wms_enable_request" "*"
+    "wms_queryable" "true"
+    "wms_feature_info_mime_type" "text/plain"
+    "gml_include_items" "TOWN_NAME,WEREDA,REGION,ZONES,POP,POPTOT"
+    "wms_include_items" "TOWN_NAME,WEREDA,REGION,ZONES,POP,POPTOT"
+  END
+  TEMPLATE "dummy.html"
+  CLASS
+    STYLE
+      SYMBOL "circle"
+      SIZE 8
+      COLOR 200 50 50
+    END
+  END
+END
+
+LAYER
+  NAME "ethiopia_admin"
+  STATUS ON
+  TYPE POLYGON
+  STATUS ON
+  CONNECTIONTYPE OGR
+  CONNECTION "/data/gold/atlas_4326/admin.shp"
+  DATA "admin"
+  METADATA
+    "wms_title" "Ethiopia - Admin Boundaries"
+    "wms_srs" "EPSG:3857 EPSG:4326"
+    "wms_enable_request" "*"
+    "wms_queryable" "true"
+    "wms_feature_info_mime_type" "text/plain"
+    "gml_include_items" "NAME1,NAME2,NAME3,COUNTRY,CODE,SQKM"
+    "wms_include_items" "NAME1,NAME2,NAME3,COUNTRY,CODE,SQKM"
+  END
+  TEMPLATE "dummy.html"
+  CLASS
+    STYLE
+      OUTLINECOLOR 100 100 100
+      COLOR 220 220 220
+      WIDTH 1
+    END
+  END
+END
+
+LAYER
+  NAME "ethiopia_basins"
+  STATUS ON
+  TYPE POLYGON
+  STATUS ON
+  CONNECTIONTYPE OGR
+  CONNECTION "/data/gold/atlas_4326/basins.shp"
+  DATA "basins"
+  METADATA
+    "wms_title" "Ethiopia - Basins"
+    "wms_srs" "EPSG:3857 EPSG:4326"
+    "wms_enable_request" "*"
+    "wms_queryable" "true"
+    "wms_feature_info_mime_type" "text/plain"
+    "gml_include_items" "BASIN_NAME,BASIN_NR,BASIN,SQKM,BASIN_COD"
+    "wms_include_items" "BASIN_NAME,BASIN_NR,BASIN,SQKM,BASIN_COD"
+  END
+  TEMPLATE "dummy.html"
+  CLASS
+    STYLE
+      OUTLINECOLOR 100 100 100
+      COLOR 220 220 220
+      WIDTH 1
+    END
+  END
+END
+
+LAYER
+  NAME "ethiopia_boundary_level1"
+  STATUS ON
+  TYPE POLYGON
+  STATUS ON
+  CONNECTIONTYPE OGR
+  CONNECTION "/data/gold/atlas_4326/bound01.shp"
+  DATA "bound01"
+  METADATA
+    "wms_title" "Ethiopia - Boundary Level 1"
+    "wms_srs" "EPSG:3857 EPSG:4326"
+    "wms_enable_request" "*"
+    "wms_queryable" "true"
+    "wms_feature_info_mime_type" "text/plain"
+    "gml_include_items" "AREA,PERIMETER"
+    "wms_include_items" "AREA,PERIMETER"
+  END
+  TEMPLATE "dummy.html"
+  CLASS
+    STYLE
+      OUTLINECOLOR 100 100 100
+      COLOR 220 220 220
+      WIDTH 1
+    END
+  END
+END
+
+LAYER
+  NAME "ethiopia_boundary_level2"
+  STATUS ON
+  TYPE POLYGON
+  STATUS ON
+  CONNECTIONTYPE OGR
+  CONNECTION "/data/gold/atlas_4326/bound02.shp"
+  DATA "bound02"
+  METADATA
+    "wms_title" "Ethiopia - Boundary Level 2"
+    "wms_srs" "EPSG:3857 EPSG:4326"
+    "wms_enable_request" "*"
+    "wms_queryable" "true"
+    "wms_feature_info_mime_type" "text/plain"
+    "gml_include_items" "REGION,AREA,PERIMETER"
+    "wms_include_items" "REGION,AREA,PERIMETER"
+  END
+  TEMPLATE "dummy.html"
+  CLASS
+    STYLE
+      OUTLINECOLOR 100 100 100
+      COLOR 220 220 220
+      WIDTH 1
+    END
+  END
+END
+
+LAYER
+  NAME "ethiopia_boundary_level3"
+  STATUS ON
+  TYPE POLYGON
+  STATUS ON
+  CONNECTIONTYPE OGR
+  CONNECTION "/data/gold/atlas_4326/bound03.shp"
+  DATA "bound03"
+  METADATA
+    "wms_title" "Ethiopia - Boundary Level 3"
+    "wms_srs" "EPSG:3857 EPSG:4326"
+    "wms_enable_request" "*"
+    "wms_queryable" "true"
+    "wms_feature_info_mime_type" "text/plain"
+    "gml_include_items" "ZONES,AREA,PERIMETER"
+    "wms_include_items" "ZONES,AREA,PERIMETER"
+  END
+  TEMPLATE "dummy.html"
+  CLASS
+    STYLE
+      OUTLINECOLOR 100 100 100
+      COLOR 220 220 220
+      WIDTH 1
+    END
+  END
+END
+
+LAYER
+  NAME "ethiopia_contour"
+  STATUS ON
+  TYPE LINE
+  STATUS ON
+  CONNECTIONTYPE OGR
+  CONNECTION "/data/gold/atlas_4326/contour.shp"
+  DATA "contour"
+  METADATA
+    "wms_title" "Ethiopia - Contour Lines"
+    "wms_srs" "EPSG:3857 EPSG:4326"
+    "wms_enable_request" "*"
+    "wms_queryable" "true"
+    "wms_feature_info_mime_type" "text/plain"
+    "gml_include_items" "ELEVATION,LENGTH"
+    "wms_include_items" "ELEVATION,LENGTH"
+  END
+  TEMPLATE "dummy.html"
+  CLASS
+    STYLE
+      COLOR 150 150 150
+      WIDTH 1
+    END
+  END
+END
+
+LAYER
+#   NAME "ethiopia_wereda"
+#   TYPE POLYGON
+#   STATUS ON
+#   CONNECTIONTYPE OGR
+#   CONNECTION "/data/gold/atlas_4326/ethio_wereda.shp"
+#   DATA "ethio_wereda"
+#   METADATA
+#     "wms_title" "Ethiopia - Wereda"
+#     "wms_srs" "EPSG:3857 EPSG:4326"
+#     "wms_enable_request" "*"
+#     "wms_queryable" "true"
+#     "wms_feature_info_mime_type" "text/plain"
+#     "gml_include_items" "all"
+#     "wms_include_items" "all"
+#   END
+#   TEMPLATE "dummy.html"
+#   CLASS
+#     STYLE
+#       OUTLINECOLOR 100 100 100
+#       COLOR 220 220 220
+#       WIDTH 1
+#     END
+#   END
+# END
+
+# QUARANTINED: 2026-02-19 - Normalization failed for ethio_wereda_Project.shp (input file corruption)
+#LAYER
+#  NAME "ethiopia_wereda_projected"
+#  TYPE POLYGON
+#  STATUS ON
+#  CONNECTIONTYPE OGR
+#  CONNECTION "/data/gold/atlas_4326/ethio_wereda_Project.shp"
+#  DATA "ethio_wereda_Project"
+#  METADATA
+#    "wms_title" "Ethiopia - Wereda (Projected)"
+#    "wms_srs" "EPSG:3857 EPSG:4326"
+#    "wms_enable_request" "*"
+#    "wms_queryable" "true"
+#    "wms_feature_info_mime_type" "text/plain"
+#    "gml_include_items" "all"
+#    "wms_include_items" "all"
+#  END
+#  CLASS
+#    STYLE
+#      OUTLINECOLOR 100 100 100
+#      COLOR 220 220 220
+#      WIDTH 1
+#    END
+#  END
+#END
+
+LAYER
+  NAME "ethiopia_isoheight"
+  STATUS ON
+  TYPE LINE
+  STATUS ON
+  CONNECTIONTYPE OGR
+  CONNECTION "/data/gold/atlas_4326/isoght.shp"
+  DATA "isoght"
+  METADATA
+    "wms_title" "Ethiopia - Isoheight Lines"
+    "wms_srs" "EPSG:3857 EPSG:4326"
+    "wms_enable_request" "*"
+    "wms_queryable" "true"
+    "wms_feature_info_mime_type" "text/plain"
+    "gml_include_items" "CONTOUR,LENGTH"
+    "wms_include_items" "CONTOUR,LENGTH"
+  END
+  TEMPLATE "dummy.html"
+  CLASS
+    STYLE
+      COLOR 150 150 150
+      WIDTH 1
+    END
+  END
+END
+
+LAYER
+  NAME "ethiopia_lakes"
+  STATUS ON
+  TYPE POLYGON
+  STATUS ON
+  CONNECTIONTYPE OGR
+  CONNECTION "/data/gold/atlas_4326/lakes.shp"
+  DATA "lakes"
+  METADATA
+    "wms_title" "Ethiopia - Lakes"
+    "wms_srs" "EPSG:3857 EPSG:4326"
+    "wms_enable_request" "*"
+    "wms_queryable" "true"
+    "wms_feature_info_mime_type" "text/plain"
+    "gml_include_items" "CODE,WATER,ACRES,HECTARES"
+    "wms_include_items" "CODE,WATER,ACRES,HECTARES"
+  END
+  TEMPLATE "dummy.html"
+  CLASS
+    STYLE
+      OUTLINECOLOR 100 100 100
+      COLOR 220 220 220
+      WIDTH 1
+    END
+  END
+END
+
+LAYER
+  NAME "ethiopia_major_basins"
+  STATUS ON
+  TYPE POLYGON
+  STATUS ON
+  CONNECTIONTYPE OGR
+  CONNECTION "/data/gold/atlas_4326/mbasins.shp"
+  DATA "mbasins"
+  METADATA
+    "wms_title" "Ethiopia - Major Basins"
+    "wms_srs" "EPSG:3857 EPSG:4326"
+    "wms_enable_request" "*"
+    "wms_queryable" "true"
+    "wms_feature_info_mime_type" "text/plain"
+    "gml_include_items" "NAME,BASINNAME,TYPE,HY_BAS,HY_SBA,WATRANK"
+    "wms_include_items" "NAME,BASINNAME,TYPE,HY_BAS,HY_SBA,WATRANK"
+  END
+  TEMPLATE "dummy.html"
+  CLASS
+    STYLE
+      OUTLINECOLOR 100 100 100
+      COLOR 220 220 220
+      WIDTH 1
+    END
+  END
+END
+
+LAYER
+  NAME "ethiopia_soils"
+  STATUS ON
+  TYPE POLYGON
+  STATUS ON
+  CONNECTIONTYPE OGR
+  CONNECTION "/data/gold/atlas_4326/msoils.shp"
+  DATA "msoils"
+  METADATA
+    "wms_title" "Ethiopia - Soils"
+    "wms_srs" "EPSG:3857 EPSG:4326"
+    "wms_enable_request" "*"
+    "wms_queryable" "true"
+    "wms_feature_info_mime_type" "text/plain"
+    "gml_include_items" "NAME,FAOSOIL,TAXON,SOILTYPE,PHASE1,PHASE2"
+    "wms_include_items" "NAME,FAOSOIL,TAXON,SOILTYPE,PHASE1,PHASE2"
+  END
+  TEMPLATE "dummy.html"
+  CLASS
+    STYLE
+      OUTLINECOLOR 100 100 100
+      COLOR 220 220 220
+      WIDTH 1
+    END
+  END
+END
+
+LAYER
+  NAME "ethiopia_ecology"
+  STATUS ON
+  TYPE POLYGON
+  STATUS ON
+  CONNECTIONTYPE OGR
+  CONNECTION "/data/gold/atlas_4326/necolog.shp"
+  DATA "necolog"
+  METADATA
+    "wms_title" "Ethiopia - Ecological Zones"
+    "wms_srs" "EPSG:3857 EPSG:4326"
+    "wms_enable_request" "*"
+    "wms_queryable" "true"
+    "wms_feature_info_mime_type" "text/plain"
+    "gml_include_items" "LCPYTYPETX,HECTARES"
+    "wms_include_items" "LCPYTYPETX,HECTARES"
+  END
+  TEMPLATE "dummy.html"
+  CLASS
+    STYLE
+      OUTLINECOLOR 100 100 100
+      COLOR 220 220 220
+      WIDTH 1
+    END
+  END
+END
+
+# REMOVED: Duplicate layer - ethiopia_national_forests displays better coverage
+# Original: ethiopia_national_forest (nforest.shp) - inferior to ethiopia_national_forests (nforests.shp)
+
+LAYER
+  NAME "ethiopia_national_forests"
+  STATUS ON
+  TYPE POLYGON
+  STATUS ON
+  CONNECTIONTYPE OGR
+  CONNECTION "/data/gold/atlas_4326/nforests.shp"
+  DATA "nforests"
+  METADATA
+    "wms_title" "Ethiopia - National Forests"
+    "wms_srs" "EPSG:3857 EPSG:4326"
+    "wms_enable_request" "*"
+    "wms_queryable" "true"
+    "wms_feature_info_mime_type" "text/plain"
+    "gml_include_items" "VEGNTX,VEGN,HECTARES"
+    "wms_include_items" "VEGNTX,VEGN,HECTARES"
+  END
+  TEMPLATE "dummy.html"
+  CLASS
+    STYLE
+      OUTLINECOLOR 100 100 100
+      COLOR 220 220 220
+      WIDTH 1
+    END
+  END
+END
+
+LAYER
+  NAME "ethiopia_national_parks"
+  STATUS ON
+  TYPE POLYGON
+  STATUS ON
+  CONNECTIONTYPE OGR
+  CONNECTION "/data/gold/atlas_4326/nparks.shp"
+  DATA "nparks"
+  METADATA
+    "wms_title" "Ethiopia - National Parks"
+    "wms_srs" "EPSG:3857 EPSG:4326"
+    "wms_enable_request" "*"
+    "wms_queryable" "true"
+    "wms_feature_info_mime_type" "text/plain"
+    "gml_include_items" "AREANAME,IUCNCAT,DESIGNATE,YEAR,SIZE,CNTRYNAME"
+    "wms_include_items" "AREANAME,IUCNCAT,DESIGNATE,YEAR,SIZE,CNTRYNAME"
+  END
+  TEMPLATE "dummy.html"
+  CLASS
+    STYLE
+      OUTLINECOLOR 100 100 100
+      COLOR 220 220 220
+      WIDTH 1
+    END
+  END
+END
+
+LAYER
+  NAME "ethiopia_rainfall_pattern"
+  STATUS ON
+  TYPE POLYGON
+  STATUS ON
+  CONNECTIONTYPE OGR
+  CONNECTION "/data/gold/atlas_4326/rain_patrn.shp"
+  DATA "rain_patrn"
+  METADATA
+    "wms_title" "Ethiopia - Rainfall Pattern"
+    "wms_srs" "EPSG:3857 EPSG:4326"
+    "wms_enable_request" "*"
+    "wms_queryable" "true"
+    "wms_feature_info_mime_type" "text/plain"
+    "gml_include_items" "PATTER,PATTERN_G"
+    "wms_include_items" "PATTER,PATTERN_G"
+  END
+  TEMPLATE "dummy.html"
+  CLASS
+    STYLE
+      OUTLINECOLOR 100 100 100
+      COLOR 220 220 220
+      WIDTH 1
+    END
+  END
+END
+
+LAYER
+  NAME "ethiopia_rainfall_stations"
+  STATUS ON
+  TYPE POLYGON
+  STATUS ON
+  CONNECTIONTYPE OGR
+  CONNECTION "/data/gold/atlas_4326/rain_stat.shp"
+  DATA "rain_stat"
+  METADATA
+    "wms_title" "Ethiopia - Rainfall Stations"
+    "wms_srs" "EPSG:3857 EPSG:4326"
+    "wms_enable_request" "*"
+    "wms_queryable" "true"
+    "wms_feature_info_mime_type" "text/plain"
+    "gml_include_items" "TOWN_NAME,STATION_CO,MAIN_TOWN,RAIN_SUM,N_YEARS,JAN"
+    "wms_include_items" "TOWN_NAME,STATION_CO,MAIN_TOWN,RAIN_SUM,N_YEARS,JAN"
+  END
+  TEMPLATE "dummy.html"
+  CLASS
+    STYLE
+      OUTLINECOLOR 100 100 100
+      COLOR 220 220 220
+      WIDTH 1
+    END
+  END
+END
+
+LAYER
+  NAME "ethiopia_rivers"
+  STATUS ON
+  TYPE LINE
+  STATUS ON
+  CONNECTIONTYPE OGR
+  CONNECTION "/data/gold/atlas_4326/rivers.shp"
+  DATA "rivers"
+  METADATA
+    "wms_title" "Ethiopia - Rivers"
+    "wms_srs" "EPSG:3857 EPSG:4326"
+    "wms_enable_request" "*"
+    "wms_queryable" "true"
+    "wms_feature_info_mime_type" "text/plain"
+    "gml_include_items" "RIV_NAME,TYPE,CLASS,RIV_ORDER,LENGTH"
+    "wms_include_items" "RIV_NAME,TYPE,CLASS,RIV_ORDER,LENGTH"
+  END
+  TEMPLATE "dummy.html"
+  CLASS
+    STYLE
+      COLOR 150 150 150
+      WIDTH 1
+    END
+  END
+END
+
+LAYER
+  NAME "ethiopia_roads_baseline"
+  STATUS ON
+  TYPE LINE
+  STATUS ON
+  CONNECTIONTYPE OGR
+  CONNECTION "/data/gold/atlas_4326/roads.shp"
+  DATA "roads"
+  METADATA
+    "wms_title" "Ethiopia - Roads (Baseline)"
+    "wms_srs" "EPSG:3857 EPSG:4326"
+    "wms_enable_request" "*"
+    "wms_queryable" "true"
+    "wms_feature_info_mime_type" "text/plain"
+    "gml_include_items" "ROAD_TYPE,TYPE,CLASS,LENGTH"
+    "wms_include_items" "ROAD_TYPE,TYPE,CLASS,LENGTH"
+  END
+  TEMPLATE "dummy.html"
+  CLASS
+    STYLE
+      COLOR 150 150 150
+      WIDTH 1
+    END
+  END
+END
+
+LAYER
+  NAME "ethiopia_streams"
+  STATUS ON
+  TYPE LINE
+  STATUS ON
+  CONNECTIONTYPE OGR
+  CONNECTION "/data/gold/atlas_4326/streams.shp"
+  DATA "streams"
+  METADATA
+    "wms_title" "Ethiopia - Streams"
+    "wms_srs" "EPSG:3857 EPSG:4326"
+    "wms_enable_request" "*"
+    "wms_queryable" "true"
+    "wms_feature_info_mime_type" "text/plain"
+    "gml_include_items" "LENGTH,HYDDNETALL"
+    "wms_include_items" "LENGTH,HYDDNETALL"
+  END
+  TEMPLATE "dummy.html"
+  CLASS
+    STYLE
+      COLOR 150 150 150
+      WIDTH 1
+    END
+  END
+END
+
+LAYER
+  NAME "ethiopia_towns"
+  STATUS ON
+  TYPE POINT
+  STATUS ON
+  CONNECTIONTYPE OGR
+  CONNECTION "/data/gold/atlas_4326/towns.shp"
+  DATA "towns"
+  METADATA
+    "wms_title" "Ethiopia - Towns"
+    "wms_srs" "EPSG:3857 EPSG:4326"
+    "wms_enable_request" "*"
+    "wms_queryable" "true"
+    "wms_feature_info_mime_type" "text/plain"
+    "gml_include_items" "TOWN_NAME,WEREDA,REGION,ZONES,POP,POPTOT"
+    "wms_include_items" "TOWN_NAME,WEREDA,REGION,ZONES,POP,POPTOT"
+  END
+  TEMPLATE "dummy.html"
+  CLASS
+    STYLE
+      SYMBOL "circle"
+      SIZE 8
+      COLOR 200 50 50
+    END
+  END
+END
+
+LAYER
+  NAME "ethiopia_wetlands"
+  STATUS ON
+  TYPE POLYGON
+  STATUS ON
+  CONNECTIONTYPE OGR
+  CONNECTION "/data/gold/atlas_4326/wetlands.shp"
+  DATA "wetlands"
+  METADATA
+    "wms_title" "Ethiopia - Wetlands"
+    "wms_srs" "EPSG:3857 EPSG:4326"
+    "wms_enable_request" "*"
+    "wms_queryable" "true"
+    "wms_feature_info_mime_type" "text/plain"
+    "gml_include_items" "NAME,CLASS,CLASSTX,DESCRIP,LOCATION,HECTARES"
+    "wms_include_items" "NAME,CLASS,CLASSTX,DESCRIP,LOCATION,HECTARES"
+  END
+  TEMPLATE "dummy.html"
+  CLASS
+    STYLE
+      OUTLINECOLOR 100 100 100
+      COLOR 220 220 220
+      WIDTH 1
+    END
+  END
+END
+
+# --- Canonical Health Layer (Authoritative Replacement) ---
+LAYER
+  NAME "tigray_health_facilities_2006"
+  STATUS ON
+  TYPE POINT
+  STATUS ON
+
+  CONNECTIONTYPE OGR
+  CONNECTION "/data/gold/atlas_4326/tigray/Health_Institutions.shp"
+  DATA "Health_Institutions"
+
+  TEMPLATE "dummy.html"
+
+  METADATA
+    "wms_title" "Tigray Health Facilities (2006)"
+    "wms_enable_request" "*"
+  END
+END

@@ -32,7 +32,7 @@ MAP
     POINTS 0 0 0 1 1 1 1 0 0 0 END
   END
 
-  INCLUDE "includes/layers_published.map"
+  INCLUDE "includes/layers_published_all.map"
 
   # PostGIS Gold Layers (main mapfile)
   LAYER
