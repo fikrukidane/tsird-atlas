@@ -119,6 +119,9 @@ class LayerFactory {
       visible: false  // Will be set by InteractionController
     });
 
+    const zIndex = this._getLayerZIndex(layerDef);
+    layer.setZIndex(zIndex);
+
     // Attach metadata for later reference
     layer.layerId = layerId;
     layer.layerDef = layerDef;
@@ -127,6 +130,29 @@ class LayerFactory {
     console.debug(`[LayerFactory] ${layerId}: WMS params = LAYERS:${layerDef.wms_name}, FORMAT:image/png, TRANSPARENT:true, ratio:1 (constrained to 4096px max)`);
 
     return layer;
+  }
+
+  _getLayerZIndex(layerDef) {
+    const layerType = (layerDef.type || '').toLowerCase();
+    const geometryType = (layerDef.geometry_type || '').toLowerCase();
+
+    if (layerType === 'raster') {
+      return 0;
+    }
+
+    if (layerType === 'grid' || layerType === 'overlay' || layerType === 'ui') {
+      return 40;
+    }
+
+    if (geometryType === 'linestring' || geometryType === 'line') {
+      return 20;
+    }
+
+    if (geometryType === 'point') {
+      return 30;
+    }
+
+    return 10;
   }
 
   /**
