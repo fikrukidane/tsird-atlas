@@ -59,11 +59,11 @@ class MapController {
     console.log(`[MapController] Center: ${centerEPSG4326} (EPSG:4326) → ${centerEPSG3857} (${viewCrs})`);
     console.log(`[MapController] Extent: ${extentEPSG4326} (${canonicalCrs}) → ${extentEPSG3857} (${viewCrs})`);
 
+    // Create view WITHOUT extent constraint (allows zoom-out beyond initial bounds)
     this.view = new ol.View({
       projection: ol.proj.get(viewCrs),
       center: centerEPSG3857,
-      zoom: this.atlasConfig.zoom,
-      extent: extentEPSG3857
+      zoom: this.atlasConfig.zoom
     });
 
     // Create map
@@ -74,6 +74,14 @@ class MapController {
     });
 
     console.log('[MapController] Map initialized successfully');
+
+    // Fit view to initial extent (Tigray) without constraining navigation
+    // This focuses the initial view but allows zooming out to Ethiopia
+    this.view.fit(extentEPSG3857, {
+      padding: [20, 20, 20, 20],
+      duration: 0,
+      maxZoom: this.atlasConfig.zoom ?? 9
+    });
 
     // Register map render event to confirm tiles loading
     this.map.once('rendercomplete', () => {
