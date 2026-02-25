@@ -40,6 +40,13 @@ categories:
   label: Administrative (Regional)
   closed: false
   groups:
+  - id: grp_boundaries
+    label: Administrative Boundaries
+    layers:
+    - ethiopia_admin
+    - ethiopia_boundary_level1
+    - ethiopia_boundary_level2
+    - ethiopia_boundary_level3
   - id: grp_regions
     label: Regions
     layers:
@@ -52,6 +59,10 @@ categories:
     label: TigraiTabiasNew
     layers:
     - tigray_tabias
+  - id: grp_additional_roads
+    label: Other Road Networks
+    layers:
+    - tigray_roads_2006t
   - id: grp_towns
     label: Towns
     layers:
@@ -80,23 +91,56 @@ categories:
     label: EthiopiaRoadsOld
     layers:
     - ethiopia_roads
-  - id: grp_met_stations
-    label: MetStations
-    layers: []
-- id: cat_health
-  label: Health
+  - id: grp_ethiopia_roads_other
+    label: Ethiopia Roads (Other)
+    layers:
+    - ethiopia_roads_baseline
+    - ethiopia_roads_raw
+- id: cat_terrain
+  label: Terrain
   closed: true
   groups:
-  - id: grp_health_indicators
-    label: Indicators
-    layers: []
+  - id: grp_elevation_features
+    label: Elevation Features
+    layers:
+    - ethiopia_contour
+    - tigray_contour
+    - ethiopia_isoheight
+- id: cat_rainfall
+  label: Rainfall & Climate
+  closed: true
+  groups:
+  - id: grp_rainfall
+    label: Rainfall Data
+    layers:
+    - ethiopia_rainfall_pattern
+    - ethiopia_rainfall_stations
 - id: cat_nature
   label: Nature
   closed: true
   groups:
-  - id: grp_nature_baseline
-    label: Baseline
-    layers: []
+  - id: grp_water_features
+    label: Water Features
+    layers:
+    - ethiopia_rivers
+    - ethiopia_streams
+    - ethiopia_lakes
+    - ethiopia_wetlands
+  - id: grp_basins
+    label: Basin Systems
+    layers:
+    - ethiopia_basins
+    - ethiopia_major_basins
+  - id: grp_protected_areas
+    label: Protected Areas
+    layers:
+    - ethiopia_national_parks
+    - ethiopia_national_forests
+  - id: grp_landcover
+    label: Land Cover & Soils
+    layers:
+    - ethiopia_ecology
+    - ethiopia_soils
 - id: cat_raster
   label: Raster
   closed: true
@@ -122,6 +166,7 @@ layers:
     wms_name: ethiopia_aoi
     label: Ethiopia - Area of Interest
     type: vector
+    geometry_type: polygon
     published: true
     default_visible: false
     queryable: false
@@ -146,7 +191,8 @@ layers:
     wms_name: ethiopia_admin
     label: Ethiopia - Admin Regions
     type: vector
-    published: false
+    geometry_type: polygon
+    published: true
     default_visible: false
     queryable: false
     min_scale: 50000000
@@ -172,7 +218,7 @@ layers:
     label: Tigray - Woredas
     type: vector
     geometry_type: polygon
-    published: false
+    published: true
     default_visible: false
     queryable: false
     min_scale: 5000000
@@ -200,7 +246,8 @@ layers:
     wms_name: ethiopia_boundary_level1
     label: Level 1 Boundaries
     type: vector
-    published: false
+    geometry_type: polygon
+    published: true
     default_visible: false
     queryable: false
     min_scale: 50000000
@@ -210,7 +257,8 @@ layers:
     wms_name: ethiopia_boundary_level2
     label: Level 2 Boundaries
     type: vector
-    published: false
+    geometry_type: polygon
+    published: true
     default_visible: false
     queryable: false
     min_scale: 50000000
@@ -220,7 +268,8 @@ layers:
     wms_name: ethiopia_boundary_level3
     label: Level 3 Boundaries
     type: vector
-    published: false
+    geometry_type: polygon
+    published: true
     default_visible: false
     queryable: false
     min_scale: 50000000
@@ -253,7 +302,8 @@ layers:
     wms_name: ethiopia_roads_raw
     label: Ethiopia Roads (Raw Shapefile)
     type: vector
-    published: false
+    geometry_type: linestring
+    published: true
     default_visible: false
     queryable: false
     min_scale: 50000000
@@ -263,7 +313,8 @@ layers:
     wms_name: ethiopia_roads_baseline
     label: Ethiopia Roads (Baseline)
     type: vector
-    published: false
+    geometry_type: linestring
+    published: true
     default_visible: false
     queryable: false
     min_scale: 50000000
@@ -273,7 +324,8 @@ layers:
     wms_name: tigray_roads_2006t
     label: Tigray Roads 2006 (Alt)
     type: vector
-    published: false
+    geometry_type: linestring
+    published: true
     default_visible: false
     queryable: false
     min_scale: 10000000
@@ -378,7 +430,8 @@ layers:
     wms_name: ethiopia_contour
     label: Ethiopia - Contours
     type: vector
-    published: false
+    geometry_type: linestring
+    published: true
     default_visible: false
     queryable: false
     min_scale: 5000000
@@ -388,7 +441,8 @@ layers:
     wms_name: ethiopia_isoheight
     label: Ethiopia - Isoheight
     type: vector
-    published: false
+    geometry_type: linestring
+    published: true
     default_visible: false
     queryable: false
     min_scale: 5000000
@@ -398,7 +452,8 @@ layers:
     wms_name: tigray_contour
     label: Tigray - Contours
     type: vector
-    published: false
+    geometry_type: linestring
+    published: true
     default_visible: false
     queryable: false
     min_scale: 2000000
@@ -408,7 +463,8 @@ layers:
     wms_name: ethiopia_basins
     label: Ethiopia - Basins
     type: vector
-    published: false
+    geometry_type: polygon
+    published: true
     default_visible: false
     queryable: false
     min_scale: 50000000
@@ -418,7 +474,8 @@ layers:
     wms_name: ethiopia_major_basins
     label: Ethiopia - Major Basins
     type: vector
-    published: false
+    geometry_type: polygon
+    published: true
     default_visible: false
     queryable: false
     min_scale: 50000000
@@ -428,7 +485,8 @@ layers:
     wms_name: ethiopia_lakes
     label: Ethiopia - Lakes
     type: vector
-    published: false
+    geometry_type: polygon
+    published: true
     default_visible: false
     queryable: false
     min_scale: 20000000
@@ -438,7 +496,8 @@ layers:
     wms_name: ethiopia_wetlands
     label: Ethiopia - Wetlands
     type: vector
-    published: false
+    geometry_type: polygon
+    published: true
     default_visible: false
     queryable: false
     min_scale: 10000000
@@ -448,7 +507,8 @@ layers:
     wms_name: ethiopia_rivers
     label: Ethiopia - Rivers
     type: vector
-    published: false
+    geometry_type: linestring
+    published: true
     default_visible: false
     queryable: false
     min_scale: 50000000
@@ -458,7 +518,8 @@ layers:
     wms_name: ethiopia_streams
     label: Ethiopia - Streams
     type: vector
-    published: false
+    geometry_type: linestring
+    published: true
     default_visible: false
     queryable: false
     min_scale: 10000000
@@ -468,7 +529,8 @@ layers:
     wms_name: ethiopia_national_parks
     label: Ethiopia - National Parks
     type: vector
-    published: false
+    geometry_type: polygon
+    published: true
     default_visible: false
     queryable: false
     min_scale: 50000000
@@ -478,7 +540,8 @@ layers:
     wms_name: ethiopia_national_forests
     label: Ethiopia - National Forests
     type: vector
-    published: false
+    geometry_type: polygon
+    published: true
     default_visible: false
     queryable: false
     min_scale: 50000000
@@ -488,7 +551,8 @@ layers:
     wms_name: ethiopia_ecology
     label: Ethiopia - Ecology
     type: vector
-    published: false
+    geometry_type: polygon
+    published: true
     default_visible: false
     queryable: false
     min_scale: 50000000
@@ -498,7 +562,8 @@ layers:
     wms_name: ethiopia_soils
     label: Ethiopia - Soils
     type: vector
-    published: false
+    geometry_type: polygon
+    published: true
     default_visible: false
     queryable: false
     min_scale: 20000000
@@ -508,7 +573,8 @@ layers:
     wms_name: ethiopia_rainfall_pattern
     label: Ethiopia - Rainfall Patterns
     type: vector
-    published: false
+    geometry_type: polygon
+    published: true
     default_visible: false
     queryable: false
     min_scale: 50000000
@@ -518,7 +584,8 @@ layers:
     wms_name: ethiopia_rainfall_stations
     label: Ethiopia - Rainfall Stations
     type: vector
-    published: false
+    geometry_type: polygon
+    published: true
     default_visible: false
     queryable: false
     min_scale: 20000000
