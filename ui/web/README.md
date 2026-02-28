@@ -140,6 +140,42 @@ Should output: `✓ All constraints passed`
 - Attribute allowlist filtering (identify_fields)
 - Out-of-scale visual indicators in TOC
 - Popup rendering with filtered attributes
+- **Legend display** (WMS GetLegendGraphic integration)
+
+### Legend Feature (NEW - February 2026)
+
+**Purpose**: Display WMS legend graphics inline within the TOC for each layer
+
+**Implementation**:
+- Toggle button (◧) in each layer row
+- Fetches legend via WMS GetLegendGraphic request on first click
+- Caches legend image after initial load
+- Handles loading/error states gracefully
+
+**UI Components**:
+- `.toc-legend-toggle` — Button with ◧/◨ icon
+- `.toc-legend-container` — Collapsible container with blue left border
+- `.toc-legend-header` — "LEGEND" label in bold
+- `.toc-legend-image` — Loaded PNG from MapServer
+
+**Usage**:
+```javascript
+// In InteractionController._renderLayer():
+// Creates toggle button and legend container
+// Calls _loadLegend() on first expand
+
+_loadLegend(wmsName, container) {
+  const legendUrl = `${wmsBaseUrl}?SERVICE=WMS&VERSION=1.3.0` +
+    `&REQUEST=GetLegendGraphic&LAYER=${wmsName}` +
+    `&FORMAT=image/png&SLD_VERSION=1.1.0`;
+  // Fetch and display...
+}
+```
+
+**Requirements**:
+- MapServer LEGEND object in mapfile (KEYSIZE, KEYSPACING, LABEL)
+- Each LAYER must have at least one CLASS with NAME attribute
+- Layer STATUS must be ON
 
 ### ScaleEngine (NEW - Milestone 2)
 

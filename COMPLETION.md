@@ -326,6 +326,78 @@ ls -la /data/normalized/vectors4326/ | grep -E "shp|dbf" | wc -l
 
 ---
 
+## Phase 7: Style Migration & Legend UI (February 2026)
+
+### Overview
+Complete visual styling implementation for all vector layers with WMS GetLegendGraphic support integrated into the frontend TOC.
+
+### Style Migration ✓
+- **Layers Styled**: 20 vector layers with proper CLASS/STYLE definitions
+- **Style Types**: Fill+outline for polygons, line styles for linear features, point symbols
+- **COLOR Specifications**: All layers now have explicit fill/outline colors
+- **Transparent Fills**: Admin boundaries use transparent (255 255 255) for selectability
+
+**Layers with Custom Styles**:
+| Layer | Style Description |
+|-------|-------------------|
+| ethiopia_zones | Yellow fill, red outline |
+| ethiopia_woredas | White fill, brown outline |
+| tigray_tabias | Beige fill, dark orange outline |
+| ethiopia_admin | Transparent fill, black dashed outline |
+| ethiopia_boundary_level1/2/3 | Transparent fills, graduated line widths |
+| tigray_primary_roads | Orange lines (2px) |
+| tigray_rivers | Blue lines (1.5px) |
+| tigray_streams | Light blue lines (1px) |
+| tigray_ponds | Blue fill with dark outline |
+| tigray_perennial_rivers | Dark blue lines (2px) |
+| ethiopia_contour | Brown contour lines |
+| ethiopia_isoheight | Dark brown isoheight lines |
+| ethiopia_major_basins | Light cyan fill |
+| ethiopia_rainfall_pattern | Light green fill |
+| ethiopia_rainfall_stations | Green point markers |
+| ethiopia_roads_baseline | Red road lines (1.8px) |
+| tigray_roads_2006t | Dark grey road lines |
+| ethiopia_dem | Gradient colormap (0-4620m) |
+| ethiopia_slope | Gradient colormap (0-90°) |
+
+### GetLegendGraphic Support ✓
+- **LEGEND Object**: Added to tsird.map with KEYSIZE 20x12, KEYSPACING 5x5
+- **CLASS NAME Attributes**: Added to 13 layers that were missing NAME (required for legend)
+- **Legend Validation**: All layers generate proper PNG legends (500+ bytes each)
+
+**Layers with CLASS NAME Added**:
+- ethiopia_dem ("Elevation (0-4620m)")
+- ethiopia_slope ("Slope (0-90 degrees)")
+- ethiopia_admin ("Admin Boundaries")
+- ethiopia_boundary_level1/2/3 ("Level 1/2/3 Boundary")
+- ethiopia_contour ("Contour Lines")
+- ethiopia_isoheight ("Isoheight Lines")
+- ethiopia_major_basins ("Major Basins")
+- ethiopia_rainfall_pattern ("Rainfall Pattern")
+- ethiopia_rainfall_stations ("Rainfall Stations")
+- ethiopia_roads_baseline ("Roads (Baseline)")
+- tigray_roads_2006t ("Roads (Alt)")
+
+### Legend UI Implementation ✓
+- **Toggle Button**: ◧ icon in TOC layer row, toggles to ◨ when expanded
+- **Legend Container**: Collapsible panel below each layer with "LEGEND" header
+- **WMS Integration**: Fetches legend via GetLegendGraphic on first expand
+- **Error Handling**: Shows "Legend unavailable" for layers without CLASS NAME
+- **CSS Styling**: Blue left border, subtle background, responsive sizing
+
+**Files Modified**:
+- `ui/web/src/interactions/InteractionController.js` — _toggleLegend(), _loadLegend() methods
+- `ui/web/css/style.css` — .toc-legend-* classes
+- `infra/mapserver/mapfiles/tsird.map` — LEGEND object definition
+- `infra/mapserver/mapfiles/includes/vectors_gold.map` — CLASS NAME attributes
+
+### Bug Fixes ✓
+- **Ethiopia Woredas Shapefile**: Fixed DATA path (ethio_wereda.shp → EthioWoredasNew.shp)
+- **Ethiopia Woredas TOC**: Added missing layer entry to grp_regions group
+- **Legend Size Issue**: Resolved by adding CLASS NAME to all styled layers
+
+---
+
 ## Sign-Off & Certification
 
 **Project**: TSIRD WMS Integration and Audit  

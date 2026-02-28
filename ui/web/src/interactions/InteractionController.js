@@ -220,7 +220,7 @@ class InteractionController {
   }
 
   /**
-   * Render a single layer with checkbox.
+   * Render a single layer with checkbox and legend toggle.
    * @private
    */
   _renderLayer(layerRef, groupId) {
@@ -234,6 +234,10 @@ class InteractionController {
     if (!layerDef.default_visible) {
       layerDiv.classList.add('is-muted');
     }
+
+    // Layer row (checkbox + label + legend toggle)
+    const layerRow = document.createElement('div');
+    layerRow.className = 'toc-layer-row';
 
     // Layer checkbox
     const layerCheckbox = document.createElement('input');
@@ -251,10 +255,85 @@ class InteractionController {
     layerLabel.className = 'toc-layer-label';
     layerLabel.textContent = layerRef.label;
 
-    layerDiv.appendChild(layerCheckbox);
-    layerDiv.appendChild(layerLabel);
+    // Legend toggle button
+    const legendToggle = document.createElement('button');
+    legendToggle.className = 'toc-legend-toggle';
+    legendToggle.title = 'Show/hide legend';
+    legendToggle.innerHTML = '<span class="legend-icon">◧</span>';
+    legendToggle.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this._toggleLegend(layerId, layerDef.wms_name, layerDiv, legendToggle);
+    });
+
+    layerRow.appendChild(layerCheckbox);
+    layerRow.appendChild(layerLabel);
+    layerRow.appendChild(legendToggle);
+    layerDiv.appendChild(layerRow);
+
+    // Legend container (hidden by default)
+    const legendContainer = document.createElement('div');
+    legendContainer.className = 'toc-legend-container';
+    legendContainer.id = `legend-${layerId}`;
+    legendContainer.style.display = 'none';
+    layerDiv.appendChild(legendContainer);
 
     return layerDiv;
+  }
+
+  /**
+   * Toggle legend visibility for a layer.
+   * @private
+   */
+  _toggleLegend(layerId, wmsName, layerDiv, toggleButton) {
+    const legendContainer = document.getElementById(`legend-${layerId}`);
+    if (!legendContainer) return;
+
+    const isVisible = legendContainer.style.display !== 'none';
+    
+    if (isVisible) {
+      // Hide legend
+      legendContainer.style.display = 'none';
+      toggleButton.innerHTML = '<span class="legend-icon">◧</span>';
+      toggleButton.classList.remove('is-expanded');
+    } else {
+      // Show legend - load if not already loaded
+      legendContainer.style.display = 'block';
+      toggleButton.innerHTML = '<span class="legend-icon">◨</span>';
+      toggleButton.classList.add('is-expanded');
+      
+      if (!legendContainer.dataset.loaded) {
+        this._loadLegend(wmsName, legendContainer);
+      }
+    }
+  }
+
+  /**
+   * Load legend image via WMS GetLegendGraphic.
+   * @private
+   */
+  _loadLegend(wmsName, container) {
+    const wmsBaseUrl = this.mapController.wmsBaseUrl;
+    const legendUrl = `${wmsBaseUrl}?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetLegendGraphic&LAYER=${encodeURIComponent(wmsName)}&FORMAT=image/png&SLD_VERSION=1.1.0`;
+    
+    // Show loading state
+    container.innerHTML = '<div class="toc-legend-header">Legend</div><span class="toc-legend-loading">Loading...</span>';
+    
+    const img = document.createElement('img');
+    img.className = 'toc-legend-image';
+    img.alt = `Legend for ${wmsName}`;
+    
+    img.onload = () => {
+      container.innerHTML = '<div class="toc-legend-header">Legend</div>';
+      container.appendChild(img);
+      container.dataset.loaded = 'true';
+    };
+    
+    img.onerror = () => {
+      container.innerHTML = '<div class="toc-legend-header">Legend</div><span class="toc-legend-error">Legend unavailable</span>';
+      container.dataset.loaded = 'error';
+    };
+    
+    img.src = legendUrl;
   }
 
   _groupHasDefaultVisible(group) {

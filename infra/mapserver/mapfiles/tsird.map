@@ -2,6 +2,8 @@ MAP
   NAME "tsird"
   STATUS ON
   EXTENT 33.0 3.0 48.0 15.5
+  FONTSET "/fonts/fonts.txt"
+  SYMBOLSET "/symbols/symbols.sym"
 
   WEB
     METADATA
@@ -19,6 +21,19 @@ MAP
     "init=epsg:4326"
   END
 
+  # LEGEND object for WMS GetLegendGraphic support
+  LEGEND
+    STATUS ON
+    KEYSIZE 20 12
+    KEYSPACING 5 5
+    LABEL
+      TYPE TRUETYPE
+      FONT "arial"
+      SIZE 9
+      COLOR 0 0 0
+    END
+  END
+
   # SYMBOL definitions for POINT layers
   SYMBOL
     NAME "circle"
@@ -32,7 +47,7 @@ MAP
     POINTS 0 0 0 1 1 1 1 0 0 0 END
   END
 
-  INCLUDE "includes/layers_published_all.map"
+  INCLUDE "includes/vectors_gold.map"
 
   # PostGIS Gold Layers (main mapfile)
   LAYER
@@ -103,6 +118,7 @@ END
   # Use RGB color-relief copy for better rendering
   DATA "/data/gold/dem/et-dtm-2001_20137_rgb.tif"
   CLASS
+    NAME "Elevation (0-4620m)"
     STYLE
       COLOR 100 150 200
     END
@@ -123,6 +139,7 @@ END
     "wms_srs" "EPSG:20137 EPSG:4326 EPSG:3857"
   END
   CLASS
+    NAME "Slope (0-90 degrees)"
     STYLE
       COLOR 200 100 50
     END

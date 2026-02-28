@@ -51,6 +51,7 @@ categories:
     label: Regions
     layers:
     - ethiopia_zones
+    - ethiopia_woredas
   - id: grp_tigray_woreda_new
     label: TigrayWoredaNew
     layers:

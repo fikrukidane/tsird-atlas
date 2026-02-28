@@ -28,6 +28,8 @@ services:
     volumes:
       - ./infra/mapserver/mapfiles:/etc/mapserver
       - ./infra/mapserver/mapfiles/ms.config:/etc/mapserver.conf:ro
+      - ./infra/mapserver/fonts:/fonts:ro
+      - ./infra/mapserver/symbols:/symbols:ro
       - ./data:/data:ro
     networks:
       - tsird-network

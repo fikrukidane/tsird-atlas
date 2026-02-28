@@ -23,12 +23,13 @@ LAYER
   NAME "ethiopia_zones"
   STATUS ON
   TYPE POLYGON
-  STATUS ON
   CONNECTIONTYPE OGR
   CONNECTION "/data/gold/atlas_4326/bound03.shp"
   DATA "bound03"
+  LABELITEM "ZONES"
+  LABELMAXSCALEDENOM 3000000
   METADATA
-    "wms_title" "Ethiopia Zones"
+    "wms_title" "Ethiopia - Zones (pre-91)"
     "wms_srs" "EPSG:3857 EPSG:4326"
     "wms_enable_request" "*"
     "wms_queryable" "true"
@@ -38,10 +39,21 @@ LAYER
   END
   TEMPLATE "dummy.html"
   CLASS
+    NAME "Zones"
     STYLE
-      OUTLINECOLOR 100 100 100
-      COLOR 220 220 220
-      WIDTH 1
+      COLOR 171 170 107
+      OUTLINECOLOR 0 0 0
+      OPACITY 50
+    END
+    LABEL
+      COLOR 50 50 50
+      OUTLINECOLOR 255 255 255
+      OUTLINEWIDTH 2
+      FONT "arial"
+      TYPE TRUETYPE
+      SIZE 9
+      POSITION AUTO
+      PARTIALS FALSE
     END
   END
 END
@@ -73,10 +85,11 @@ LAYER
   NAME "ethiopia_woredas"
   STATUS ON
   TYPE POLYGON
-  STATUS ON
   CONNECTIONTYPE OGR
-  CONNECTION "/data/gold/atlas_4326/ethio_wereda.shp"
-  DATA "ethio_wereda"
+  CONNECTION "/data/gold/atlas_4326/ethiopia/EthioWoredasNew.shp"
+  DATA "EthioWoredasNew"
+  LABELITEM "W_NAME"
+  LABELMAXSCALEDENOM 1500000
   METADATA
     "wms_title" "Ethiopia - Woredas"
     "wms_srs" "EPSG:3857 EPSG:4326"
@@ -88,10 +101,22 @@ LAYER
   END
   TEMPLATE "dummy.html"
   CLASS
+    NAME "Woredas"
     STYLE
-      OUTLINECOLOR 100 100 100
-      COLOR 220 220 220
-      WIDTH 1
+      COLOR 240 240 230
+      OUTLINECOLOR 80 80 80
+      WIDTH 0.5
+      OPACITY 40
+    END
+    LABEL
+      COLOR 50 50 50
+      OUTLINECOLOR 255 255 255
+      OUTLINEWIDTH 1
+      FONT "arial"
+      TYPE TRUETYPE
+      SIZE 8
+      POSITION AUTO
+      PARTIALS FALSE
     END
   END
 END
@@ -100,10 +125,10 @@ LAYER
   NAME "ethiopia_roads_raw"
   STATUS OFF
   TYPE LINE
-  STATUS OFF
   CONNECTIONTYPE OGR
   CONNECTION "/data/gold/atlas_4326/Ethio_roads.shp"
   DATA "Ethio_roads"
+  CLASSITEM "RDLNTYPETX"
   METADATA
     "wms_title" "Ethiopia - Roads"
     "wms_srs" "EPSG:3857 EPSG:4326"
@@ -114,7 +139,51 @@ LAYER
     "wms_include_items" "RDLNTYPETX,RDLNSTATTX,RDLNTYPE,RDLNSTAT,LENGTH"
   END
   TEMPLATE "dummy.html"
+  # Classified by road type
   CLASS
+    NAME "All-weather roads (asphalt)"
+    EXPRESSION "All-weather roads (asphalt)"
+    STYLE
+      COLOR 166 64 49
+      WIDTH 3
+    END
+  END
+  CLASS
+    NAME "All-weather roads (gravel)"
+    EXPRESSION "All-weather roads (gravel)"
+    STYLE
+      COLOR 211 120 107
+      WIDTH 2
+    END
+  END
+  CLASS
+    NAME "Dry-weather roads"
+    EXPRESSION "Dry-weather roads"
+    STYLE
+      COLOR 176 112 100
+      WIDTH 1
+    END
+  END
+  CLASS
+    NAME "Motorable tracks"
+    EXPRESSION "Motorable tracks (status uncertain)"
+    STYLE
+      COLOR 207 168 160
+      WIDTH 1
+      PATTERN 3 3 END
+    END
+  END
+  CLASS
+    NAME "Railway"
+    EXPRESSION "Railway"
+    STYLE
+      COLOR 10 0 96
+      WIDTH 2
+      PATTERN 5 3 END
+    END
+  END
+  CLASS
+    NAME "Other Roads"
     STYLE
       COLOR 150 150 150
       WIDTH 1
@@ -126,12 +195,13 @@ LAYER
   NAME "tigray_tabias"
   STATUS OFF
   TYPE POLYGON
-  STATUS OFF
   CONNECTIONTYPE OGR
   CONNECTION "/data/gold/atlas_4326/TigraiTabiasNew.shp"
   DATA "TigraiTabiasNew"
+  LABELITEM "TABIA"
+  LABELMAXSCALEDENOM 100000
   METADATA
-    "wms_title" "Tigray - Tabias"
+    "wms_title" "Tigray - Tabias (Admin)"
     "wms_srs" "EPSG:3857 EPSG:4326"
     "wms_enable_request" "*"
     "wms_queryable" "true"
@@ -140,11 +210,62 @@ LAYER
     "wms_include_items" "TABIA,WEREDA,ZONES,SQ_KM,HECTARES,DENSITY"
   END
   TEMPLATE "dummy.html"
+  # Graduated by area (HECTARES)
   CLASS
+    NAME "Small (<500 ha)"
+    EXPRESSION ([HECTARES] < 500)
     STYLE
+      COLOR 250 250 240
+      OUTLINECOLOR 120 120 120
+      OPACITY 60
+    END
+    LABEL
+      COLOR 50 50 50
+      OUTLINECOLOR 255 255 255
+      OUTLINEWIDTH 1
+      FONT "arial"
+      TYPE TRUETYPE
+      SIZE 8
+      POSITION AUTO
+      PARTIALS FALSE
+    END
+  END
+  CLASS
+    NAME "Medium (500-1000 ha)"
+    EXPRESSION ([HECTARES] >= 500 AND [HECTARES] < 1000)
+    STYLE
+      COLOR 230 230 220
       OUTLINECOLOR 100 100 100
-      COLOR 220 220 220
-      WIDTH 1
+      OPACITY 70
+    END
+    LABEL
+      COLOR 50 50 50
+      OUTLINECOLOR 255 255 255
+      OUTLINEWIDTH 1
+      FONT "arial"
+      TYPE TRUETYPE
+      SIZE 8
+      POSITION AUTO
+      PARTIALS FALSE
+    END
+  END
+  CLASS
+    NAME "Large (>1000 ha)"
+    EXPRESSION ([HECTARES] >= 1000)
+    STYLE
+      COLOR 210 210 200
+      OUTLINECOLOR 80 80 80
+      OPACITY 80
+    END
+    LABEL
+      COLOR 50 50 50
+      OUTLINECOLOR 255 255 255
+      OUTLINEWIDTH 1
+      FONT "arial"
+      TYPE TRUETYPE
+      SIZE 8
+      POSITION AUTO
+      PARTIALS FALSE
     END
   END
 END
@@ -153,7 +274,6 @@ LAYER
   NAME "tigray_contour"
   STATUS OFF
   TYPE LINE
-  STATUS OFF
   CONNECTIONTYPE OGR
   CONNECTION "/data/gold/atlas_4326/TigrayContour.shp"
   DATA "TigrayContour"
@@ -168,9 +288,10 @@ LAYER
   END
   TEMPLATE "dummy.html"
   CLASS
+    NAME "Contour Lines"
     STYLE
-      COLOR 150 150 150
-      WIDTH 1
+      COLOR 129 7 204
+      WIDTH 0.5
     END
   END
 END
@@ -243,6 +364,7 @@ LAYER
   END
   TEMPLATE "dummy.html"
   CLASS
+    NAME "Roads (Alt)"
     STYLE
       COLOR 150 150 150
       WIDTH 1
@@ -254,10 +376,10 @@ LAYER
   NAME "tigray_roads_2006"
   STATUS ON
   TYPE LINE
-  STATUS ON
   CONNECTIONTYPE OGR
   CONNECTION "/data/gold/atlas_4326/TigrayRoadsIn2006.shp"
   DATA "TigrayRoadsIn2006"
+  CLASSITEM "OWNER"
   METADATA
     "wms_title" "Tigray - Roads (2006)"
     "wms_srs" "EPSG:3857 EPSG:4326"
@@ -268,7 +390,43 @@ LAYER
     "wms_include_items" "NAME,TYPE,OWNER,ZONE_,LENGTH_KM,NEAR_DIST"
   END
   TEMPLATE "dummy.html"
+  # Classified by owner
   CLASS
+    NAME "ERA Roads (Federal)"
+    EXPRESSION "ERA"
+    STYLE
+      COLOR 255 0 0
+      WIDTH 3
+    END
+    LABEL
+      TYPE TRUETYPE
+      FONT "arial"
+      SIZE 9
+      COLOR 0 0 0
+      OUTLINECOLOR 255 255 255
+      OUTLINEWIDTH 2
+      POSITION AUTO
+      PARTIALS FALSE
+    END
+  END
+  CLASS
+    NAME "TRRA Roads (Regional)"
+    EXPRESSION "TRRA"
+    STYLE
+      COLOR 250 100 0
+      WIDTH 2
+    END
+  END
+  CLASS
+    NAME "Community Roads"
+    EXPRESSION "Community"
+    STYLE
+      COLOR 100 100 100
+      WIDTH 1
+    END
+  END
+  CLASS
+    NAME "Other Roads"
     STYLE
       COLOR 150 150 150
       WIDTH 1
@@ -280,10 +438,12 @@ LAYER
   NAME "tigray_schools_2006"
   STATUS ON
   TYPE POINT
-  STATUS ON
   CONNECTIONTYPE OGR
   CONNECTION "/data/gold/atlas_4326/TigraySchools2006.shp"
   DATA "TigraySchools2006"
+  LABELITEM "Name"
+  LABELMAXSCALEDENOM 200000
+  CLASSITEM "Type"
   METADATA
     "wms_title" "Tigray - Schools (2006)"
     "wms_srs" "EPSG:3857 EPSG:4326"
@@ -294,11 +454,85 @@ LAYER
     "wms_include_items" "Name,Type,Zone_Name,Woreda_Nam,T_Name,X"
   END
   TEMPLATE "dummy.html"
+  # Classified by school type
   CLASS
+    NAME "Highschool"
+    EXPRESSION "Highschool"
+    STYLE
+      SYMBOL "triangle"
+      SIZE 7
+      COLOR 255 0 0
+      OUTLINECOLOR 100 0 0
+    END
+    LABEL
+      COLOR 0 0 0
+      OUTLINECOLOR 255 255 0
+      OUTLINEWIDTH 1
+      FONT "arial"
+      TYPE TRUETYPE
+      SIZE 8
+      POSITION AUTO
+      PARTIALS FALSE
+      BUFFER 5
+    END
+  END
+  CLASS
+    NAME "Highschool+Preparatory"
+    EXPRESSION "Highschool+Preparatory"
+    STYLE
+      SYMBOL "triangle"
+      SIZE 8
+      COLOR 230 76 0
+      OUTLINECOLOR 100 30 0
+    END
+    LABEL
+      COLOR 0 0 0
+      OUTLINECOLOR 255 255 0
+      OUTLINEWIDTH 1
+      FONT "arial"
+      TYPE TRUETYPE
+      SIZE 8
+      POSITION AUTO
+      PARTIALS FALSE
+      BUFFER 5
+    END
+  END
+  CLASS
+    NAME "Preparatory"
+    EXPRESSION "Preparatory"
+    STYLE
+      SYMBOL "triangle"
+      SIZE 6
+      COLOR 76 230 0
+      OUTLINECOLOR 30 100 0
+    END
+    LABEL
+      COLOR 0 0 0
+      OUTLINECOLOR 255 255 0
+      OUTLINEWIDTH 1
+      FONT "arial"
+      TYPE TRUETYPE
+      SIZE 8
+      POSITION AUTO
+      PARTIALS FALSE
+      BUFFER 5
+    END
+  END
+  CLASS
+    NAME "Primary"
+    EXPRESSION "Primary"
+    STYLE
+      SYMBOL "cross"
+      SIZE 5
+      COLOR 0 92 230
+    END
+  END
+  CLASS
+    NAME "Other Schools"
     STYLE
       SYMBOL "circle"
-      SIZE 8
-      COLOR 200 50 50
+      SIZE 4
+      COLOR 150 150 150
     END
   END
 END
@@ -307,10 +541,11 @@ LAYER
   NAME "tigray_woreda"
   STATUS OFF
   TYPE POLYGON
-  STATUS OFF
   CONNECTIONTYPE OGR
-  CONNECTION "/data/gold/atlas_4326/TigrayWoredaNew.shp"
-  DATA "TigrayWoredaNew"
+  CONNECTION "/data/gold/atlas_4326/TigrayNewWoredas.shp"
+  DATA "TigrayNewWoredas"
+  LABELITEM "wor_name"
+  LABELMAXSCALEDENOM 1000000
   METADATA
     "wms_title" "Tigray - Woreda"
     "wms_srs" "EPSG:3857 EPSG:4326"
@@ -322,10 +557,22 @@ LAYER
   END
   TEMPLATE "dummy.html"
   CLASS
+    NAME "Woredas"
     STYLE
-      OUTLINECOLOR 100 100 100
-      COLOR 220 220 220
+      COLOR 230 230 220
+      OUTLINECOLOR 60 60 60
       WIDTH 1
+      OPACITY 50
+    END
+    LABEL
+      COLOR 40 40 40
+      OUTLINECOLOR 255 255 255
+      OUTLINEWIDTH 2
+      FONT "arial"
+      TYPE TRUETYPE
+      SIZE 9
+      POSITION AUTO
+      PARTIALS FALSE
     END
   END
 END
@@ -334,12 +581,13 @@ LAYER
   NAME "tigray_towns"
   STATUS ON
   TYPE POINT
-  STATUS ON
   CONNECTIONTYPE OGR
   CONNECTION "/data/gold/atlas_4326/Tigray_Towns.shp"
   DATA "Tigray_Towns"
+  LABELITEM "TOWN_NAME"
+  LABELMAXSCALEDENOM 2000000
   METADATA
-    "wms_title" "Tigray - Towns"
+    "wms_title" "Tigray - Towns (by Population)"
     "wms_srs" "EPSG:3857 EPSG:4326"
     "wms_enable_request" "*"
     "wms_queryable" "true"
@@ -348,11 +596,110 @@ LAYER
     "wms_include_items" "TOWN_NAME,WEREDA,REGION,ZONES,POP,POPTOT"
   END
   TEMPLATE "dummy.html"
+  # Graduated symbols by population
   CLASS
+    NAME "0 - 50,000"
+    EXPRESSION ([POPTOT] <= 50000)
     STYLE
       SYMBOL "circle"
-      SIZE 8
-      COLOR 200 50 50
+      SIZE 5
+      COLOR 255 203 197
+      OUTLINECOLOR 100 50 50
+    END
+    LABEL
+      COLOR 132 31 31
+      OUTLINECOLOR 255 255 255
+      OUTLINEWIDTH 2
+      FONT "arial"
+      TYPE TRUETYPE
+      SIZE 9
+      POSITION AUTO
+      PARTIALS FALSE
+      BUFFER 4
+    END
+  END
+  CLASS
+    NAME "50,000 - 80,000"
+    EXPRESSION ([POPTOT] > 50000 AND [POPTOT] <= 80000)
+    STYLE
+      SYMBOL "circle"
+      SIZE 7
+      COLOR 255 175 169
+      OUTLINECOLOR 100 50 50
+    END
+    LABEL
+      COLOR 132 31 31
+      OUTLINECOLOR 255 255 255
+      OUTLINEWIDTH 2
+      FONT "arial"
+      TYPE TRUETYPE
+      SIZE 9
+      POSITION AUTO
+      PARTIALS FALSE
+      BUFFER 4
+    END
+  END
+  CLASS
+    NAME "80,000 - 120,000"
+    EXPRESSION ([POPTOT] > 80000 AND [POPTOT] <= 120000)
+    STYLE
+      SYMBOL "circle"
+      SIZE 9
+      COLOR 255 144 141
+      OUTLINECOLOR 100 50 50
+    END
+    LABEL
+      COLOR 132 31 31
+      OUTLINECOLOR 255 255 255
+      OUTLINEWIDTH 2
+      FONT "arial"
+      TYPE TRUETYPE
+      SIZE 10
+      POSITION AUTO
+      PARTIALS FALSE
+      BUFFER 4
+    END
+  END
+  CLASS
+    NAME "120,000 - 200,000"
+    EXPRESSION ([POPTOT] > 120000 AND [POPTOT] <= 200000)
+    STYLE
+      SYMBOL "circle"
+      SIZE 12
+      COLOR 255 97 94
+      OUTLINECOLOR 100 50 50
+    END
+    LABEL
+      COLOR 132 31 31
+      OUTLINECOLOR 255 255 255
+      OUTLINEWIDTH 2
+      FONT "arial"
+      TYPE TRUETYPE
+      SIZE 10
+      POSITION AUTO
+      PARTIALS FALSE
+      BUFFER 4
+    END
+  END
+  CLASS
+    NAME "> 200,000"
+    EXPRESSION ([POPTOT] > 200000)
+    STYLE
+      SYMBOL "circle"
+      SIZE 15
+      COLOR 255 31 26
+      OUTLINECOLOR 100 50 50
+    END
+    LABEL
+      COLOR 132 31 31
+      OUTLINECOLOR 255 255 255
+      OUTLINEWIDTH 2
+      FONT "arial-bold"
+      TYPE TRUETYPE
+      SIZE 11
+      POSITION AUTO
+      PARTIALS FALSE
+      BUFFER 4
     END
   END
 END
@@ -376,6 +723,7 @@ LAYER
   END
   TEMPLATE "dummy.html"
   CLASS
+    NAME "Admin Boundaries"
     STYLE
       OUTLINECOLOR 100 100 100
       COLOR 220 220 220
@@ -388,12 +736,12 @@ LAYER
   NAME "ethiopia_basins"
   STATUS OFF
   TYPE POLYGON
-  STATUS OFF
   CONNECTIONTYPE OGR
   CONNECTION "/data/gold/atlas_4326/basins.shp"
   DATA "basins"
+  CLASSITEM "BASIN_NAME"
   METADATA
-    "wms_title" "Ethiopia - Basins"
+    "wms_title" "Ethiopia - Major Basins"
     "wms_srs" "EPSG:3857 EPSG:4326"
     "wms_enable_request" "*"
     "wms_queryable" "true"
@@ -402,11 +750,157 @@ LAYER
     "wms_include_items" "BASIN_NAME,BASIN_NR,BASIN,SQKM,BASIN_COD"
   END
   TEMPLATE "dummy.html"
+  # Unique values by basin name
   CLASS
+    NAME "Abay (Blue Nile)"
+    EXPRESSION "Abay"
     STYLE
-      OUTLINECOLOR 100 100 100
-      COLOR 220 220 220
-      WIDTH 1
+      COLOR 192 101 73
+      OUTLINECOLOR 0 0 0
+      OPACITY 60
+    END
+  END
+  CLASS
+    NAME "Angereb"
+    EXPRESSION "Angereb"
+    STYLE
+      COLOR 255 215 0
+      OUTLINECOLOR 0 0 0
+      OPACITY 60
+    END
+  END
+  CLASS
+    NAME "Atbara"
+    EXPRESSION "Atbara"
+    STYLE
+      COLOR 189 183 107
+      OUTLINECOLOR 0 0 0
+      OPACITY 60
+    END
+  END
+  CLASS
+    NAME "Awash"
+    EXPRESSION "Awash"
+    STYLE
+      COLOR 247 181 103
+      OUTLINECOLOR 0 0 0
+      OPACITY 60
+    END
+  END
+  CLASS
+    NAME "Baro"
+    EXPRESSION "Baro"
+    STYLE
+      COLOR 206 195 149
+      OUTLINECOLOR 0 0 0
+      OPACITY 60
+    END
+  END
+  CLASS
+    NAME "Bilate"
+    EXPRESSION "Bilate"
+    STYLE
+      COLOR 205 155 29
+      OUTLINECOLOR 0 0 0
+      OPACITY 60
+    END
+  END
+  CLASS
+    NAME "Danakil"
+    EXPRESSION "Danakil"
+    STYLE
+      COLOR 240 230 140
+      OUTLINECOLOR 0 0 0
+      OPACITY 60
+    END
+  END
+  CLASS
+    NAME "Genalle"
+    EXPRESSION "Genalle"
+    STYLE
+      COLOR 167 175 94
+      OUTLINECOLOR 0 0 0
+      OPACITY 60
+    END
+  END
+  CLASS
+    NAME "Golina"
+    EXPRESSION "Golina"
+    STYLE
+      COLOR 192 144 88
+      OUTLINECOLOR 0 0 0
+      OPACITY 60
+    END
+  END
+  CLASS
+    NAME "Mereb"
+    EXPRESSION "Mereb"
+    STYLE
+      COLOR 139 69 19
+      OUTLINECOLOR 0 0 0
+      OPACITY 60
+    END
+  END
+  CLASS
+    NAME "Omo"
+    EXPRESSION "Omo"
+    STYLE
+      COLOR 172 150 0
+      OUTLINECOLOR 0 0 0
+      OPACITY 60
+    END
+  END
+  CLASS
+    NAME "Red Sea Coast"
+    EXPRESSION "Red Sea Coast"
+    STYLE
+      COLOR 105 139 105
+      OUTLINECOLOR 0 0 0
+      OPACITY 60
+    END
+  END
+  CLASS
+    NAME "Segen"
+    EXPRESSION "Segen"
+    STYLE
+      COLOR 139 105 20
+      OUTLINECOLOR 0 0 0
+      OPACITY 60
+    END
+  END
+  CLASS
+    NAME "Shebelle"
+    EXPRESSION "Shebelle"
+    STYLE
+      COLOR 139 139 0
+      OUTLINECOLOR 0 0 0
+      OPACITY 60
+    END
+  END
+  CLASS
+    NAME "Tekeze"
+    EXPRESSION "Tekeze"
+    STYLE
+      COLOR 255 251 195
+      OUTLINECOLOR 0 0 0
+      OPACITY 60
+    END
+  END
+  CLASS
+    NAME "Ziway/Abijata"
+    EXPRESSION "Ziway/Abijata"
+    STYLE
+      COLOR 189 176 86
+      OUTLINECOLOR 0 0 0
+      OPACITY 60
+    END
+  END
+  CLASS
+    NAME "Other Basins"
+    STYLE
+      COLOR 200 200 200
+      OUTLINECOLOR 0 0 0
+      OPACITY 60
     END
   END
 END
@@ -430,6 +924,7 @@ LAYER
   END
   TEMPLATE "dummy.html"
   CLASS
+    NAME "Level 1 Boundary"
     STYLE
       OUTLINECOLOR 100 100 100
       COLOR 220 220 220
@@ -457,6 +952,7 @@ LAYER
   END
   TEMPLATE "dummy.html"
   CLASS
+    NAME "Level 2 Boundary"
     STYLE
       OUTLINECOLOR 100 100 100
       COLOR 220 220 220
@@ -484,6 +980,7 @@ LAYER
   END
   TEMPLATE "dummy.html"
   CLASS
+    NAME "Level 3 Boundary"
     STYLE
       OUTLINECOLOR 100 100 100
       COLOR 220 220 220
@@ -511,6 +1008,7 @@ LAYER
   END
   TEMPLATE "dummy.html"
   CLASS
+    NAME "Contour Lines"
     STYLE
       COLOR 150 150 150
       WIDTH 1
@@ -589,6 +1087,7 @@ LAYER
   END
   TEMPLATE "dummy.html"
   CLASS
+    NAME "Isoheight Lines"
     STYLE
       COLOR 150 150 150
       WIDTH 1
@@ -600,7 +1099,6 @@ LAYER
   NAME "ethiopia_lakes"
   STATUS OFF
   TYPE POLYGON
-  STATUS OFF
   CONNECTIONTYPE OGR
   CONNECTION "/data/gold/atlas_4326/lakes.shp"
   DATA "lakes"
@@ -615,10 +1113,10 @@ LAYER
   END
   TEMPLATE "dummy.html"
   CLASS
+    NAME "Lakes"
     STYLE
-      OUTLINECOLOR 100 100 100
-      COLOR 220 220 220
-      WIDTH 1
+      COLOR 102 153 255
+      OUTLINECOLOR 0 0 100
     END
   END
 END
@@ -642,6 +1140,7 @@ LAYER
   END
   TEMPLATE "dummy.html"
   CLASS
+    NAME "Major Basins"
     STYLE
       OUTLINECOLOR 100 100 100
       COLOR 220 220 220
@@ -654,10 +1153,10 @@ LAYER
   NAME "ethiopia_soils"
   STATUS OFF
   TYPE POLYGON
-  STATUS OFF
   CONNECTIONTYPE OGR
   CONNECTION "/data/gold/atlas_4326/msoils.shp"
   DATA "msoils"
+  CLASSITEM "SOILTYPE"
   METADATA
     "wms_title" "Ethiopia - Soils"
     "wms_srs" "EPSG:3857 EPSG:4326"
@@ -668,11 +1167,76 @@ LAYER
     "wms_include_items" "NAME,FAOSOIL,TAXON,SOILTYPE,PHASE1,PHASE2"
   END
   TEMPLATE "dummy.html"
+  # Classified by soil type
   CLASS
+    NAME "Calcids"
+    EXPRESSION "Calcids"
     STYLE
-      OUTLINECOLOR 100 100 100
-      COLOR 220 220 220
-      WIDTH 1
+      COLOR 112 0 255
+      OUTLINECOLOR 0 0 0
+      OPACITY 60
+    END
+  END
+  CLASS
+    NAME "Cambids"
+    EXPRESSION "Cambids"
+    STYLE
+      COLOR 255 0 156
+      OUTLINECOLOR 0 0 0
+      OPACITY 60
+    END
+  END
+  CLASS
+    NAME "Fluvents"
+    EXPRESSION "Fluvents"
+    STYLE
+      COLOR 183 255 0
+      OUTLINECOLOR 0 0 0
+      OPACITY 60
+    END
+  END
+  CLASS
+    NAME "Tropepts"
+    EXPRESSION "Tropepts"
+    STYLE
+      COLOR 0 255 139
+      OUTLINECOLOR 0 0 0
+      OPACITY 60
+    END
+  END
+  CLASS
+    NAME "Ustalfs"
+    EXPRESSION "Ustalfs"
+    STYLE
+      COLOR 102 255 0
+      OUTLINECOLOR 0 0 0
+      OPACITY 60
+    END
+  END
+  CLASS
+    NAME "Usterts"
+    EXPRESSION "Usterts"
+    STYLE
+      COLOR 21 255 0
+      OUTLINECOLOR 0 0 0
+      OPACITY 60
+    END
+  END
+  CLASS
+    NAME "Water"
+    EXPRESSION "Water"
+    STYLE
+      COLOR 100 150 255
+      OUTLINECOLOR 0 0 0
+      OPACITY 60
+    END
+  END
+  CLASS
+    NAME "Other Soils"
+    STYLE
+      COLOR 200 180 150
+      OUTLINECOLOR 0 0 0
+      OPACITY 60
     END
   END
 END
@@ -681,10 +1245,10 @@ LAYER
   NAME "ethiopia_ecology"
   STATUS OFF
   TYPE POLYGON
-  STATUS OFF
   CONNECTIONTYPE OGR
   CONNECTION "/data/gold/atlas_4326/necolog.shp"
   DATA "necolog"
+  CLASSITEM "LCPYTYPETX"
   METADATA
     "wms_title" "Ethiopia - Ecological Zones"
     "wms_srs" "EPSG:3857 EPSG:4326"
@@ -695,11 +1259,49 @@ LAYER
     "wms_include_items" "LCPYTYPETX,HECTARES"
   END
   TEMPLATE "dummy.html"
+  # Classified by ecological type
   CLASS
+    NAME "Undifferentiated wetlands"
+    EXPRESSION "Undifferentiated wetlands"
     STYLE
-      OUTLINECOLOR 100 100 100
-      COLOR 220 220 220
-      WIDTH 1
+      COLOR 1 100 0
+      OUTLINECOLOR 0 0 0
+      OPACITY 60
+    END
+  END
+  CLASS
+    NAME "Unconsolidated materials"
+    EXPRESSION "Unconsolidated materials"
+    STYLE
+      COLOR 2 220 0
+      OUTLINECOLOR 0 0 0
+      OPACITY 60
+    END
+  END
+  CLASS
+    NAME "Inundated areas"
+    EXPRESSION "Inundated areas"
+    STYLE
+      COLOR 146 174 47
+      OUTLINECOLOR 0 0 0
+      OPACITY 60
+    END
+  END
+  CLASS
+    NAME "Distorted surface areas"
+    EXPRESSION "Distorted surface areas"
+    STYLE
+      COLOR 0 219 255
+      OUTLINECOLOR 0 0 0
+      OPACITY 60
+    END
+  END
+  CLASS
+    NAME "Other Zones"
+    STYLE
+      COLOR 166 255 165
+      OUTLINECOLOR 0 0 0
+      OPACITY 60
     END
   END
 END
@@ -726,10 +1328,11 @@ LAYER
   END
   TEMPLATE "dummy.html"
   CLASS
+    NAME "National Forests"
     STYLE
-      OUTLINECOLOR 100 100 100
-      COLOR 220 220 220
-      WIDTH 1
+      COLOR 207 97 5
+      OUTLINECOLOR 0 0 0
+      OPACITY 70
     END
   END
 END
@@ -738,10 +1341,11 @@ LAYER
   NAME "ethiopia_national_parks"
   STATUS OFF
   TYPE POLYGON
-  STATUS OFF
   CONNECTIONTYPE OGR
   CONNECTION "/data/gold/atlas_4326/nparks.shp"
   DATA "nparks"
+  LABELITEM "AREANAME"
+  LABELMAXSCALEDENOM 5000000
   METADATA
     "wms_title" "Ethiopia - National Parks"
     "wms_srs" "EPSG:3857 EPSG:4326"
@@ -753,10 +1357,21 @@ LAYER
   END
   TEMPLATE "dummy.html"
   CLASS
+    NAME "National Parks"
     STYLE
-      OUTLINECOLOR 100 100 100
-      COLOR 220 220 220
-      WIDTH 1
+      COLOR 180 220 180
+      OUTLINECOLOR 0 100 0
+      OPACITY 70
+    END
+    LABEL
+      COLOR 0 80 0
+      OUTLINECOLOR 255 255 255
+      OUTLINEWIDTH 2
+      FONT "arial"
+      TYPE TRUETYPE
+      SIZE 9
+      POSITION AUTO
+      PARTIALS FALSE
     END
   END
 END
@@ -780,6 +1395,7 @@ LAYER
   END
   TEMPLATE "dummy.html"
   CLASS
+    NAME "Rainfall Pattern"
     STYLE
       OUTLINECOLOR 100 100 100
       COLOR 220 220 220
@@ -807,6 +1423,7 @@ LAYER
   END
   TEMPLATE "dummy.html"
   CLASS
+    NAME "Rainfall Stations"
     STYLE
       OUTLINECOLOR 100 100 100
       COLOR 220 220 220
@@ -819,10 +1436,10 @@ LAYER
   NAME "ethiopia_rivers"
   STATUS OFF
   TYPE LINE
-  STATUS OFF
   CONNECTIONTYPE OGR
   CONNECTION "/data/gold/atlas_4326/rivers.shp"
   DATA "rivers"
+  CLASSITEM "RIV_ORDER"
   METADATA
     "wms_title" "Ethiopia - Rivers"
     "wms_srs" "EPSG:3857 EPSG:4326"
@@ -833,9 +1450,35 @@ LAYER
     "wms_include_items" "RIV_NAME,TYPE,CLASS,RIV_ORDER,LENGTH"
   END
   TEMPLATE "dummy.html"
+  # Classified by river order
   CLASS
+    NAME "Tributary"
+    EXPRESSION ([RIV_ORDER] = 1)
     STYLE
-      COLOR 150 150 150
+      COLOR 164 184 221
+      WIDTH 1
+    END
+  END
+  CLASS
+    NAME "2nd Order River"
+    EXPRESSION ([RIV_ORDER] = 2)
+    STYLE
+      COLOR 101 135 197
+      WIDTH 2
+    END
+  END
+  CLASS
+    NAME "Major River"
+    EXPRESSION ([RIV_ORDER] = 3)
+    STYLE
+      COLOR 53 84 142
+      WIDTH 3
+    END
+  END
+  CLASS
+    NAME "Other Rivers"
+    STYLE
+      COLOR 100 150 200
       WIDTH 1
     END
   END
@@ -860,6 +1503,7 @@ LAYER
   END
   TEMPLATE "dummy.html"
   CLASS
+    NAME "Roads (Baseline)"
     STYLE
       COLOR 150 150 150
       WIDTH 1
@@ -871,7 +1515,6 @@ LAYER
   NAME "ethiopia_streams"
   STATUS OFF
   TYPE LINE
-  STATUS OFF
   CONNECTIONTYPE OGR
   CONNECTION "/data/gold/atlas_4326/streams.shp"
   DATA "streams"
@@ -886,9 +1529,10 @@ LAYER
   END
   TEMPLATE "dummy.html"
   CLASS
+    NAME "Streams"
     STYLE
-      COLOR 150 150 150
-      WIDTH 1
+      COLOR 160 190 220
+      WIDTH 0.5
     END
   END
 END
@@ -897,12 +1541,13 @@ LAYER
   NAME "ethiopia_towns"
   STATUS ON
   TYPE POINT
-  STATUS ON
   CONNECTIONTYPE OGR
   CONNECTION "/data/gold/atlas_4326/towns.shp"
   DATA "towns"
+  LABELITEM "TOWN_NAME"
+  LABELMAXSCALEDENOM 2000000
   METADATA
-    "wms_title" "Ethiopia - Towns"
+    "wms_title" "Ethiopia - Towns (by Population)"
     "wms_srs" "EPSG:3857 EPSG:4326"
     "wms_enable_request" "*"
     "wms_queryable" "true"
@@ -911,11 +1556,89 @@ LAYER
     "wms_include_items" "TOWN_NAME,WEREDA,REGION,ZONES,POP,POPTOT"
   END
   TEMPLATE "dummy.html"
+  # Graduated symbols by population
   CLASS
+    NAME "0 - 50,000"
+    EXPRESSION ([POPTOT] <= 50000)
     STYLE
       SYMBOL "circle"
-      SIZE 8
-      COLOR 200 50 50
+      SIZE 5
+      COLOR 255 203 197
+      OUTLINECOLOR 100 50 50
+    END
+    LABEL
+      COLOR 132 31 31
+      OUTLINECOLOR 255 255 255
+      OUTLINEWIDTH 2
+      FONT "arial"
+      TYPE TRUETYPE
+      SIZE 9
+      POSITION AUTO
+      PARTIALS FALSE
+      BUFFER 4
+    END
+  END
+  CLASS
+    NAME "50,000 - 80,000"
+    EXPRESSION ([POPTOT] > 50000 AND [POPTOT] <= 80000)
+    STYLE
+      SYMBOL "circle"
+      SIZE 7
+      COLOR 255 175 169
+      OUTLINECOLOR 100 50 50
+    END
+    LABEL
+      COLOR 132 31 31
+      OUTLINECOLOR 255 255 255
+      OUTLINEWIDTH 2
+      FONT "arial"
+      TYPE TRUETYPE
+      SIZE 9
+      POSITION AUTO
+      PARTIALS FALSE
+      BUFFER 4
+    END
+  END
+  CLASS
+    NAME "80,000 - 150,000"
+    EXPRESSION ([POPTOT] > 80000 AND [POPTOT] <= 150000)
+    STYLE
+      SYMBOL "circle"
+      SIZE 9
+      COLOR 255 144 141
+      OUTLINECOLOR 100 50 50
+    END
+    LABEL
+      COLOR 132 31 31
+      OUTLINECOLOR 255 255 255
+      OUTLINEWIDTH 2
+      FONT "arial"
+      TYPE TRUETYPE
+      SIZE 10
+      POSITION AUTO
+      PARTIALS FALSE
+      BUFFER 4
+    END
+  END
+  CLASS
+    NAME "> 150,000"
+    EXPRESSION ([POPTOT] > 150000)
+    STYLE
+      SYMBOL "circle"
+      SIZE 12
+      COLOR 255 31 26
+      OUTLINECOLOR 100 50 50
+    END
+    LABEL
+      COLOR 132 31 31
+      OUTLINECOLOR 255 255 255
+      OUTLINEWIDTH 2
+      FONT "arial-bold"
+      TYPE TRUETYPE
+      SIZE 11
+      POSITION AUTO
+      PARTIALS FALSE
+      BUFFER 4
     END
   END
 END
@@ -924,7 +1647,6 @@ LAYER
   NAME "ethiopia_wetlands"
   STATUS OFF
   TYPE POLYGON
-  STATUS OFF
   CONNECTIONTYPE OGR
   CONNECTION "/data/gold/atlas_4326/wetlands.shp"
   DATA "wetlands"
@@ -939,10 +1661,11 @@ LAYER
   END
   TEMPLATE "dummy.html"
   CLASS
+    NAME "Wetlands"
     STYLE
-      OUTLINECOLOR 100 100 100
-      COLOR 220 220 220
-      WIDTH 1
+      COLOR 166 255 59
+      OUTLINECOLOR 0 100 0
+      OPACITY 70
     END
   END
 END
@@ -952,16 +1675,79 @@ LAYER
   NAME "tigray_health_facilities_2006"
   STATUS ON
   TYPE POINT
-  STATUS ON
-
   CONNECTIONTYPE OGR
   CONNECTION "/data/gold/atlas_4326/tigray/Health_Institutions.shp"
   DATA "Health_Institutions"
-
+  LABELITEM "Institutio"
+  LABELMAXSCALEDENOM 200000
+  CLASSITEM "TYPE_OF_IN"
   TEMPLATE "dummy.html"
-
   METADATA
     "wms_title" "Tigray Health Facilities (2006)"
     "wms_enable_request" "*"
+    "wms_queryable" "true"
+    "gml_include_items" "Institutio,TYPE_OF_IN,Woreda_Nam"
+    "wms_include_items" "Institutio,TYPE_OF_IN,Woreda_Nam"
+  END
+  # Classified by facility type
+  CLASS
+    NAME "Hospital"
+    EXPRESSION "Hospital"
+    STYLE
+      SYMBOL "plus"
+      SIZE 9
+      COLOR 0 0 230
+      OUTLINECOLOR 0 0 100
+    END
+    LABEL
+      COLOR 0 0 0
+      OUTLINECOLOR 255 255 0
+      OUTLINEWIDTH 1
+      FONT "arial"
+      TYPE TRUETYPE
+      SIZE 8
+      POSITION AUTO
+      PARTIALS FALSE
+      BUFFER 5
+    END
+  END
+  CLASS
+    NAME "Health Center"
+    EXPRESSION "Health Center"
+    STYLE
+      SYMBOL "plus"
+      SIZE 6
+      COLOR 230 76 0
+      OUTLINECOLOR 100 30 0
+    END
+    LABEL
+      COLOR 0 0 0
+      OUTLINECOLOR 255 255 0
+      OUTLINEWIDTH 1
+      FONT "arial"
+      TYPE TRUETYPE
+      SIZE 8
+      POSITION AUTO
+      PARTIALS FALSE
+      BUFFER 5
+    END
+  END
+  CLASS
+    NAME "Health Post"
+    EXPRESSION "Health Post"
+    STYLE
+      SYMBOL "plus"
+      SIZE 4
+      COLOR 76 230 0
+      OUTLINECOLOR 30 100 0
+    END
+  END
+  CLASS
+    NAME "Other Facility"
+    STYLE
+      SYMBOL "plus"
+      SIZE 4
+      COLOR 150 150 150
+    END
   END
 END

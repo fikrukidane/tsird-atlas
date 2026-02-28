@@ -51,12 +51,13 @@ async function initializeApplication(registryPath = 'data/atlas-registry.json') 
     console.log('');
 
     // ────────────────────────────────────────────────────────────
-    // Step 2.5: Auto-zoom to satisfy default-visible layer scales
+    // Step 2.5: Auto-zoom DISABLED - let extent fit determine initial view
+    // Scale-constrained layers will show/hide based on user's zoom level
     // ────────────────────────────────────────────────────────────
-    console.log('Step 2.5: Auto-zooming for default-visible layers...');
-    mapController.autoZoomForDefaultLayers(registry.layerDefs, 11);
+    console.log('Step 2.5: Auto-zoom disabled (extent fit determines initial view)');
+    // mapController.autoZoomForDefaultLayers(registry.layerDefs, 11);
     const postAutoZoomScale = mapController.getCurrentScaleDenominator();
-    console.log(`✓ Post-auto-zoom scale: ${ScaleEngine.formatScale(postAutoZoomScale)}`);
+    console.log(`✓ Current scale: ${ScaleEngine.formatScale(postAutoZoomScale)}`);
     console.log('');
 
     // ────────────────────────────────────────────────────────────
@@ -226,7 +227,7 @@ function displayErrorPage(message) {
 
 // Auto-initialize when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
-  initializeApplication('data/atlas-registry.json?v=20260225');
+  initializeApplication('data/atlas-registry.json?v=20260226c');
 });
 
 // Export for testing

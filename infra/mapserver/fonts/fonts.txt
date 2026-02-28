@@ -1,0 +1,12 @@
+# MapServer FONTSET file
+# Maps font aliases to TTF files
+fritqat          /fonts/fritqat.ttf
+fritqat-bold     /fonts/fritqtb0.ttf
+fritqat-italic   /fonts/fritqti0.ttf
+fritqat-bold-italic /fonts/fritqtb2.ttf
+arial            /fonts/arial.ttf
+arial-bold       /fonts/arialbd.ttf
+arial-italic     /fonts/ariali.ttf
+arial-narrow     /fonts/ARIALN.TTF
+verdana          /fonts/verdana.ttf
+verdana-italic   /fonts/verdanai.ttf

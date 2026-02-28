@@ -5,15 +5,15 @@
     "canonical_crs": "EPSG:4326",
     "view_crs": "EPSG:3857",
     "center": [
-      38.0,
-      13.6
+      38.18,
+      13.60
     ],
-    "zoom": 10,
+    "zoom": 8,
     "extent": [
-      36.3,
-      12.2,
-      40.3,
-      14.9
+      36.349,
+      12.257,
+      39.994,
+      14.964
     ]
   },
   "services": {
@@ -72,7 +72,8 @@
           "id": "grp_regions",
           "label": "Regions",
           "layers": [
-            "ethiopia_zones"
+            "ethiopia_zones",
+            "ethiopia_woredas"
           ]
         },
         {

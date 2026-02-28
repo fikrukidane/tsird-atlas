@@ -121,6 +121,9 @@ MapServer Publication
 - MapServer WMS/WFS publication
 - PostGIS storage (gold schema)
 - Audit reporting
+- **Layer styling** (20 vector layers with CLASS/STYLE definitions)
+- **WMS GetLegendGraphic support** (LEGEND object + CLASS NAME attributes)
+- **Legend UI** (inline legend display in TOC)
 
 **In Progress**
 - Incremental orchestration
