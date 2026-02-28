@@ -65,6 +65,9 @@ class InteractionController {
     // Clear existing content
     container.innerHTML = '';
 
+    // Render Display Settings panel (global boundary opacity)
+    this._renderDisplaySettings(container);
+
     // Render categories
     for (const category of this.tocModel) {
       const categoryElement = this._renderCategory(category);
@@ -73,6 +76,9 @@ class InteractionController {
 
     // Credits panel (UI-only)
     this._renderCreditsPanel(container);
+
+    // Update display settings visibility based on raster/basemap state
+    this._updateDisplaySettingsVisibility();
 
     console.log('[InteractionController] TOC rendered successfully');
   }
@@ -280,40 +286,6 @@ class InteractionController {
 
     layerDiv.appendChild(layerRow);
 
-    // Opacity slider (only for polygon vector layers)
-    if (layerDef.geometry_type === 'polygon' && !layerDef.base_layer) {
-      const opacityRow = document.createElement('div');
-      opacityRow.className = 'toc-opacity-row';
-
-      const opacityLabel = document.createElement('span');
-      opacityLabel.className = 'toc-opacity-label';
-      opacityLabel.textContent = 'Opacity:';
-
-      const opacitySlider = document.createElement('input');
-      opacitySlider.type = 'range';
-      opacitySlider.className = 'toc-opacity-slider';
-      opacitySlider.id = `opacity-${layerId}`;
-      opacitySlider.min = '0';
-      opacitySlider.max = '100';
-      opacitySlider.value = String(Math.round((layerDef.opacity !== undefined ? layerDef.opacity : 1.0) * 100));
-      opacitySlider.title = 'Adjust layer transparency';
-
-      const opacityValue = document.createElement('span');
-      opacityValue.className = 'toc-opacity-value';
-      opacityValue.textContent = `${opacitySlider.value}%`;
-
-      opacitySlider.addEventListener('input', (e) => {
-        const value = parseInt(e.target.value);
-        opacityValue.textContent = `${value}%`;
-        this._onOpacityChange(layerId, value / 100);
-      });
-
-      opacityRow.appendChild(opacityLabel);
-      opacityRow.appendChild(opacitySlider);
-      opacityRow.appendChild(opacityValue);
-      layerDiv.appendChild(opacityRow);
-    }
-
     return layerDiv;
   }
 
@@ -453,18 +425,115 @@ class InteractionController {
     }
   }
 
-  _updatePolygonOpacity() {
-    const anyRasterVisible = this.olLayers.some(layer => {
-      const def = layer.get('layerDef');
-      return def?.type === 'raster' && layer.getVisible();
+  /**
+   * Boundary layer IDs that are controlled by the global opacity slider.
+   * @private
+   */
+  _getBoundaryLayerIds() {
+    return [
+      'ethiopia_zones', 'ethiopia_woredas', 'ethiopia_admin', 'ethiopia_aoi',
+      'tigray_woreda', 'tigray_tabias',
+      'ethiopia_boundary_level1', 'ethiopia_boundary_level2', 'ethiopia_boundary_level3'
+    ];
+  }
+
+  /**
+   * Render Display Settings panel with global boundary opacity slider.
+   * @private
+   */
+  _renderDisplaySettings(container) {
+    const panel = document.createElement('div');
+    panel.className = 'toc-display-settings';
+    panel.id = 'display-settings-panel';
+
+    const header = document.createElement('div');
+    header.className = 'toc-display-settings-header';
+    header.textContent = 'Display Settings';
+
+    const row = document.createElement('div');
+    row.className = 'toc-display-settings-row';
+
+    const label = document.createElement('span');
+    label.className = 'toc-display-settings-label';
+    label.textContent = 'Boundary Opacity:';
+
+    // Load from localStorage or default to 50%
+    const savedOpacity = localStorage.getItem('atlas_boundary_opacity');
+    const initialValue = savedOpacity !== null ? parseInt(savedOpacity) : 50;
+
+    const slider = document.createElement('input');
+    slider.type = 'range';
+    slider.className = 'toc-display-settings-slider';
+    slider.id = 'boundary-opacity-slider';
+    slider.min = '0';
+    slider.max = '100';
+    slider.value = String(initialValue);
+    slider.title = 'Adjust boundary layer transparency';
+
+    const valueLabel = document.createElement('span');
+    valueLabel.className = 'toc-display-settings-value';
+    valueLabel.id = 'boundary-opacity-value';
+    valueLabel.textContent = `${initialValue}%`;
+
+    slider.addEventListener('input', (e) => {
+      const value = parseInt(e.target.value);
+      valueLabel.textContent = `${value}%`;
+      this._applyBoundaryOpacity(value / 100);
+      localStorage.setItem('atlas_boundary_opacity', String(value));
     });
 
-    this.olLayers.forEach(layer => {
-      const def = layer.get('layerDef');
-      if (def?.type === 'vector' && def?.geometry_type === 'polygon') {
-        layer.setOpacity(anyRasterVisible ? 0.20 : 1.0);
+    row.appendChild(label);
+    row.appendChild(slider);
+    row.appendChild(valueLabel);
+
+    panel.appendChild(header);
+    panel.appendChild(row);
+    container.appendChild(panel);
+
+    // Apply initial boundary opacity
+    this._applyBoundaryOpacity(initialValue / 100);
+  }
+
+  /**
+   * Apply opacity to all boundary layers.
+   * @private
+   */
+  _applyBoundaryOpacity(opacity) {
+    const boundaryIds = this._getBoundaryLayerIds();
+    for (const layerId of boundaryIds) {
+      const layer = this.layerMap[layerId];
+      if (layer) {
+        layer.setOpacity(opacity);
       }
+    }
+    console.log(`[InteractionController] Boundary opacity set to ${Math.round(opacity * 100)}%`);
+  }
+
+  /**
+   * Update display settings panel visibility.
+   * Show only when a raster or basemap layer is visible.
+   * @private
+   */
+  _updateDisplaySettingsVisibility() {
+    const panel = document.getElementById('display-settings-panel');
+    if (!panel) return;
+
+    // Check if any raster or basemap is visible
+    const anyRasterOrBasemapVisible = this.olLayers.some(layer => {
+      const def = layer.get('layerDef');
+      if (!def) return false;
+      const isRaster = def.type === 'raster';
+      const isBasemap = def.base_layer === true;
+      return (isRaster || isBasemap) && layer.getVisible();
     });
+
+    panel.style.display = anyRasterOrBasemapVisible ? 'block' : 'none';
+  }
+
+  _updatePolygonOpacity() {
+    // Deprecated: Now using global boundary opacity from Display Settings
+    // This method is kept for backwards compatibility but defers to slider value
+    this._updateDisplaySettingsVisibility();
   }
 
   /**
