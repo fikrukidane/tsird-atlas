@@ -255,27 +255,30 @@ class InteractionController {
     layerLabel.className = 'toc-layer-label';
     layerLabel.textContent = layerRef.label;
 
-    // Legend toggle button
-    const legendToggle = document.createElement('button');
-    legendToggle.className = 'toc-legend-toggle';
-    legendToggle.title = 'Show/hide legend';
-    legendToggle.innerHTML = '<span class="legend-icon">◧</span>';
-    legendToggle.addEventListener('click', (e) => {
-      e.stopPropagation();
-      this._toggleLegend(layerId, layerDef.wms_name, layerDiv, legendToggle);
-    });
-
     layerRow.appendChild(layerCheckbox);
     layerRow.appendChild(layerLabel);
-    layerRow.appendChild(legendToggle);
-    layerDiv.appendChild(layerRow);
 
-    // Legend container (hidden by default)
-    const legendContainer = document.createElement('div');
-    legendContainer.className = 'toc-legend-container';
-    legendContainer.id = `legend-${layerId}`;
-    legendContainer.style.display = 'none';
-    layerDiv.appendChild(legendContainer);
+    // Legend toggle button (only for WMS layers, not basemaps)
+    if (!layerDef.base_layer) {
+      const legendToggle = document.createElement('button');
+      legendToggle.className = 'toc-legend-toggle';
+      legendToggle.title = 'Show/hide legend';
+      legendToggle.innerHTML = '<span class="legend-icon">◧</span>';
+      legendToggle.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this._toggleLegend(layerId, layerDef.wms_name, layerDiv, legendToggle);
+      });
+      layerRow.appendChild(legendToggle);
+
+      // Legend container (hidden by default)
+      const legendContainer = document.createElement('div');
+      legendContainer.className = 'toc-legend-container';
+      legendContainer.id = `legend-${layerId}`;
+      legendContainer.style.display = 'none';
+      layerDiv.appendChild(legendContainer);
+    }
+
+    layerDiv.appendChild(layerRow);
 
     return layerDiv;
   }
@@ -458,6 +461,7 @@ class InteractionController {
   /**
    * Handle layer toggle.
    * Milestone 2: Integrates scale constraints and mutex enforcement
+   * Milestone 2.5: Basemap radio behavior (only one basemap visible at a time)
    * @private
    */
   _onLayerToggle(layerId, enabled) {
@@ -467,6 +471,13 @@ class InteractionController {
       return;
     }
 
+    const layerDef = this.layerDefs[layerId];
+
+    // Basemap radio behavior: when turning ON a basemap, turn OFF all others
+    if (enabled && layerDef && layerDef.base_layer) {
+      this._enforceBasemapMutex(layerId);
+    }
+
     // Update user-requested state
     this.userVisibilityState[layerId] = enabled;
 
@@ -474,6 +485,34 @@ class InteractionController {
     this._updateLayerVisibility(layerId);
 
     console.log(`[InteractionController] Layer toggled: ${layerId} = ${enabled} (user request)`);
+  }
+
+  /**
+   * Enforce basemap mutex: only one basemap visible at a time.
+   * When a basemap is turned ON, all other basemaps are turned OFF.
+   * @private
+   */
+  _enforceBasemapMutex(activeBasemapId) {
+    // Find all basemap layers and turn them off (except the active one)
+    for (const [layerId, layerDef] of Object.entries(this.layerDefs)) {
+      if (layerDef.base_layer && layerId !== activeBasemapId) {
+        // Turn off this basemap
+        this.userVisibilityState[layerId] = false;
+        
+        const layer = this.layerMap[layerId];
+        if (layer) {
+          layer.setVisible(false);
+        }
+        
+        // Update checkbox in UI
+        const checkbox = document.getElementById(`layer-${layerId}`);
+        if (checkbox) {
+          checkbox.checked = false;
+        }
+        
+        console.log(`[InteractionController] Basemap mutex: ${layerId} turned OFF (${activeBasemapId} is active)`);
+      }
+    }
   }
 
   /**
