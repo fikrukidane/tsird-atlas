@@ -192,6 +192,7 @@ layers:
     queryable: false
     min_scale: 50000000
     max_scale: 10000
+    opacity: 0.5
     identify_fields: []
   ethiopia_zones:
     wms_name: ethiopia_zones
@@ -203,6 +204,7 @@ layers:
     queryable: true
     min_scale: 20000000
     max_scale: 100000
+    opacity: 0.5
     identify_fields:
     - ZONES
     - AREA
@@ -217,6 +219,7 @@ layers:
     queryable: false
     min_scale: 50000000
     max_scale: 10000
+    opacity: 0.5
     identify_fields: []
   ethiopia_woredas:
     wms_name: ethiopia_woredas
@@ -228,6 +231,7 @@ layers:
     queryable: true
     min_scale: 10000000
     max_scale: 50000
+    opacity: 0.5
     identify_fields:
     - W_NAME
     - REGION_R2I
@@ -243,6 +247,7 @@ layers:
     queryable: false
     min_scale: 5000000
     max_scale: 50000
+    opacity: 0.5
     identify_fields: []
   tigray_tabias:
     wms_name: tigray_tabias
@@ -254,7 +259,7 @@ layers:
     queryable: true
     min_scale: 1000000
     max_scale: 10000
-    opacity: 0.8
+    opacity: 0.5
     identify_fields:
     - TABIA
     - WEREDA
@@ -273,6 +278,7 @@ layers:
     queryable: false
     min_scale: 50000000
     max_scale: 10000
+    opacity: 0.5
     identify_fields: []
   ethiopia_boundary_level2:
     wms_name: ethiopia_boundary_level2
@@ -284,6 +290,7 @@ layers:
     queryable: false
     min_scale: 50000000
     max_scale: 10000
+    opacity: 0.5
     identify_fields: []
   ethiopia_boundary_level3:
     wms_name: ethiopia_boundary_level3
@@ -295,6 +302,7 @@ layers:
     queryable: false
     min_scale: 50000000
     max_scale: 10000
+    opacity: 0.5
     identify_fields: []
   ethiopia_roads:
     wms_name: ethiopia_roads
@@ -490,6 +498,7 @@ layers:
     queryable: false
     min_scale: 50000000
     max_scale: 100000
+    opacity: 0.5
     identify_fields: []
   ethiopia_major_basins:
     wms_name: ethiopia_major_basins
@@ -501,6 +510,7 @@ layers:
     queryable: false
     min_scale: 50000000
     max_scale: 100000
+    opacity: 0.5
     identify_fields: []
   ethiopia_lakes:
     wms_name: ethiopia_lakes
@@ -512,6 +522,7 @@ layers:
     queryable: false
     min_scale: 20000000
     max_scale: 50000
+    opacity: 0.5
     identify_fields: []
   ethiopia_wetlands:
     wms_name: ethiopia_wetlands
@@ -523,6 +534,7 @@ layers:
     queryable: false
     min_scale: 10000000
     max_scale: 50000
+    opacity: 0.5
     identify_fields: []
   ethiopia_rivers:
     wms_name: ethiopia_rivers
@@ -556,6 +568,7 @@ layers:
     queryable: false
     min_scale: 50000000
     max_scale: 100000
+    opacity: 0.5
     identify_fields: []
   ethiopia_national_forests:
     wms_name: ethiopia_national_forests
@@ -567,6 +580,7 @@ layers:
     queryable: false
     min_scale: 50000000
     max_scale: 100000
+    opacity: 0.5
     identify_fields: []
   ethiopia_ecology:
     wms_name: ethiopia_ecology
@@ -578,6 +592,7 @@ layers:
     queryable: false
     min_scale: 50000000
     max_scale: 100000
+    opacity: 0.5
     identify_fields: []
   ethiopia_soils:
     wms_name: ethiopia_soils
@@ -589,6 +604,7 @@ layers:
     queryable: false
     min_scale: 20000000
     max_scale: 100000
+    opacity: 0.5
     identify_fields: []
   ethiopia_rainfall_pattern:
     wms_name: ethiopia_rainfall_pattern
@@ -600,6 +616,7 @@ layers:
     queryable: false
     min_scale: 50000000
     max_scale: 100000
+    opacity: 0.5
     identify_fields: []
   ethiopia_rainfall_stations:
     wms_name: ethiopia_rainfall_stations
@@ -611,6 +628,7 @@ layers:
     queryable: false
     min_scale: 20000000
     max_scale: 50000
+    opacity: 0.5
     identify_fields: []
   ethiopia_cia_basemap:
     wms_name: ethiopia_cia_basemap

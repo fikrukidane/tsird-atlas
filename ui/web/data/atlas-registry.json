@@ -299,6 +299,7 @@
       "queryable": false,
       "min_scale": 50000000,
       "max_scale": 10000,
+      "opacity": 0.5,
       "identify_fields": []
     },
     "ethiopia_zones": {
@@ -311,6 +312,7 @@
       "queryable": true,
       "min_scale": 20000000,
       "max_scale": 100000,
+      "opacity": 0.5,
       "identify_fields": [
         "ZONES",
         "AREA",
@@ -327,6 +329,7 @@
       "queryable": false,
       "min_scale": 50000000,
       "max_scale": 10000,
+      "opacity": 0.5,
       "identify_fields": []
     },
     "ethiopia_woredas": {
@@ -339,6 +342,7 @@
       "queryable": true,
       "min_scale": 10000000,
       "max_scale": 50000,
+      "opacity": 0.5,
       "identify_fields": [
         "W_NAME",
         "REGION_R2I",
@@ -356,6 +360,7 @@
       "queryable": false,
       "min_scale": 5000000,
       "max_scale": 50000,
+      "opacity": 0.5,
       "identify_fields": []
     },
     "tigray_tabias": {
@@ -368,7 +373,7 @@
       "queryable": true,
       "min_scale": 1000000,
       "max_scale": 10000,
-      "opacity": 0.8,
+      "opacity": 0.5,
       "identify_fields": [
         "TABIA",
         "WEREDA",
@@ -389,6 +394,7 @@
       "queryable": false,
       "min_scale": 50000000,
       "max_scale": 10000,
+      "opacity": 0.5,
       "identify_fields": []
     },
     "ethiopia_boundary_level2": {
@@ -401,6 +407,7 @@
       "queryable": false,
       "min_scale": 50000000,
       "max_scale": 10000,
+      "opacity": 0.5,
       "identify_fields": []
     },
     "ethiopia_boundary_level3": {
@@ -413,6 +420,7 @@
       "queryable": false,
       "min_scale": 50000000,
       "max_scale": 10000,
+      "opacity": 0.5,
       "identify_fields": []
     },
     "ethiopia_roads": {
@@ -629,6 +637,7 @@
       "queryable": false,
       "min_scale": 50000000,
       "max_scale": 100000,
+      "opacity": 0.5,
       "identify_fields": []
     },
     "ethiopia_major_basins": {
@@ -641,6 +650,7 @@
       "queryable": false,
       "min_scale": 50000000,
       "max_scale": 100000,
+      "opacity": 0.5,
       "identify_fields": []
     },
     "ethiopia_lakes": {
@@ -653,6 +663,7 @@
       "queryable": false,
       "min_scale": 20000000,
       "max_scale": 50000,
+      "opacity": 0.5,
       "identify_fields": []
     },
     "ethiopia_wetlands": {
@@ -665,6 +676,7 @@
       "queryable": false,
       "min_scale": 10000000,
       "max_scale": 50000,
+      "opacity": 0.5,
       "identify_fields": []
     },
     "ethiopia_rivers": {
@@ -701,6 +713,7 @@
       "queryable": false,
       "min_scale": 50000000,
       "max_scale": 100000,
+      "opacity": 0.5,
       "identify_fields": []
     },
     "ethiopia_national_forests": {
@@ -713,6 +726,7 @@
       "queryable": false,
       "min_scale": 50000000,
       "max_scale": 100000,
+      "opacity": 0.5,
       "identify_fields": []
     },
     "ethiopia_ecology": {
@@ -725,6 +739,7 @@
       "queryable": false,
       "min_scale": 50000000,
       "max_scale": 100000,
+      "opacity": 0.5,
       "identify_fields": []
     },
     "ethiopia_soils": {
@@ -737,6 +752,7 @@
       "queryable": false,
       "min_scale": 20000000,
       "max_scale": 100000,
+      "opacity": 0.5,
       "identify_fields": []
     },
     "ethiopia_rainfall_pattern": {
@@ -749,6 +765,7 @@
       "queryable": false,
       "min_scale": 50000000,
       "max_scale": 100000,
+      "opacity": 0.5,
       "identify_fields": []
     },
     "ethiopia_rainfall_stations": {
@@ -761,6 +778,7 @@
       "queryable": false,
       "min_scale": 20000000,
       "max_scale": 50000,
+      "opacity": 0.5,
       "identify_fields": []
     },
     "ethiopia_cia_basemap": {
