@@ -162,7 +162,26 @@ categories:
   - id: grp_satimagery
     label: Imagery
     layers: []
+- id: cat_basemaps
+  label: Base Maps & External Sources
+  closed: true
+  groups:
+  - id: grp_basemaps_public
+    label: Public Basemaps
+    layers:
+    - osm_basemap
 layers:
+  osm_basemap:
+    label: OpenStreetMap
+    published: true
+    default_visible: true
+    source_type: xyz
+    base_layer: true
+    url_template: https://tile.openstreetmap.org/{z}/{x}/{y}.png
+    attribution: © OpenStreetMap contributors
+    opacity: 1.0
+    min_scale: 500000000
+    max_scale: 1
   ethiopia_aoi:
     wms_name: ethiopia_aoi
     label: Ethiopia - Area of Interest
@@ -614,6 +633,7 @@ layers:
     identify_fields: []
 search: []
 rules:
+  basemap_mutex: true
   scale_mutex_pairs:
   - - ethiopia_roads
     - tigray_roads_2006

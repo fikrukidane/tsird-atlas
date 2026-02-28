@@ -100,10 +100,22 @@ class RegistryValidator:
                     ))
 
     def _rule_2_unique_wms_names(self):
-        """R2: WMS layer names must be unique."""
+        """R2: WMS layer names must be unique. Basemaps (base_layer=true) exempt from wms_name requirement."""
         wms_names: Dict[str, str] = {}
         
         for layer in self._iter_layers():
+            # Basemaps with source_type xyz don't need wms_name
+            if layer.get('base_layer') and layer.get('source_type') == 'xyz':
+                # Validate basemap has required fields instead
+                if not layer.get('url_template'):
+                    self.violations.append(Violation(
+                        rule_id="R2",
+                        severity="BLOCK",
+                        message=f"Basemap missing url_template",
+                        layer_id=layer.get('id')
+                    ))
+                continue
+            
             wms_name = layer.get('wms_name')
             if not wms_name:
                 self.violations.append(Violation(

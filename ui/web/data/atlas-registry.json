@@ -5,15 +5,15 @@
     "canonical_crs": "EPSG:4326",
     "view_crs": "EPSG:3857",
     "center": [
-      38.18,
-      13.60
+      38.0,
+      13.6
     ],
-    "zoom": 8,
+    "zoom": 10,
     "extent": [
-      36.349,
-      12.257,
-      39.994,
-      14.964
+      36.3,
+      12.2,
+      40.3,
+      14.9
     ]
   },
   "services": {
@@ -260,9 +260,35 @@
           "layers": []
         }
       ]
+    },
+    {
+      "id": "cat_basemaps",
+      "label": "Base Maps & External Sources",
+      "closed": true,
+      "groups": [
+        {
+          "id": "grp_basemaps_public",
+          "label": "Public Basemaps",
+          "layers": [
+            "osm_basemap"
+          ]
+        }
+      ]
     }
   ],
   "layers": {
+    "osm_basemap": {
+      "label": "OpenStreetMap",
+      "published": true,
+      "default_visible": true,
+      "source_type": "xyz",
+      "base_layer": true,
+      "url_template": "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+      "attribution": "\u00a9 OpenStreetMap contributors",
+      "opacity": 1.0,
+      "min_scale": 500000000,
+      "max_scale": 1
+    },
     "ethiopia_aoi": {
       "wms_name": "ethiopia_aoi",
       "label": "Ethiopia - Area of Interest",
@@ -761,6 +787,7 @@
   },
   "search": [],
   "rules": {
+    "basemap_mutex": true,
     "scale_mutex_pairs": [
       [
         "ethiopia_roads",
