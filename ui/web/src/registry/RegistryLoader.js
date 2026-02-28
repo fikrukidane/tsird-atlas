@@ -216,7 +216,7 @@ class RegistryLoader {
     for (const [layerId, layerMeta] of Object.entries(layersDict)) {
       layerDefs[layerId] = {
         wms_name: layerMeta.wms_name,
-        label: layerMeta.label || layerMeta.wms_name,
+        label: layerMeta.label || layerMeta.wms_name || layerId,
         type: layerMeta.type,
         published: layerMeta.published !== false,
         default_visible: layerMeta.default_visible === true,
@@ -226,7 +226,12 @@ class RegistryLoader {
         identify_fields: layerMeta.identify_fields || [],
         source: layerMeta.source,
         geometry_type: layerMeta.geometry_type,
-        attribution: layerMeta.attribution
+        attribution: layerMeta.attribution,
+        // Basemap fields
+        source_type: layerMeta.source_type,
+        base_layer: layerMeta.base_layer === true,
+        url_template: layerMeta.url_template,
+        opacity: layerMeta.opacity
       };
     }
 
