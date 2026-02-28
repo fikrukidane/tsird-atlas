@@ -1,15 +1,17 @@
 /**
- * LayerFactory — Create OpenLayers TileWMS layers from registry
+ * LayerFactory — Create OpenLayers layers from registry
  * 
  * Responsibilities:
- *   - Create TileWMS sources only (no WFS)
+ *   - Create TileWMS sources for thematic layers (no WFS)
+ *   - Create XYZ sources for basemaps (base_layer: true)
  *   - Use stable WMS parameters (FORMAT, TRANSPARENT, etc.)
  *   - Store layer metadata for later reference (GetFeatureInfo, scale rules, etc.)
  *   - Respect published flag (skip unpublished)
  *   - Maintain YAML order
+ *   - Basemaps always zIndex = 0 (behind all thematic layers)
  * 
  * Contract:
- *   - Returns array of ol.layer.Tile objects in YAML order
+ *   - Returns array of ol.layer objects in YAML order
  *   - Each layer has attached layerDef and layerId properties
  *   - WMS requests are cache-friendly (stable params)
  */
@@ -22,13 +24,14 @@ class LayerFactory {
   }
 
   /**
-   * Create all TileWMS layers from registry.
+   * Create all layers from registry.
    * Respects published flag and YAML order.
+   * Handles both WMS (thematic) and XYZ (basemap) sources.
    * 
-   * @returns {Array<ol.layer.Tile>} Ordered array of TileWMS layers
+   * @returns {Array<ol.layer.Base>} Ordered array of layers
    */
   createLayers() {
-    console.log('[LayerFactory] Creating TileWMS layers...');
+    console.log('[LayerFactory] Creating layers...');
 
     const layers = [];
     let layerCount = 0;
@@ -47,11 +50,19 @@ class LayerFactory {
           }
 
           try {
-            const layer = this._createTileWMSLayer(layerId, layerDef);
+            let layer;
+            
+            // Check if this is a basemap (XYZ source)
+            if (layerDef.base_layer && layerDef.source_type === 'xyz') {
+              layer = this._createXYZLayer(layerId, layerDef);
+              console.log(`[LayerFactory] Created XYZ basemap: ${layerId}`);
+            } else {
+              layer = this._createTileWMSLayer(layerId, layerDef);
+              console.log(`[LayerFactory] Created WMS layer: ${layerId} (WMS: ${layerDef.wms_name})`);
+            }
+            
             layers.push(layer);
             layerCount++;
-
-            console.log(`[LayerFactory] Created layer: ${layerId} (WMS: ${layerDef.wms_name})`);
           } catch (error) {
             console.error(`[LayerFactory] Failed to create layer ${layerId}:`, error.message);
           }
@@ -59,8 +70,41 @@ class LayerFactory {
       }
     }
 
-    console.log(`[LayerFactory] Created ${layerCount} TileWMS layers`);
+    console.log(`[LayerFactory] Created ${layerCount} layers (WMS + XYZ)`);
     return layers;
+  }
+
+  /**
+   * Create an XYZ tile layer for basemaps.
+   * 
+   * @private
+   */
+  _createXYZLayer(layerId, layerDef) {
+    const source = new ol.source.XYZ({
+      url: layerDef.url_template,
+      attributions: layerDef.attribution || ''
+    });
+
+    const layer = new ol.layer.Tile({
+      source: source,
+      title: layerDef.label,
+      visible: false,  // Will be set by InteractionController
+      opacity: layerDef.opacity !== undefined ? layerDef.opacity : 1.0
+    });
+
+    // Basemaps always at zIndex 0 (behind all thematic layers)
+    layer.setZIndex(0);
+
+    // Attach metadata for later reference
+    layer.layerId = layerId;
+    layer.layerDef = layerDef;
+    layer.set('layerId', layerId);
+    layer.set('layerDef', layerDef);
+    layer.set('isBasemap', true);
+
+    console.debug(`[LayerFactory] ${layerId}: XYZ basemap, url=${layerDef.url_template}, opacity=${layerDef.opacity || 1.0}`);
+
+    return layer;
   }
 
   /**
@@ -135,26 +179,36 @@ class LayerFactory {
   }
 
   _getLayerZIndex(layerDef) {
-    const layerType = (layerDef.type || '').toLowerCase();
-    const geometryType = (layerDef.geometry_type || '').toLowerCase();
-
-    if (layerType === 'raster') {
+    // Basemaps always at bottom
+    if (layerDef.base_layer) {
       return 0;
     }
 
+    const layerType = (layerDef.type || '').toLowerCase();
+    const geometryType = (layerDef.geometry_type || '').toLowerCase();
+
+    // Rasters above basemaps
+    if (layerType === 'raster') {
+      return 5;
+    }
+
+    // UI/overlay layers at top
     if (layerType === 'grid' || layerType === 'overlay' || layerType === 'ui') {
-      return 40;
+      return 45;
     }
 
+    // Lines above polygons
     if (geometryType === 'linestring' || geometryType === 'line') {
-      return 20;
+      return 25;
     }
 
+    // Points at top of thematic layers
     if (geometryType === 'point') {
-      return 30;
+      return 35;
     }
 
-    return 10;
+    // Polygons (default vector)
+    return 15;
   }
 
   /**
