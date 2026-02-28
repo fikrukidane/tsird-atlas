@@ -280,6 +280,40 @@ class InteractionController {
 
     layerDiv.appendChild(layerRow);
 
+    // Opacity slider (only for polygon vector layers)
+    if (layerDef.geometry_type === 'polygon' && !layerDef.base_layer) {
+      const opacityRow = document.createElement('div');
+      opacityRow.className = 'toc-opacity-row';
+
+      const opacityLabel = document.createElement('span');
+      opacityLabel.className = 'toc-opacity-label';
+      opacityLabel.textContent = 'Opacity:';
+
+      const opacitySlider = document.createElement('input');
+      opacitySlider.type = 'range';
+      opacitySlider.className = 'toc-opacity-slider';
+      opacitySlider.id = `opacity-${layerId}`;
+      opacitySlider.min = '0';
+      opacitySlider.max = '100';
+      opacitySlider.value = String(Math.round((layerDef.opacity !== undefined ? layerDef.opacity : 1.0) * 100));
+      opacitySlider.title = 'Adjust layer transparency';
+
+      const opacityValue = document.createElement('span');
+      opacityValue.className = 'toc-opacity-value';
+      opacityValue.textContent = `${opacitySlider.value}%`;
+
+      opacitySlider.addEventListener('input', (e) => {
+        const value = parseInt(e.target.value);
+        opacityValue.textContent = `${value}%`;
+        this._onOpacityChange(layerId, value / 100);
+      });
+
+      opacityRow.appendChild(opacityLabel);
+      opacityRow.appendChild(opacitySlider);
+      opacityRow.appendChild(opacityValue);
+      layerDiv.appendChild(opacityRow);
+    }
+
     return layerDiv;
   }
 
@@ -513,6 +547,21 @@ class InteractionController {
         console.log(`[InteractionController] Basemap mutex: ${layerId} turned OFF (${activeBasemapId} is active)`);
       }
     }
+  }
+
+  /**
+   * Handle opacity slider change for a layer.
+   * @private
+   */
+  _onOpacityChange(layerId, opacity) {
+    const layer = this.layerMap[layerId];
+    if (!layer) {
+      console.warn(`[InteractionController] Layer not found for opacity change: ${layerId}`);
+      return;
+    }
+
+    layer.setOpacity(opacity);
+    console.log(`[InteractionController] Layer opacity changed: ${layerId} = ${Math.round(opacity * 100)}%`);
   }
 
   /**

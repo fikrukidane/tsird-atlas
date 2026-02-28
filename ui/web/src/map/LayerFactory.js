@@ -157,10 +157,12 @@ class LayerFactory {
     });
 
     // Create image layer
+    const opacity = layerDef.opacity !== undefined ? layerDef.opacity : 1.0;
     const layer = new ol.layer.Image({
       source: source,
       title: layerDef.label,
-      visible: false  // Will be set by InteractionController
+      visible: false,  // Will be set by InteractionController
+      opacity: opacity
     });
 
     const zIndex = this._getLayerZIndex(layerDef);
