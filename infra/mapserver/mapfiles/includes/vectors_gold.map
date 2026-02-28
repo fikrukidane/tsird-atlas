@@ -89,7 +89,8 @@ LAYER
   CONNECTION "/data/gold/atlas_4326/ethiopia/EthioWoredasNew.shp"
   DATA "EthioWoredasNew"
   LABELITEM "W_NAME"
-  LABELMAXSCALEDENOM 1500000
+  LABELMAXSCALEDENOM 2000000
+  LABELMINSCALEDENOM 100000
   METADATA
     "wms_title" "Ethiopia - Woredas"
     "wms_srs" "EPSG:3857 EPSG:4326"
@@ -199,7 +200,8 @@ LAYER
   CONNECTION "/data/gold/atlas_4326/TigraiTabiasNew.shp"
   DATA "TigraiTabiasNew"
   LABELITEM "TABIA"
-  LABELMAXSCALEDENOM 100000
+  LABELMAXSCALEDENOM 500000
+  LABELMINSCALEDENOM 10000
   METADATA
     "wms_title" "Tigray - Tabias (Admin)"
     "wms_srs" "EPSG:3857 EPSG:4326"
@@ -545,7 +547,8 @@ LAYER
   CONNECTION "/data/gold/atlas_4326/TigrayNewWoredas.shp"
   DATA "TigrayNewWoredas"
   LABELITEM "wor_name"
-  LABELMAXSCALEDENOM 1000000
+  LABELMAXSCALEDENOM 2000000
+  LABELMINSCALEDENOM 100000
   METADATA
     "wms_title" "Tigray - Woreda"
     "wms_srs" "EPSG:3857 EPSG:4326"
