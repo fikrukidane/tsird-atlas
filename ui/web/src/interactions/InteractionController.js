@@ -49,6 +49,105 @@ class InteractionController {
     this.creditsPanel = null;
     this.creditsBody = null;
     this.creditsList = null;
+
+    // Temporal (time-series) state tracking
+    // Stores current year for each temporal layer: { layerId: year }
+    this.temporalYearState = {};
+    // Stores current date for each date-mode temporal layer: { layerId: "YYYY-MM-DD" }
+    this.temporalDateState = {};
+    // Legend cache by (layerId, year): { "layerId:year": HTMLElement }
+    this.legendCache = {};
+
+    // Global temporal control (new unified model)
+    // globalDate: shared date for all time_enabled layers in 'global' mode
+    this.globalDate = this._initGlobalDate();
+    // Tracks per-layer time_mode overrides: { layerId: 'global' | 'local' }
+    this.layerTimeMode = {};
+    // Tracks per-layer local dates: { layerId: 'YYYY-MM-DD' }
+    this.layerLocalDate = {};
+    this._loadTimeSettings();
+
+    // TOC density: compact (11px), normal (12px), comfortable (13px)
+    this.density = localStorage.getItem('tsird_toc_density') || 'compact';
+  }
+
+  /**
+   * Initialize global date from localStorage or default to yesterday (GIBS lag).
+   * @private
+   */
+  _initGlobalDate() {
+    const saved = localStorage.getItem('tsird:globalDate');
+    if (saved && /^\d{4}-\d{2}-\d{2}$/.test(saved)) {
+      return saved;
+    }
+    // Default to yesterday (GIBS data lag)
+    const d = new Date();
+    d.setDate(d.getDate() - 1);
+    return this._formatDate(d);
+  }
+
+  /**
+   * Format Date to YYYY-MM-DD string.
+   * @private
+   */
+  _formatDate(date) {
+    const yyyy = date.getFullYear();
+    const mm = String(date.getMonth() + 1).padStart(2, '0');
+    const dd = String(date.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  }
+
+  /**
+   * Load per-layer time settings from localStorage.
+   * @private
+   */
+  _loadTimeSettings() {
+    // Load per-layer time modes
+    const modes = localStorage.getItem('tsird:layerTimeModes');
+    if (modes) {
+      try {
+        this.layerTimeMode = JSON.parse(modes);
+      } catch (e) {
+        this.layerTimeMode = {};
+      }
+    }
+    // Load per-layer local dates
+    const dates = localStorage.getItem('tsird:layerLocalDates');
+    if (dates) {
+      try {
+        this.layerLocalDate = JSON.parse(dates);
+      } catch (e) {
+        this.layerLocalDate = {};
+      }
+    }
+  }
+
+  /**
+   * Save time settings to localStorage.
+   * @private
+   */
+  _saveTimeSettings() {
+    localStorage.setItem('tsird:globalDate', this.globalDate);
+    localStorage.setItem('tsird:layerTimeModes', JSON.stringify(this.layerTimeMode));
+    localStorage.setItem('tsird:layerLocalDates', JSON.stringify(this.layerLocalDate));
+  }
+
+  /**
+   * Get effective date for a time-enabled layer.
+   * Returns global date if layer follows global, otherwise local date.
+   * @param {string} layerId
+   * @returns {string} ISO date string
+   */
+  getEffectiveDate(layerId) {
+    const layerDef = this.layerDefs[layerId];
+    if (!layerDef || !layerDef.time_enabled) {
+      return null;
+    }
+    const mode = this.layerTimeMode[layerId] || layerDef.time_mode || 'global';
+    if (mode === 'local') {
+      return this.layerLocalDate[layerId] || layerDef.time_default || this.globalDate;
+    }
+    return this.globalDate;
   }
 
   /**
@@ -64,6 +163,9 @@ class InteractionController {
 
     // Clear existing content
     container.innerHTML = '';
+
+    // Apply density attribute on TOC root
+    this._applyDensity(this.density);
 
     // Render Display Settings panel (global boundary opacity)
     this._renderDisplaySettings(container);
@@ -232,6 +334,8 @@ class InteractionController {
   _renderLayer(layerRef, groupId) {
     const layerId = layerRef.id;
     const layerDef = this.layerDefs[layerId];
+    // Step 1: Debug log for legend_mode propagation
+    console.log('[LegendGate]', layerId, layerDef.wms_name, layerDef.source_type, layerDef.legend_mode, layerDef.legend);
 
     const layerDiv = document.createElement('div');
     layerDiv.className = 'toc-layer';
@@ -264,8 +368,11 @@ class InteractionController {
     layerRow.appendChild(layerCheckbox);
     layerRow.appendChild(layerLabel);
 
-    // Legend toggle button (only for WMS layers, not basemaps)
-    if (!layerDef.base_layer) {
+    // Legend toggle button: show if (legend_mode: full OR legend_url present) and not base_layer, hide if legend === false
+    const showLegendToggle = !layerDef.base_layer && 
+                              layerDef.legend !== false && 
+                              (layerDef.legend_mode === 'full' || layerDef.legend_url);
+    if (showLegendToggle) {
       const legendToggle = document.createElement('button');
       legendToggle.className = 'toc-legend-toggle';
       legendToggle.title = 'Show/hide legend';
@@ -275,8 +382,12 @@ class InteractionController {
         this._toggleLegend(layerId, layerDef.wms_name, layerDiv, legendToggle);
       });
       layerRow.appendChild(legendToggle);
+    }
 
-      // Legend container (hidden by default)
+    layerDiv.appendChild(layerRow);
+
+    // Legend container (hidden by default) - must be AFTER layerRow for proper layout
+    if (showLegendToggle) {
       const legendContainer = document.createElement('div');
       legendContainer.className = 'toc-legend-container';
       legendContainer.id = `legend-${layerId}`;
@@ -284,9 +395,429 @@ class InteractionController {
       layerDiv.appendChild(legendContainer);
     }
 
-    layerDiv.appendChild(layerRow);
+    // Temporal (time-series) control: year dropdown + slider (mode: year)
+    if (layerDef.temporal && layerDef.temporal.mode === 'year' && Array.isArray(layerDef.temporal.years) && layerDef.temporal.years.length > 0) {
+      const temporalRow = this._renderTemporalControl(layerId, layerDef);
+      layerDiv.appendChild(temporalRow);
+    }
+
+    // Global temporal control: time_enabled layers get Follow Global toggle + optional local date
+    if (layerDef.time_enabled) {
+      const timeControlRow = this._renderTimeEnabledControl(layerId, layerDef);
+      layerDiv.appendChild(timeControlRow);
+    }
+    // Legacy: Temporal (time-series) control: date dropdown + slider (mode: date) - only if NOT time_enabled
+    else if (layerDef.temporal && layerDef.temporal.mode === 'date') {
+      const dateRow = this._renderDateTemporalControl(layerId, layerDef);
+      layerDiv.appendChild(dateRow);
+    }
 
     return layerDiv;
+  }
+
+  /**
+   * Render temporal (year) control: dropdown + slider synced together.
+   * @private
+   */
+  _renderTemporalControl(layerId, layerDef) {
+    const temporal = layerDef.temporal;
+    const years = temporal.years.slice().sort((a, b) => a - b);
+    const minYear = years[0];
+    const maxYear = years[years.length - 1];
+
+    // Load persisted year from localStorage or default to max year
+    const storageKey = `tsird:year:${layerId}`;
+    let currentYear = parseInt(localStorage.getItem(storageKey), 10);
+    if (isNaN(currentYear) || !years.includes(currentYear)) {
+      currentYear = maxYear;
+    }
+    this.temporalYearState[layerId] = currentYear;
+
+    // Apply initial WMS params for the temporal layer
+    this._applyTemporalYear(layerId, currentYear, false);
+
+    const controlRow = document.createElement('div');
+    controlRow.className = 'toc-temporal-control';
+    controlRow.setAttribute('data-layer-id', layerId);
+
+    // Year label
+    const yearLabel = document.createElement('span');
+    yearLabel.className = 'toc-temporal-label';
+    yearLabel.textContent = 'Year:';
+
+    // Dropdown (select)
+    const dropdown = document.createElement('select');
+    dropdown.className = 'toc-temporal-dropdown';
+    dropdown.id = `temporal-dropdown-${layerId}`;
+    years.forEach(y => {
+      const opt = document.createElement('option');
+      opt.value = y;
+      opt.textContent = y;
+      if (y === currentYear) opt.selected = true;
+      dropdown.appendChild(opt);
+    });
+
+    // Slider (range)
+    const slider = document.createElement('input');
+    slider.type = 'range';
+    slider.className = 'toc-temporal-slider';
+    slider.id = `temporal-slider-${layerId}`;
+    slider.min = minYear;
+    slider.max = maxYear;
+    slider.step = 1;
+    slider.value = currentYear;
+
+    // Sync dropdown -> slider and apply year change
+    dropdown.addEventListener('change', () => {
+      const newYear = parseInt(dropdown.value, 10);
+      slider.value = newYear;
+      this._onTemporalYearChange(layerId, newYear);
+    });
+
+    // Sync slider -> dropdown and apply year change
+    slider.addEventListener('input', () => {
+      const newYear = parseInt(slider.value, 10);
+      // Snap to nearest available year if not contiguous
+      const closestYear = years.reduce((prev, curr) =>
+        Math.abs(curr - newYear) < Math.abs(prev - newYear) ? curr : prev
+      );
+      dropdown.value = closestYear;
+      slider.value = closestYear;
+      this._onTemporalYearChange(layerId, closestYear);
+    });
+
+    controlRow.appendChild(yearLabel);
+    controlRow.appendChild(dropdown);
+    controlRow.appendChild(slider);
+
+    return controlRow;
+  }
+
+  /**
+   * Handle temporal year change: update WMS params and persist.
+   * @private
+   */
+  _onTemporalYearChange(layerId, newYear) {
+    const oldYear = this.temporalYearState[layerId];
+    if (oldYear === newYear) return;
+
+    this.temporalYearState[layerId] = newYear;
+    localStorage.setItem(`tsird:year:${layerId}`, newYear);
+
+    this._applyTemporalYear(layerId, newYear, true);
+
+    // Invalidate legend cache for this layer (if year changed)
+    this._invalidateLegendForTemporalLayer(layerId);
+
+    console.log(`[Temporal] Layer ${layerId}: year changed ${oldYear} → ${newYear}`);
+  }
+
+  /**
+   * Apply temporal year to the OL layer's WMS params.
+   * @private
+   */
+  _applyTemporalYear(layerId, year, forceRefresh = false) {
+    const layer = this.layerMap[layerId];
+    if (!layer) return;
+
+    const layerDef = this.layerDefs[layerId];
+    const temporal = layerDef.temporal;
+    if (!temporal) return;
+
+    const source = layer.getSource();
+    if (!source || typeof source.updateParams !== 'function') {
+      console.warn(`[Temporal] Layer ${layerId} source does not support updateParams`);
+      return;
+    }
+
+    const params = {};
+
+    if (temporal.time_param && temporal.time_param.enabled) {
+      // TIME parameter mode: set TIME, keep LAYERS unchanged
+      const format = temporal.time_param.format || '{year}-01-01';
+      params.TIME = format.replace('{year}', year);
+    } else if (temporal.layer_by_year) {
+      // Layer-by-year mode: change LAYERS, no TIME
+      const yearStr = String(year);
+      const mappedLayer = temporal.layer_by_year[yearStr];
+      if (mappedLayer) {
+        params.LAYERS = mappedLayer;
+      } else {
+        console.warn(`[Temporal] Layer ${layerId}: no mapping for year ${year}`);
+      }
+    }
+
+    // Add cache buster if force refresh
+    if (forceRefresh) {
+      params._ts = Date.now();
+    }
+
+    source.updateParams(params);
+  }
+
+  /**
+   * Invalidate and clear legend for a temporal layer when year changes.
+   * @private
+   */
+  _invalidateLegendForTemporalLayer(layerId) {
+    const legendContainer = document.getElementById(`legend-${layerId}`);
+    if (legendContainer && legendContainer.dataset.loaded) {
+      // Clear loaded state to force reload on next toggle
+      delete legendContainer.dataset.loaded;
+      legendContainer.innerHTML = '';
+    }
+  }
+
+  /**
+   * Generate an array of date strings (YYYY-MM-DD) for the last N days.
+   * @private
+   */
+  _generateDateRange(rangeDays) {
+    const dates = [];
+    const today = new Date();
+    for (let i = 0; i < rangeDays; i++) {
+      const d = new Date(today);
+      d.setDate(today.getDate() - i);
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      dates.push(`${yyyy}-${mm}-${dd}`);
+    }
+    return dates; // Most recent first
+  }
+
+  /**
+   * Render temporal control for date mode (daily TIME slider for GIBS etc).
+   * @private
+   */
+  _renderDateTemporalControl(layerId, layerDef) {
+    const temporal = layerDef.temporal;
+    const rangeDays = temporal.range_days || 30;
+    // Handle negative offset (YAML style: -1 = yesterday) or positive (index style: 1 = yesterday)
+    const rawOffset = temporal.default_offset_days || 1;
+    const offsetDays = Math.abs(rawOffset);
+
+    const dates = this._generateDateRange(rangeDays);
+    const defaultDate = dates[Math.min(offsetDays, dates.length - 1)];
+
+    // Load persisted date from localStorage or default
+    const storageKey = `tsird:date:${layerId}`;
+    let currentDate = localStorage.getItem(storageKey);
+    if (!currentDate || !dates.includes(currentDate)) {
+      currentDate = defaultDate;
+    }
+    this.temporalDateState = this.temporalDateState || {};
+    this.temporalDateState[layerId] = currentDate;
+
+    // Apply initial WMS params for the temporal layer
+    this._applyTemporalDate(layerId, currentDate, false);
+
+    const controlRow = document.createElement('div');
+    controlRow.className = 'toc-temporal-control';
+    controlRow.setAttribute('data-layer-id', layerId);
+
+    // Date label
+    const dateLabel = document.createElement('span');
+    dateLabel.className = 'toc-temporal-label';
+    dateLabel.textContent = 'Date:';
+
+    // Dropdown (select)
+    const dropdown = document.createElement('select');
+    dropdown.className = 'toc-temporal-dropdown';
+    dropdown.id = `temporal-date-dropdown-${layerId}`;
+    dates.forEach(d => {
+      const opt = document.createElement('option');
+      opt.value = d;
+      // Format display as "Feb 24" for better readability
+      const dateObj = new Date(d + 'T00:00:00');
+      const monthName = dateObj.toLocaleString('en', { month: 'short' });
+      const day = dateObj.getDate();
+      opt.textContent = `${monthName} ${day}`;
+      if (d === currentDate) opt.selected = true;
+      dropdown.appendChild(opt);
+    });
+
+    // Slider (range) - index based (0 = most recent, rangeDays-1 = oldest)
+    const slider = document.createElement('input');
+    slider.type = 'range';
+    slider.className = 'toc-temporal-slider';
+    slider.id = `temporal-date-slider-${layerId}`;
+    slider.min = 0;
+    slider.max = rangeDays - 1;
+    slider.step = 1;
+    slider.value = dates.indexOf(currentDate);
+
+    // Sync dropdown -> slider and apply date change
+    dropdown.addEventListener('change', () => {
+      const newDate = dropdown.value;
+      slider.value = dates.indexOf(newDate);
+      this._onTemporalDateChange(layerId, newDate);
+    });
+
+    // Sync slider -> dropdown and apply date change
+    slider.addEventListener('input', () => {
+      const idx = parseInt(slider.value, 10);
+      const newDate = dates[idx];
+      dropdown.value = newDate;
+      this._onTemporalDateChange(layerId, newDate);
+    });
+
+    controlRow.appendChild(dateLabel);
+    controlRow.appendChild(dropdown);
+    controlRow.appendChild(slider);
+
+    return controlRow;
+  }
+
+  /**
+   * Handle temporal date change: update WMS params and persist.
+   * @private
+   */
+  _onTemporalDateChange(layerId, newDate) {
+    this.temporalDateState = this.temporalDateState || {};
+    const oldDate = this.temporalDateState[layerId];
+    if (oldDate === newDate) return;
+
+    this.temporalDateState[layerId] = newDate;
+    localStorage.setItem(`tsird:date:${layerId}`, newDate);
+
+    this._applyTemporalDate(layerId, newDate, true);
+
+    // Invalidate legend cache for this layer
+    this._invalidateLegendForTemporalLayer(layerId);
+
+    console.log(`[Temporal] Layer ${layerId}: date changed ${oldDate} → ${newDate}`);
+  }
+
+  /**
+   * Apply temporal date to the OL layer's WMS params.
+   * @private
+   */
+  _applyTemporalDate(layerId, date, forceRefresh = false) {
+    const layer = this.layerMap[layerId];
+    if (!layer) return;
+
+    const layerDef = this.layerDefs[layerId];
+    const temporal = layerDef.temporal;
+    if (!temporal) return;
+
+    const source = layer.getSource();
+    if (!source || typeof source.updateParams !== 'function') {
+      console.warn(`[Temporal] Layer ${layerId} source does not support updateParams`);
+      return;
+    }
+
+    const params = {};
+
+    // Apply TIME parameter
+    if (temporal.time_param && temporal.time_param.enabled) {
+      params.TIME = date; // ISO8601 date format YYYY-MM-DD
+    }
+
+    // Add cache buster if force refresh
+    if (forceRefresh) {
+      params._ts = Date.now();
+    }
+
+    source.updateParams(params);
+  }
+
+  /**
+   * Render time-enabled layer control with Follow Global toggle and optional local date.
+   * @private
+   */
+  _renderTimeEnabledControl(layerId, layerDef) {
+    const controlRow = document.createElement('div');
+    controlRow.className = 'toc-temporal-control toc-time-enabled-control';
+    controlRow.setAttribute('data-layer-id', layerId);
+
+    // Determine current mode (global or local)
+    const savedMode = this.layerTimeMode[layerId] || layerDef.time_mode || 'global';
+    const isGlobal = savedMode === 'global';
+
+    // Follow Global toggle (checkbox style)
+    const toggleLabel = document.createElement('label');
+    toggleLabel.className = 'toc-follow-global-label';
+
+    const toggleCheckbox = document.createElement('input');
+    toggleCheckbox.type = 'checkbox';
+    toggleCheckbox.className = 'toc-follow-global-checkbox';
+    toggleCheckbox.id = `follow-global-${layerId}`;
+    toggleCheckbox.checked = isGlobal;
+
+    const toggleText = document.createElement('span');
+    toggleText.textContent = 'Follow Global';
+    toggleText.className = 'toc-follow-global-text';
+
+    toggleLabel.appendChild(toggleCheckbox);
+    toggleLabel.appendChild(toggleText);
+
+    // Local date controls container (hidden when following global)
+    const localDateContainer = document.createElement('div');
+    localDateContainer.className = 'toc-local-date-container';
+    localDateContainer.id = `local-date-container-${layerId}`;
+    localDateContainer.style.display = isGlobal ? 'none' : 'flex';
+
+    // Local date input
+    const localDateInput = document.createElement('input');
+    localDateInput.type = 'date';
+    localDateInput.className = 'toc-local-date-input';
+    localDateInput.id = `local-date-${layerId}`;
+    // Initialize to saved local date or current effective date
+    localDateInput.value = this.layerLocalDate[layerId] || layerDef.time_default || this.globalDate;
+
+    // Date limits
+    const today = new Date();
+    const minDate = new Date(today);
+    minDate.setDate(today.getDate() - 90);
+    localDateInput.max = this._formatDate(today);
+    localDateInput.min = this._formatDate(minDate);
+
+    localDateInput.addEventListener('change', (e) => {
+      this._setLayerLocalDate(layerId, e.target.value);
+    });
+
+    localDateContainer.appendChild(localDateInput);
+
+    // Toggle behavior
+    toggleCheckbox.addEventListener('change', () => {
+      const newMode = toggleCheckbox.checked ? 'global' : 'local';
+      this.layerTimeMode[layerId] = newMode;
+      this._saveTimeSettings();
+
+      if (newMode === 'global') {
+        localDateContainer.style.display = 'none';
+        // Re-apply global date
+        this._applyTimeParam(layerId);
+      } else {
+        localDateContainer.style.display = 'flex';
+        // Apply local date
+        const localDate = this.layerLocalDate[layerId] || this.globalDate;
+        localDateInput.value = localDate;
+        this._setLayerLocalDate(layerId, localDate);
+      }
+
+      console.log(`[Temporal] Layer ${layerId}: mode changed to ${newMode}`);
+    });
+
+    controlRow.appendChild(toggleLabel);
+    controlRow.appendChild(localDateContainer);
+
+    // Apply initial TIME param
+    this._applyTimeParam(layerId);
+
+    return controlRow;
+  }
+
+  /**
+   * Set local date for a layer and refresh it.
+   * @private
+   */
+  _setLayerLocalDate(layerId, dateStr) {
+    this.layerLocalDate[layerId] = dateStr;
+    this._saveTimeSettings();
+    this._applyTimeParam(layerId);
+    console.log(`[Temporal] Layer ${layerId}: local date set to ${dateStr}`);
   }
 
   /**
@@ -311,25 +842,96 @@ class InteractionController {
       toggleButton.classList.add('is-expanded');
       
       if (!legendContainer.dataset.loaded) {
-        this._loadLegend(wmsName, legendContainer);
+        this._loadLegend(layerId, wmsName, legendContainer, toggleButton);
       }
     }
   }
 
   /**
-   * Load legend image via WMS GetLegendGraphic.
+   * Load legend image via WMS GetLegendGraphic or static URL.
+   * Handles temporal layers by using current year's WMS params.
+   * Supports legend_url for external WMS that don't support GetLegendGraphic.
    * @private
    */
-  _loadLegend(wmsName, container) {
-    const wmsBaseUrl = this.mapController.wmsBaseUrl;
-    const legendUrl = `${wmsBaseUrl}?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetLegendGraphic&LAYER=${encodeURIComponent(wmsName)}&FORMAT=image/png&SLD_VERSION=1.1.0`;
+  _loadLegend(layerId, wmsName, container, toggleButton) {
+    const layerDef = this.layerDefs[layerId];
+    
+    // Check for static legend URL first (for external WMS that don't support GetLegendGraphic)
+    if (layerDef.legend_url) {
+      this._loadStaticLegend(layerDef.legend_url, container, toggleButton);
+      return;
+    }
+    
+    // Determine WMS base URL (external or local MapServer)
+    let wmsBaseUrl;
+    if (layerDef.source_type === 'wms_external' && layerDef.wms_base_url) {
+      wmsBaseUrl = layerDef.wms_base_url;
+    } else {
+      wmsBaseUrl = this.mapController.wmsBaseUrl;
+    }
+
+    // Determine layer name and TIME param for temporal layers
+    let effectiveLayerName = wmsName;
+    let timeParam = '';
+
+    if (layerDef.temporal && layerDef.temporal.mode === 'year') {
+      const currentYear = this.temporalYearState[layerId];
+      const temporal = layerDef.temporal;
+
+      if (temporal.layer_by_year && currentYear) {
+        // Use year-specific layer name
+        const yearStr = String(currentYear);
+        effectiveLayerName = temporal.layer_by_year[yearStr] || wmsName;
+      } else if (temporal.time_param && temporal.time_param.enabled && currentYear) {
+        // Keep wmsName but add TIME param
+        const format = temporal.time_param.format || '{year}-01-01';
+        timeParam = `&TIME=${encodeURIComponent(format.replace('{year}', currentYear))}`;
+      }
+    }
+
+    const legendUrl = `${wmsBaseUrl}?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetLegendGraphic&LAYER=${encodeURIComponent(effectiveLayerName)}&FORMAT=image/png&SLD_VERSION=1.1.0${timeParam}`;
     
     // Show loading state
     container.innerHTML = '<div class="toc-legend-header">Legend</div><span class="toc-legend-loading">Loading...</span>';
     
     const img = document.createElement('img');
     img.className = 'toc-legend-image';
-    img.alt = `Legend for ${wmsName}`;
+    img.alt = `Legend for ${effectiveLayerName}`;
+    img.crossOrigin = 'anonymous';  // For external WMS CORS
+    
+    img.onload = () => {
+      // Fallback: check if legend image is too small (likely blank/empty)
+      // Typical "empty" legends are ~20x15 or smaller
+      if (img.naturalWidth < 25 && img.naturalHeight < 20) {
+        container.innerHTML = '<div class="toc-legend-header">Legend</div><span class="toc-legend-error">Legend unavailable</span>';
+        container.dataset.loaded = 'empty';
+        return;
+      }
+      container.innerHTML = '<div class="toc-legend-header">Legend</div>';
+      container.appendChild(img);
+      container.dataset.loaded = 'true';
+    };
+    
+    img.onerror = () => {
+      container.innerHTML = '<div class="toc-legend-header">Legend</div><span class="toc-legend-error">Legend unavailable</span>';
+      container.dataset.loaded = 'error';
+    };
+    
+    img.src = legendUrl;
+  }
+
+  /**
+   * Load a static legend image from a direct URL.
+   * Used for external WMS services that don't support GetLegendGraphic.
+   * @private
+   */
+  _loadStaticLegend(legendUrl, container, toggleButton) {
+    container.innerHTML = '<div class="toc-legend-header">Legend</div><span class="toc-legend-loading">Loading...</span>';
+    
+    const img = document.createElement('img');
+    img.className = 'toc-legend-image';
+    img.alt = 'Legend';
+    img.crossOrigin = 'anonymous';
     
     img.onload = () => {
       container.innerHTML = '<div class="toc-legend-header">Legend</div>';
@@ -438,7 +1040,7 @@ class InteractionController {
   }
 
   /**
-   * Render Display Settings panel with global boundary opacity slider.
+   * Render Display Settings panel with global boundary opacity slider and density control.
    * @private
    */
   _renderDisplaySettings(container) {
@@ -450,6 +1052,7 @@ class InteractionController {
     header.className = 'toc-display-settings-header';
     header.textContent = 'Display Settings';
 
+    // --- Boundary Opacity Row ---
     const row = document.createElement('div');
     row.className = 'toc-display-settings-row';
 
@@ -486,12 +1089,194 @@ class InteractionController {
     row.appendChild(slider);
     row.appendChild(valueLabel);
 
+    // --- Density Control Row ---
+    const densityRow = document.createElement('div');
+    densityRow.className = 'toc-display-settings-row toc-density-row';
+
+    const densityLabel = document.createElement('span');
+    densityLabel.className = 'toc-display-settings-label';
+    densityLabel.textContent = 'Density:';
+
+    // Segmented control for density
+    const densityControl = document.createElement('div');
+    densityControl.className = 'toc-density-control';
+
+    const densities = [
+      { id: 'compact', label: 'Compact' },
+      { id: 'normal', label: 'Normal' },
+      { id: 'comfortable', label: 'Comfortable' }
+    ];
+
+    densities.forEach(d => {
+      const btn = document.createElement('button');
+      btn.className = 'toc-density-btn';
+      btn.dataset.density = d.id;
+      btn.textContent = d.label;
+      btn.title = `${d.label} density`;
+      if (this.density === d.id) {
+        btn.classList.add('is-active');
+      }
+      btn.addEventListener('click', () => {
+        this._setDensity(d.id, densityControl);
+      });
+      densityControl.appendChild(btn);
+    });
+
+    densityRow.appendChild(densityLabel);
+    densityRow.appendChild(densityControl);
+
+    // --- Global Date Control Row ---
+    const globalDateRow = this._createGlobalDateControl();
+
     panel.appendChild(header);
     panel.appendChild(row);
+    panel.appendChild(densityRow);
+    panel.appendChild(globalDateRow);
     container.appendChild(panel);
 
     // Apply initial boundary opacity
     this._applyBoundaryOpacity(initialValue / 100);
+  }
+
+  /**
+   * Set TOC density and persist to localStorage.
+   * @private
+   */
+  _setDensity(density, controlEl) {
+    this.density = density;
+    localStorage.setItem('tsird_toc_density', density);
+    this._applyDensity(density);
+
+    // Update active state on buttons
+    const buttons = controlEl.querySelectorAll('.toc-density-btn');
+    buttons.forEach(btn => {
+      btn.classList.toggle('is-active', btn.dataset.density === density);
+    });
+    console.log(`[InteractionController] TOC density set to: ${density}`);
+  }
+
+  /**
+   * Apply density attribute to TOC container.
+   * @private
+   */
+  _applyDensity(density) {
+    const container = document.getElementById(this.tocContainerId);
+    if (container) {
+      container.dataset.density = density;
+    }
+  }
+
+  /**
+   * Create the Global Date control row for Display Settings.
+   * @private
+   * @returns {HTMLElement}
+   */
+  _createGlobalDateControl() {
+    const row = document.createElement('div');
+    row.className = 'toc-display-settings-row toc-global-date-row';
+
+    const label = document.createElement('span');
+    label.className = 'toc-display-settings-label';
+    label.textContent = 'Global Date:';
+
+    // Date input (type="date" for native picker)
+    const dateInput = document.createElement('input');
+    dateInput.type = 'date';
+    dateInput.className = 'toc-global-date-input';
+    dateInput.id = 'global-date-input';
+    dateInput.value = this.globalDate;
+    // Limit to reasonable range (last 90 days to today)
+    const today = new Date();
+    const minDate = new Date(today);
+    minDate.setDate(today.getDate() - 90);
+    dateInput.max = this._formatDate(today);
+    dateInput.min = this._formatDate(minDate);
+
+    dateInput.addEventListener('change', (e) => {
+      this._setGlobalDate(e.target.value);
+    });
+
+    // Reset button (set to yesterday)
+    const resetBtn = document.createElement('button');
+    resetBtn.className = 'toc-global-date-reset';
+    resetBtn.textContent = 'Reset';
+    resetBtn.title = 'Reset to yesterday';
+    resetBtn.addEventListener('click', () => {
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      const dateStr = this._formatDate(yesterday);
+      dateInput.value = dateStr;
+      this._setGlobalDate(dateStr);
+    });
+
+    row.appendChild(label);
+    row.appendChild(dateInput);
+    row.appendChild(resetBtn);
+
+    return row;
+  }
+
+  /**
+   * Set the global date and refresh all time-enabled layers following global.
+   * @private
+   */
+  _setGlobalDate(dateStr) {
+    if (this.globalDate === dateStr) return;
+
+    const oldDate = this.globalDate;
+    this.globalDate = dateStr;
+    this._saveTimeSettings();
+
+    console.log(`[InteractionController] Global date changed: ${oldDate} → ${dateStr}`);
+
+    // Refresh all time-enabled layers that follow global
+    this._refreshGlobalTimeLayers();
+  }
+
+  /**
+   * Refresh WMS params for all time-enabled layers following global date.
+   * @private
+   */
+  _refreshGlobalTimeLayers() {
+    for (const [layerId, layerDef] of Object.entries(this.layerDefs)) {
+      if (!layerDef.time_enabled) continue;
+
+      const mode = this.layerTimeMode[layerId] || layerDef.time_mode || 'global';
+      if (mode !== 'global') continue;
+
+      this._applyTimeParam(layerId);
+    }
+  }
+
+  /**
+   * Apply TIME param to a layer's WMS source.
+   * @private
+   */
+  _applyTimeParam(layerId) {
+    const layer = this.layerMap[layerId];
+    if (!layer) return;
+
+    const layerDef = this.layerDefs[layerId];
+    if (!layerDef.time_enabled) return;
+
+    const source = layer.getSource();
+    if (!source || typeof source.updateParams !== 'function') {
+      console.warn(`[Temporal] Layer ${layerId} source does not support updateParams`);
+      return;
+    }
+
+    const effectiveDate = this.getEffectiveDate(layerId);
+    const paramName = layerDef.time_param_name || 'TIME';
+
+    const params = {};
+    params[paramName] = effectiveDate;
+    params._ts = Date.now();  // Cache buster
+
+    source.updateParams(params);
+    console.debug(`[Temporal] Layer ${layerId}: ${paramName}=${effectiveDate}`);
+
+    // Invalidate legend cache
+    this._invalidateLegendForTemporalLayer(layerId);
   }
 
   /**
@@ -931,7 +1716,7 @@ class InteractionController {
           viewResolution,
           projection,
           {
-            'INFO_FORMAT': 'text/xml',  // Changed from application/json to text/xml
+            'INFO_FORMAT': 'application/vnd.ogc.gml',  // MapServer GML format
             'FEATURE_COUNT': 10
           }
         );
@@ -966,8 +1751,8 @@ class InteractionController {
   }
 
   /**
-   * Parse WMS GetFeatureInfo XML response.
-   * Extracts feature attributes from MapServer XML format.
+   * Parse WMS GetFeatureInfo GML response from MapServer.
+   * Uses namespace-safe element iteration (no CSS wildcard selectors).
    * @private
    */
   _parseGetFeatureInfoXML(xmlText) {
@@ -981,56 +1766,54 @@ class InteractionController {
       return [];
     }
 
+    // Check for ServiceException (error response)
+    const serviceException = xmlDoc.querySelector('ServiceException');
+    if (serviceException) {
+      console.error('[InteractionController] WMS ServiceException:', serviceException.textContent);
+      return [];
+    }
+
     const features = [];
     
-    // MapServer GetFeatureInfo XML format typically uses <FeatureInfoResponse> or similar
-    // Extract feature elements (adjust selector based on actual MapServer response)
-    const featureElements = xmlDoc.querySelectorAll('FeatureInfoResponse > FIELDS, Layer > Feature, FeatureInfo');
+    // MapServer GML format: find all elements ending with _feature
+    // Use localName to be namespace-safe (no CSS wildcard selectors)
+    const allElements = xmlDoc.getElementsByTagName('*');
+    const featureNodes = [];
     
-    if (featureElements.length === 0) {
-      // Try alternative common formats
-      const altFeatures = xmlDoc.querySelectorAll('FeatureCollection > featureMember, msGMLOutput > *_layer > *_feature');
-      
-      if (altFeatures.length > 0) {
-        altFeatures.forEach(featureEl => {
-          const properties = {};
-          
-          // Extract all child elements as properties
-          Array.from(featureEl.children).forEach(child => {
-            const key = child.tagName.replace(/.*:/, ''); // Remove namespace prefix
-            const value = child.textContent.trim();
-            properties[key] = value;
-          });
-          
-          if (Object.keys(properties).length > 0) {
-            features.push({ properties });
-          }
-        });
+    for (const el of allElements) {
+      const name = el.localName || el.tagName;
+      if (name.endsWith('_feature')) {
+        featureNodes.push(el);
       }
-    } else {
-      // Parse standard FeatureInfoResponse format
-      featureElements.forEach(featureEl => {
-        const properties = {};
-        
-        // Extract attributes from XML element
-        Array.from(featureEl.attributes).forEach(attr => {
-          properties[attr.name] = attr.value;
-        });
-        
-        // Also check child elements
-        Array.from(featureEl.children).forEach(child => {
-          const key = child.tagName.replace(/.*:/, ''); // Remove namespace prefix
-          const value = child.textContent.trim();
-          properties[key] = value;
-        });
-        
-        if (Object.keys(properties).length > 0) {
-          features.push({ properties });
-        }
-      });
     }
     
-    console.log(`[InteractionController] Parsed ${features.length} features from XML`);
+    console.log(`[InteractionController] Found ${featureNodes.length} feature nodes in GML`);
+    
+    // Extract properties from each feature node
+    for (const featureEl of featureNodes) {
+      const properties = {};
+      
+      // Iterate through child elements (field nodes)
+      for (const child of featureEl.children) {
+        const key = child.localName || child.tagName;
+        
+        // Skip gml:boundedBy and similar metadata elements
+        if (key === 'boundedBy' || key.startsWith('gml:')) {
+          continue;
+        }
+        
+        const value = child.textContent.trim();
+        if (value) {
+          properties[key] = value;
+        }
+      }
+      
+      if (Object.keys(properties).length > 0) {
+        features.push({ properties });
+      }
+    }
+    
+    console.log(`[InteractionController] Parsed ${features.length} features with properties`);
     return features;
   }
 
@@ -1067,9 +1850,17 @@ class InteractionController {
         // Render attributes
         html += `<div class="feature-attributes">`;
         for (const [key, value] of Object.entries(filteredProps)) {
+          // Format numeric values to 2 decimal places
+          let displayValue = value;
+          if (value !== null && value !== '') {
+            const numVal = parseFloat(value);
+            if (!isNaN(numVal) && value.toString().includes('.')) {
+              displayValue = numVal.toFixed(2);
+            }
+          }
           html += `<div class="attribute-row">`;
           html += `<span class="attribute-key">${key}:</span> `;
-          html += `<span class="attribute-value">${value !== null ? value : 'N/A'}</span>`;
+          html += `<span class="attribute-value">${displayValue !== null ? displayValue : 'N/A'}</span>`;
           html += `</div>`;
         }
         html += `</div>`;

@@ -1,86 +1,669 @@
----
-# TSIRD Phase 2 Milestone 1 Development Registry
-# Test-grade registry for frontend development
-# Passes all Stage 4 validation constraints
-
+version: '1.0'
 atlas:
-  title: "TSIRD Phase 2 Development Atlas"
-  canonical_crs: "EPSG:4326"
-  view_crs: "EPSG:3857"
-  center: [38.5, 13.5]
-  zoom: 7
-  extent: [33.0, 3.0, 48.0, 15.5]
-
+  title: TSIRD Atlas v2.0
+  canonical_crs: EPSG:4326
+  view_crs: EPSG:3857
+  center:
+  - 38.0
+  - 13.6
+  zoom: 10
+  extent:
+  - 36.3
+  - 12.2
+  - 40.3
+  - 14.9
 services:
   wms:
-    base_url: "/map/ogc"
+    base_url: http://localhost:18080/map/ogc
     allowed_requests:
-      - "GetCapabilities"
-      - "GetMap"
-      - "GetFeatureInfo"
-
+    - GetCapabilities
+    - GetMap
+    - GetFeatureInfo
+ui:
+  layer_order_policy: registry_order
+  legend:
+    enabled: true
+  identify:
+    enabled: true
 categories:
-  - id: "cat_admin"
-    label: "Administrative Boundaries"
-    groups:
-      - id: "grp_national"
-        label: "National"
-        layers:
-          - id: "national_zones"
-            wms_name: "national_zones"
-            label: "Ethiopia Administrative Zones"
-            type: "vector"
-            published: true
-            default_visible: false
-            queryable: true
-            min_scale: 50000000
-            max_scale: 2000000
-            identify_fields: ["NAME", "CODE"]
-      
-      - id: "grp_regional"
-        label: "Regional (Tigray)"
-        layers:
-          - id: "tigray_woredas"
-            wms_name: "tigray_woredas"
-            label: "Tigray Woredas (Districts)"
-            type: "vector"
-            published: true
-            default_visible: false
-            queryable: true
-            min_scale: 2000000
-            max_scale: 100000
-            identify_fields: ["NAME", "ADMIN_LEVEL"]
-
-  - id: "cat_transport"
-    label: "Transportation Networks"
-    groups:
-      - id: "grp_roads"
-        label: "Road Networks"
-        layers:
-          - id: "national_roads"
-            wms_name: "national_roads"
-            label: "Ethiopia Road Network"
-            type: "vector"
-            published: true
-            default_visible: true
-            queryable: true
-            min_scale: 50000000
-            max_scale: 500000
-            identify_fields: ["CLASS", "CONDITION", "LENGTH_KM"]
-          
-          - id: "regional_roads"
-            wms_name: "tigray_roads"
-            label: "Tigray Road Network"
-            type: "vector"
-            published: true
-            default_visible: false
-            queryable: true
-            min_scale: 490000
-            max_scale: 50000
-            identify_fields: ["CLASS", "CONDITION", "LENGTH_KM"]
-
-rules:
-  scale_mutex_pairs:
-    - ["national_roads", "regional_roads"]
-
+- id: cat_mapelements
+  label: Map Elements
+  closed: false
+  groups:
+  - id: grp_sample_grid
+    label: SAMPLE_GRID
+    layers: []
+  - id: grp_credits
+    label: Credits
+    layers: []
+- id: cat_adminRegional
+  label: Administrative (Regional)
+  closed: false
+  groups:
+  - id: grp_boundaries
+    label: Administrative Boundaries
+    layers:
+    - ethiopia_admin
+    - ethiopia_boundary_level1
+    - ethiopia_boundary_level2
+    - ethiopia_boundary_level3
+  - id: grp_regions
+    label: Regions
+    layers:
+    - ethiopia_zones
+    - ethiopia_woredas
+  - id: grp_tigray_woreda_new
+    label: TigrayWoredaNew
+    layers:
+    - tigray_woreda
+  - id: grp_tigrai_tabias_new
+    label: TigraiTabiasNew
+    layers:
+    - tigray_tabias
+  - id: grp_additional_roads
+    label: Other Road Networks
+    layers:
+    - tigray_roads_2006t
+  - id: grp_towns
+    label: Towns
+    layers:
+    - ethiopia_towns
+    - tigray_towns
+  - id: grp_population_density_2006
+    label: PopulationDensity2006
+    layers: []
+- id: cat_infrastructure
+  label: Infrastructure
+  closed: true
+  groups:
+  - id: grp_tigray_schools_2006
+    label: TigraySchools2006
+    layers:
+    - tigray_schools_2006
+  - id: grp_health_institutions
+    label: Health_Institutions
+    layers:
+    - tigray_health_facilities_2006
+  - id: grp_tigray_roads_2006
+    label: TigrayRoadsIn2006
+    layers:
+    - tigray_roads_2006
+  - id: grp_ethiopia_roads_old
+    label: EthiopiaRoadsOld
+    layers:
+    - ethiopia_roads
+  - id: grp_ethiopia_roads_other
+    label: Ethiopia Roads (Other)
+    layers:
+    - ethiopia_roads_baseline
+    - ethiopia_roads_raw
+- id: cat_terrain
+  label: Terrain
+  closed: true
+  groups:
+  - id: grp_elevation_features
+    label: Elevation Features
+    layers:
+    - ethiopia_contour
+    - tigray_contour
+    - ethiopia_isoheight
+- id: cat_rainfall
+  label: Rainfall & Climate
+  closed: true
+  groups:
+  - id: grp_rainfall
+    label: Rainfall Data
+    layers:
+    - ethiopia_rainfall_pattern
+    - ethiopia_rainfall_stations
+- id: cat_nature
+  label: Nature
+  closed: true
+  groups:
+  - id: grp_water_features
+    label: Water Features
+    layers:
+    - ethiopia_rivers
+    - ethiopia_streams
+    - ethiopia_lakes
+    - ethiopia_wetlands
+  - id: grp_basins
+    label: Basin Systems
+    layers:
+    - ethiopia_basins
+    - ethiopia_major_basins
+  - id: grp_protected_areas
+    label: Protected Areas
+    layers:
+    - ethiopia_national_parks
+    - ethiopia_national_forests
+  - id: grp_landcover
+    label: Land Cover & Soils
+    layers:
+    - ethiopia_ecology
+    - ethiopia_soils
+- id: cat_raster
+  label: Raster
+  closed: true
+  groups:
+  - id: grp_elevation
+    label: Elevation & DEM
+    layers:
+    - ethiopia_dem
+  - id: grp_slope
+    label: Slope
+    layers:
+    - ethiopia_slope_rgb
+- id: cat_satimages
+  label: Satellite Images
+  closed: true
+  groups:
+  - id: grp_satimagery
+    label: Imagery
+    layers: []
+- id: cat_basemaps
+  label: Base Maps & External Sources
+  closed: true
+  groups:
+  - id: grp_basemaps_public
+    label: Public Basemaps
+    layers:
+    - osm_basemap
+layers:
+  osm_basemap:
+    label: OpenStreetMap
+    published: true
+    default_visible: true
+    source_type: xyz
+    base_layer: true
+    url_template: https://tile.openstreetmap.org/{z}/{x}/{y}.png
+    attribution: © OpenStreetMap contributors
+    opacity: 1.0
+    min_scale: 500000000
+    max_scale: 1
+  ethiopia_aoi:
+    wms_name: ethiopia_aoi
+    label: Ethiopia - Area of Interest
+    type: vector
+    geometry_type: polygon
+    published: true
+    default_visible: false
+    queryable: false
+    legend: false
+    min_scale: 50000000
+    max_scale: 10000
+    opacity: 0.5
+    identify_fields: []
+  ethiopia_zones:
+    wms_name: ethiopia_zones
+    label: Ethiopia - Administrative Zones
+    type: vector
+    geometry_type: polygon
+    published: true
+    default_visible: false
+    queryable: true
+    legend: false
+    min_scale: 20000000
+    max_scale: 100000
+    opacity: 0.5
+    identify_fields:
+    - ZONES
+    - AREA
+    - PERIMETER
+  ethiopia_admin:
+    wms_name: ethiopia_admin
+    label: Ethiopia - Admin Regions
+    type: vector
+    geometry_type: polygon
+    published: true
+    default_visible: false
+    queryable: false
+    legend: false
+    min_scale: 50000000
+    max_scale: 10000
+    opacity: 0.5
+    identify_fields: []
+  ethiopia_woredas:
+    wms_name: ethiopia_woredas
+    label: Ethiopia - Woredas
+    type: vector
+    geometry_type: polygon
+    published: true
+    default_visible: false
+    queryable: true
+    legend: false
+    min_scale: 10000000
+    max_scale: 50000
+    opacity: 0.5
+    identify_fields:
+    - W_NAME
+    - REGION_R2I
+    - Area_km2
+    - Pop_04
+  tigray_woreda:
+    wms_name: tigray_woreda
+    label: Tigray - Woredas
+    type: vector
+    geometry_type: polygon
+    published: true
+    default_visible: false
+    queryable: false
+    legend: false
+    min_scale: 10000000
+    max_scale: 50000
+    opacity: 0.5
+    identify_fields: []
+  tigray_tabias:
+    wms_name: tigray_tabias
+    label: Tigray - Tabias
+    type: vector
+    geometry_type: polygon
+    published: true
+    default_visible: true
+    queryable: true
+    legend_mode: full
+    min_scale: 5000000
+    max_scale: 50000
+    opacity: 0.5
+    identify_fields:
+    - TABIA
+    - WEREDA
+    - ZONES
+    - SQ_KM
+    - HECTARES
+    - DENSITY
+    attribution: "Source: Tigrai Tabias New"
+  ethiopia_boundary_level1:
+    wms_name: ethiopia_boundary_level1
+    label: Level 1 Boundaries
+    type: vector
+    geometry_type: polygon
+    published: true
+    default_visible: false
+    queryable: false
+    legend: false
+    min_scale: 50000000
+    max_scale: 10000
+    opacity: 0.5
+    identify_fields: []
+  ethiopia_boundary_level2:
+    wms_name: ethiopia_boundary_level2
+    label: Level 2 Boundaries
+    type: vector
+    geometry_type: polygon
+    published: true
+    default_visible: false
+    queryable: false
+    legend: false
+    min_scale: 50000000
+    max_scale: 10000
+    opacity: 0.5
+    identify_fields: []
+  ethiopia_boundary_level3:
+    wms_name: ethiopia_boundary_level3
+    label: Level 3 Boundaries
+    type: vector
+    geometry_type: polygon
+    published: true
+    default_visible: false
+    queryable: false
+    legend: false
+    min_scale: 50000000
+    max_scale: 10000
+    opacity: 0.5
+    identify_fields: []
+  ethiopia_roads:
+    wms_name: ethiopia_roads
+    label: Ethiopia - Roads (PostGIS Gold)
+    type: vector
+    geometry_type: linestring
+    published: true
+    default_visible: false
+    queryable: false
+    min_scale: 50000000
+    max_scale: 1000001
+    identify_fields: []
+  tigray_roads_2006:
+    wms_name: tigray_roads_2006
+    label: Tigray - Roads (2006)
+    type: vector
+    geometry_type: linestring
+    published: true
+    default_visible: true
+    queryable: false
+    legend_mode: full
+    min_scale: 1000000
+    max_scale: 25000
+    identify_fields: []
+    attribution: "Source: Tigray Roads 2006 (TSIRD)"
+  ethiopia_roads_raw:
+    wms_name: ethiopia_roads_raw
+    label: Ethiopia Roads (Raw Shapefile)
+    type: vector
+    geometry_type: linestring
+    published: true
+    default_visible: false
+    queryable: false
+    legend_mode: full
+    min_scale: 50000000
+    max_scale: 50000
+    identify_fields: []
+  ethiopia_roads_baseline:
+    wms_name: ethiopia_roads_baseline
+    label: Ethiopia Roads (Baseline)
+    type: vector
+    geometry_type: linestring
+    published: true
+    default_visible: false
+    queryable: false
+    min_scale: 50000000
+    max_scale: 50000
+    identify_fields: []
+  tigray_roads_2006t:
+    wms_name: tigray_roads_2006t
+    label: Tigray Roads 2006 (Alt)
+    type: vector
+    geometry_type: linestring
+    published: true
+    default_visible: false
+    queryable: false
+    min_scale: 10000000
+    max_scale: 25000
+    identify_fields: []
+  ethiopia_towns:
+    wms_name: ethiopia_towns
+    label: Ethiopia - Towns
+    type: vector
+    geometry_type: point
+    published: true
+    default_visible: true
+    queryable: true
+    min_scale: 10000000
+    max_scale: 2000001
+    identify_fields:
+    - TOWN_NAME
+    - POPULATION
+    attribution: "Source: Ethiopia Towns (EGI)"
+  tigray_towns:
+    wms_name: tigray_towns
+    label: Tigray - Towns
+    type: vector
+    geometry_type: point
+    published: true
+    default_visible: true
+    queryable: true
+    legend_mode: full
+    min_scale: 2000000
+    max_scale: 25000
+    identify_fields:
+    - TOWN_NAME
+    attribution: "Source: Tigray Towns 2006 (TSIRD)"
+  tigray_health_facilities_2006:
+    wms_name: tigray_health_facilities_2006
+    label: Tigray - Health Facilities (2006)
+    type: vector
+    geometry_type: point
+    published: true
+    default_visible: false
+    queryable: true
+    legend_mode: full
+    min_scale: 5000000
+    max_scale: 25000
+    identify_fields:
+    - INSTITUTIO
+    - TYPE_OF_IN
+    - WOREDA_NAM
+  tigray_schools_2006:
+    wms_name: tigray_schools_2006
+    label: Tigray - Schools (2006)
+    type: vector
+    geometry_type: point
+    published: true
+    default_visible: false
+    queryable: true
+    legend_mode: full
+    min_scale: 5000000
+    max_scale: 25000
+    identify_fields:
+    - Name
+    - Type
+    - Woreda_Nam
+  ethiopia_dem:
+    wms_name: ethiopia_dem
+    label: Ethiopia - DEM
+    type: raster
+    published: true
+    default_visible: false
+    queryable: false
+    min_scale: 50000000
+    max_scale: 50000
+    identify_fields: []
+  ethiopia_hillshade:
+    wms_name: ethiopia_hillshade
+    label: Ethiopia - Hillshade
+    type: raster
+    published: false
+    default_visible: false
+    queryable: false
+    min_scale: 50000000
+    max_scale: 50000
+    identify_fields: []
+  ethiopia_slope_rgb:
+    wms_name: ethiopia_slope_rgb
+    label: Ethiopia - Slope (RGB)
+    type: raster
+    published: true
+    default_visible: false
+    queryable: false
+    min_scale: 50000000
+    max_scale: 50000
+    identify_fields: []
+  ethiopia_contour:
+    wms_name: ethiopia_contour
+    label: Ethiopia - Contours
+    type: vector
+    geometry_type: linestring
+    published: true
+    default_visible: false
+    queryable: false
+    min_scale: 5000000
+    max_scale: 25000
+    identify_fields: []
+  ethiopia_isoheight:
+    wms_name: ethiopia_isoheight
+    label: Ethiopia - Isoheight
+    type: vector
+    geometry_type: linestring
+    published: true
+    default_visible: false
+    queryable: false
+    min_scale: 5000000
+    max_scale: 25000
+    identify_fields: []
+  tigray_contour:
+    wms_name: tigray_contour
+    label: Tigray - Contours
+    type: vector
+    geometry_type: linestring
+    published: true
+    default_visible: false
+    queryable: false
+    min_scale: 2000000
+    max_scale: 25000
+    identify_fields: []
+  ethiopia_basins:
+    wms_name: ethiopia_basins
+    label: Ethiopia - Basins
+    type: vector
+    geometry_type: polygon
+    published: true
+    default_visible: false
+    queryable: false
+    legend_mode: full
+    min_scale: 50000000
+    max_scale: 100000
+    opacity: 0.5
+    identify_fields: []
+  ethiopia_major_basins:
+    wms_name: ethiopia_major_basins
+    label: Ethiopia - Major Basins
+    type: vector
+    geometry_type: polygon
+    published: true
+    default_visible: false
+    queryable: false
+    min_scale: 50000000
+    max_scale: 100000
+    opacity: 0.5
+    identify_fields: []
+  ethiopia_lakes:
+    wms_name: ethiopia_lakes
+    label: Ethiopia - Lakes
+    type: vector
+    geometry_type: polygon
+    published: true
+    default_visible: false
+    queryable: false
+    min_scale: 20000000
+    max_scale: 50000
+    opacity: 0.5
+    identify_fields: []
+  ethiopia_wetlands:
+    wms_name: ethiopia_wetlands
+    label: Ethiopia - Wetlands
+    type: vector
+    geometry_type: polygon
+    published: true
+    default_visible: false
+    queryable: false
+    legend_mode: full
+    min_scale: 10000000
+    max_scale: 50000
+    opacity: 0.5
+    identify_fields: []
+  ethiopia_rivers:
+    wms_name: ethiopia_rivers
+    label: Ethiopia - Rivers
+    type: vector
+    geometry_type: linestring
+    published: true
+    default_visible: false
+    queryable: false
+    legend_mode: full
+    min_scale: 50000000
+    max_scale: 100000
+    identify_fields: []
+  ethiopia_streams:
+    wms_name: ethiopia_streams
+    label: Ethiopia - Streams
+    type: vector
+    geometry_type: linestring
+    published: true
+    default_visible: false
+    queryable: false
+    min_scale: 10000000
+    max_scale: 50000
+    identify_fields: []
+  ethiopia_national_parks:
+    wms_name: ethiopia_national_parks
+    label: Ethiopia - National Parks
+    type: vector
+    geometry_type: polygon
+    published: true
+    default_visible: false
+    queryable: false
+    legend_mode: full
+    min_scale: 50000000
+    max_scale: 100000
+    opacity: 0.5
+    identify_fields: []
+  ethiopia_national_forests:
+    wms_name: ethiopia_national_forests
+    label: Ethiopia - National Forests
+    type: vector
+    geometry_type: polygon
+    published: true
+    default_visible: false
+    queryable: false
+    min_scale: 50000000
+    max_scale: 100000
+    opacity: 0.5
+    identify_fields: []
+  ethiopia_ecology:
+    wms_name: ethiopia_ecology
+    label: Ethiopia - Ecology
+    type: vector
+    geometry_type: polygon
+    published: true
+    default_visible: false
+    queryable: false
+    legend_mode: full
+    min_scale: 50000000
+    max_scale: 100000
+    opacity: 0.5
+    identify_fields: []
+  ethiopia_soils:
+    wms_name: ethiopia_soils
+    label: Ethiopia - Soils
+    type: vector
+    geometry_type: polygon
+    published: true
+    default_visible: false
+    queryable: false
+    legend_mode: full
+    min_scale: 20000000
+    max_scale: 100000
+    opacity: 0.5
+    identify_fields: []
+  ethiopia_rainfall_pattern:
+    wms_name: ethiopia_rainfall_pattern
+    label: Ethiopia - Rainfall Patterns
+    type: vector
+    geometry_type: polygon
+    published: true
+    default_visible: false
+    queryable: false
+    min_scale: 50000000
+    max_scale: 100000
+    opacity: 0.5
+    identify_fields: []
+  ethiopia_rainfall_stations:
+    wms_name: ethiopia_rainfall_stations
+    label: Ethiopia - Rainfall Stations
+    type: vector
+    geometry_type: polygon
+    published: true
+    default_visible: false
+    queryable: false
+    min_scale: 20000000
+    max_scale: 50000
+    opacity: 0.5
+    identify_fields: []
+  ethiopia_cia_basemap:
+    wms_name: ethiopia_cia_basemap
+    label: Ethiopia - CIA Basemap
+    type: raster
+    published: false
+    default_visible: false
+    queryable: false
+    min_scale: 50000000
+    max_scale: 50000
+    identify_fields: []
+  ethiopia_language:
+    wms_name: ethiopia_language
+    label: Ethiopia - Language Map
+    type: raster
+    published: false
+    default_visible: false
+    queryable: false
+    min_scale: 50000000
+    max_scale: 100000
+    identify_fields: []
 search: []
+rules:
+  basemap_mutex: true
+  scale_mutex_pairs:
+  - - ethiopia_roads
+    - tigray_roads_2006
+  - - ethiopia_towns
+    - tigray_towns

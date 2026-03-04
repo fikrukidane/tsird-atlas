@@ -73,6 +73,15 @@ class MapController {
       layers: [] // Will be populated by LayerFactory
     });
 
+    // Add scale bar control (bottom-left)
+    const scaleLine = new ol.control.ScaleLine({
+      units: 'metric',
+      bar: false,
+      minWidth: 100,
+      className: 'atlas-scale-line'
+    });
+    this.map.addControl(scaleLine);
+
     console.log('[MapController] Map initialized successfully');
 
     // Fit view to initial extent (Tigray Tabias) 

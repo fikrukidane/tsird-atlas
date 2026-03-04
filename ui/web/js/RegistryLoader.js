@@ -235,21 +235,6 @@ class RegistryLoader {
         opacity: layerMeta.opacity,
         legend_mode: layerMeta.legend_mode ?? layerMeta.legendMode ?? null,
         legend: typeof layerMeta.legend !== 'undefined' ? layerMeta.legend : true,
-        legend_url: layerMeta.legend_url || null,  // Static legend URL for external WMS
-        // External WMS fields
-        wms_base_url: layerMeta.wms_base_url,
-        wms_version: layerMeta.wms_version,
-        format: layerMeta.format,
-        transparent: layerMeta.transparent,
-        tiled: layerMeta.tiled,
-        z_index: layerMeta.z_index,
-        // Temporal (time-series) support - legacy mode (year/date)
-        temporal: layerMeta.temporal || null,
-        // Global temporal control support (new unified model)
-        time_enabled: layerMeta.time_enabled === true || (layerMeta.temporal && layerMeta.temporal.mode === 'date'),
-        time_mode: layerMeta.time_mode || 'global',  // 'global' follows global date, 'local' uses per-layer
-        time_default: layerMeta.time_default || null,  // ISO date string default
-        time_param_name: layerMeta.time_param_name || 'TIME',  // WMS TIME param name
       };
     }
 
