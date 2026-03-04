@@ -25,6 +25,9 @@ ui:
     enabled: true
   identify:
     enabled: true
+  search:
+    enabled: true
+    index_url: data/search-index.json
 categories:
 - id: cat_mapelements
   label: Map Elements

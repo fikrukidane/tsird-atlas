@@ -168,13 +168,19 @@ class RegistryLoader {
 
     // STEP 2: Extract atlas config
     const atlas = raw.atlas || {};
+    const uiConfig = raw.ui || {};
     const atlasConfig = {
       title: atlas.title || 'TSIRD Atlas',
       center: atlas.center || [38.5, 13.5],
       zoom: atlas.zoom || 7,
       canonical_crs: atlas.canonical_crs || 'EPSG:4326',
       view_crs: atlas.view_crs || 'EPSG:3857',
-      extent: atlas.extent || [33.0, 3.0, 48.0, 15.5]
+      extent: atlas.extent || [33.0, 3.0, 48.0, 15.5],
+      // Search config
+      search: uiConfig.search ? {
+        enabled: uiConfig.search.enabled === true,
+        index_url: uiConfig.search.index_url || 'data/search-index.json'
+      } : { enabled: false, index_url: null }
     };
 
     // STEP 3: Extract WMS base URL with environment override
