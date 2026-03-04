@@ -176,7 +176,7 @@ class RegistryLoader {
       canonical_crs: atlas.canonical_crs || 'EPSG:4326',
       view_crs: atlas.view_crs || 'EPSG:3857',
       extent: atlas.extent || [33.0, 3.0, 48.0, 15.5],
-      // Search config
+      // Search config (Phase 3)
       search: uiConfig.search ? {
         enabled: uiConfig.search.enabled === true,
         index_url: uiConfig.search.index_url || 'data/search-index.json'
@@ -220,7 +220,9 @@ class RegistryLoader {
     const layersDict = raw.layers || {};
     
     for (const [layerId, layerMeta] of Object.entries(layersDict)) {
+      // Pass through all raw properties, then override/normalize as needed
       layerDefs[layerId] = {
+        ...layerMeta,
         wms_name: layerMeta.wms_name,
         label: layerMeta.label || layerMeta.wms_name || layerId,
         type: layerMeta.type,
@@ -233,11 +235,27 @@ class RegistryLoader {
         source: layerMeta.source,
         geometry_type: layerMeta.geometry_type,
         attribution: layerMeta.attribution,
-        // Basemap fields
         source_type: layerMeta.source_type,
         base_layer: layerMeta.base_layer === true,
         url_template: layerMeta.url_template,
-        opacity: layerMeta.opacity
+        opacity: layerMeta.opacity,
+        legend_mode: layerMeta.legend_mode ?? layerMeta.legendMode ?? null,
+        legend: typeof layerMeta.legend !== 'undefined' ? layerMeta.legend : true,
+        legend_url: layerMeta.legend_url || null,  // Static legend URL for external WMS
+        // External WMS fields
+        wms_base_url: layerMeta.wms_base_url,
+        wms_version: layerMeta.wms_version,
+        format: layerMeta.format,
+        transparent: layerMeta.transparent,
+        tiled: layerMeta.tiled,
+        z_index: layerMeta.z_index,
+        // Temporal (time-series) support - legacy mode (year/date)
+        temporal: layerMeta.temporal || null,
+        // Global temporal control support (new unified model)
+        time_enabled: layerMeta.time_enabled === true || (layerMeta.temporal && layerMeta.temporal.mode === 'date'),
+        time_mode: layerMeta.time_mode || 'global',  // 'global' follows global date, 'local' uses per-layer
+        time_default: layerMeta.time_default || null,  // ISO date string default
+        time_param_name: layerMeta.time_param_name || 'TIME',  // WMS TIME param name
       };
     }
 

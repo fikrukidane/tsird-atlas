@@ -166,13 +166,57 @@ categories:
     label: Imagery
     layers: []
 - id: cat_basemaps
-  label: Base Maps & External Sources
-  closed: true
+  label: Basemaps
+  closed: false
   groups:
   - id: grp_basemaps_public
     label: Public Basemaps
     layers:
     - osm_basemap
+    - esri_terrain
+- id: cat_external_wms
+  label: Other WMS Sources
+  closed: true
+  groups:
+  - id: grp_nasa_firms
+    label: Fires & Hotspots (NASA FIRMS)
+    layers:
+    - firms_viirs_noaa20_24
+    - firms_viirs_noaa21_24
+    - firms_viirs_snpp_24
+    - firms_viirs_24
+    - firms_modis_24
+    - firms_aqua_24
+    - firms_terra_24
+    - firms_landsat_24
+  - id: grp_weather_climate
+    label: Weather & Climate (NASA GIBS)
+    layers:
+    - gibs_precipitation
+    - gibs_cloud_fraction
+    - gibs_air_temperature
+    - gibs_aerosol_index
+    - gibs_snow_cover
+    - gibs_viirs_truecolor
+- id: cat_landcover
+  label: Land Use & Land Cover
+  closed: true
+  groups:
+  - id: grp_landcover_global
+    label: Global Land Cover
+    layers:
+    - esa_worldcover
+    - modis_landcover
+- id: cat_horn_of_africa
+  label: Horn of Africa
+  closed: false
+  groups:
+  - id: grp_eritrea_admin
+    label: Eritrea Administrative
+    layers:
+    - eritrea_admin0
+    - eritrea_admin1
+    - eritrea_admin2
 layers:
   osm_basemap:
     label: OpenStreetMap
@@ -185,6 +229,393 @@ layers:
     opacity: 1.0
     min_scale: 500000000
     max_scale: 1
+  esri_terrain:
+    label: ESRI World Terrain
+    published: true
+    default_visible: false
+    source_type: xyz
+    base_layer: true
+    url_template: https://server.arcgisonline.com/ArcGIS/rest/services/World_Terrain_Base/MapServer/tile/{z}/{y}/{x}
+    attribution: © Esri, USGS, NOAA
+    opacity: 1.0
+    min_scale: 500000000
+    max_scale: 1
+  # ═══════════════════════════════════════════════════════════════════════════
+  # ERITREA ADMINISTRATIVE BOUNDARIES (GADM 4.1)
+  # ═══════════════════════════════════════════════════════════════════════════
+  eritrea_admin0:
+    label: Eritrea - Country
+    wms_name: eritrea_admin0
+    type: vector
+    published: true
+    default_visible: false
+    queryable: true
+    source_type: wms
+    format: image/png
+    transparent: true
+    z_index: 15
+    legend_mode: none
+    attribution: GADM.org
+    identify_fields:
+      - COUNTRY
+      - GID_0
+  eritrea_admin1:
+    label: Eritrea - Regions (Zobas)
+    wms_name: eritrea_admin1
+    type: vector
+    published: true
+    default_visible: false
+    queryable: true
+    source_type: wms
+    format: image/png
+    transparent: true
+    z_index: 14
+    legend_mode: none
+    attribution: GADM.org
+    identify_fields:
+      - NAME_1
+      - GID_1
+      - COUNTRY
+      - TYPE_1
+  eritrea_admin2:
+    label: Eritrea - Districts
+    wms_name: eritrea_admin2
+    type: vector
+    published: true
+    default_visible: false
+    queryable: true
+    source_type: wms
+    format: image/png
+    transparent: true
+    z_index: 13
+    legend_mode: none
+    attribution: GADM.org
+    identify_fields:
+      - NAME_2
+      - GID_2
+      - NAME_1
+      - COUNTRY
+      - TYPE_2
+  firms_viirs_noaa20_24:
+    label: VIIRS NOAA-20 (24h)
+    wms_name: fires_viirs_noaa20_24
+    type: raster
+    published: true
+    default_visible: false
+    queryable: false
+    source_type: wms_external
+    wms_base_url: https://firms.modaps.eosdis.nasa.gov/mapserver/wms/fires/51690d37ccc29662cde1988557e2e135/
+    format: image/png
+    transparent: true
+    tiled: true
+    z_index: 5
+    legend_mode: none
+    attribution: NASA FIRMS (MODAPS), near-real-time fire data
+  firms_viirs_noaa21_24:
+    label: VIIRS NOAA-21 (24h)
+    wms_name: fires_viirs_noaa21_24
+    type: raster
+    published: true
+    default_visible: false
+    queryable: false
+    source_type: wms_external
+    wms_base_url: https://firms.modaps.eosdis.nasa.gov/mapserver/wms/fires/51690d37ccc29662cde1988557e2e135/
+    format: image/png
+    transparent: true
+    tiled: true
+    z_index: 5
+    legend_mode: none
+    attribution: NASA FIRMS (MODAPS), near-real-time fire data
+  firms_viirs_snpp_24:
+    label: VIIRS SNPP (24h)
+    wms_name: fires_viirs_snpp_24
+    type: raster
+    published: true
+    default_visible: false
+    queryable: false
+    source_type: wms_external
+    wms_base_url: https://firms.modaps.eosdis.nasa.gov/mapserver/wms/fires/51690d37ccc29662cde1988557e2e135/
+    format: image/png
+    transparent: true
+    tiled: true
+    z_index: 5
+    legend_mode: none
+    attribution: NASA FIRMS (MODAPS), near-real-time fire data
+  firms_viirs_24:
+    label: VIIRS All (24h)
+    wms_name: fires_viirs_24
+    type: raster
+    published: true
+    default_visible: false
+    queryable: false
+    source_type: wms_external
+    wms_base_url: https://firms.modaps.eosdis.nasa.gov/mapserver/wms/fires/51690d37ccc29662cde1988557e2e135/
+    format: image/png
+    transparent: true
+    tiled: true
+    z_index: 5
+    legend_mode: none
+    attribution: NASA FIRMS (MODAPS), near-real-time fire data
+  firms_modis_24:
+    label: MODIS All (24h)
+    wms_name: fires_modis_24
+    type: raster
+    published: true
+    default_visible: false
+    queryable: false
+    source_type: wms_external
+    wms_base_url: https://firms.modaps.eosdis.nasa.gov/mapserver/wms/fires/51690d37ccc29662cde1988557e2e135/
+    format: image/png
+    transparent: true
+    tiled: true
+    z_index: 5
+    legend_mode: none
+    attribution: NASA FIRMS (MODAPS), near-real-time fire data
+  firms_aqua_24:
+    label: MODIS Aqua (24h)
+    wms_name: fires_aqua_24
+    type: raster
+    published: true
+    default_visible: false
+    queryable: false
+    source_type: wms_external
+    wms_base_url: https://firms.modaps.eosdis.nasa.gov/mapserver/wms/fires/51690d37ccc29662cde1988557e2e135/
+    format: image/png
+    transparent: true
+    tiled: true
+    z_index: 5
+    legend_mode: none
+    attribution: NASA FIRMS (MODAPS), near-real-time fire data
+  firms_terra_24:
+    label: MODIS Terra (24h)
+    wms_name: fires_terra_24
+    type: raster
+    published: true
+    default_visible: false
+    queryable: false
+    source_type: wms_external
+    wms_base_url: https://firms.modaps.eosdis.nasa.gov/mapserver/wms/fires/51690d37ccc29662cde1988557e2e135/
+    format: image/png
+    transparent: true
+    tiled: true
+    z_index: 5
+    legend_mode: none
+    attribution: NASA FIRMS (MODAPS), near-real-time fire data
+  firms_landsat_24:
+    label: Landsat (24h)
+    wms_name: fires_landsat_24
+    type: raster
+    published: true
+    default_visible: false
+    queryable: false
+    source_type: wms_external
+    wms_base_url: https://firms.modaps.eosdis.nasa.gov/mapserver/wms/fires/51690d37ccc29662cde1988557e2e135/
+    format: image/png
+    transparent: true
+    tiled: true
+    z_index: 5
+    legend_mode: none
+    attribution: NASA FIRMS (MODAPS), near-real-time fire data
+  # ═══════════════════════════════════════════════════════════════════════════
+  # TEMPORAL LAYERS (Land Use & Land Cover)
+  # ═══════════════════════════════════════════════════════════════════════════
+  esa_worldcover:
+    label: ESA WorldCover
+    # ESA WorldCover uses layer_by_year: different layer names per year
+    # NOTE: Only 2020 and 2021 available from Terrascope (2022 not yet published)
+    wms_name: WORLDCOVER_2021_MAP
+    type: raster
+    published: true
+    default_visible: false
+    queryable: false
+    source_type: wms_external
+    wms_base_url: https://services.terrascope.be/wms/v2
+    wms_version: "1.1.1"  # Terrascope requires WMS 1.1.1 with SRS
+    format: image/png
+    transparent: true
+    tiled: true
+    z_index: 5
+    legend: false  # Terrascope WMS doesn't support GetLegendGraphic
+    attribution: © ESA WorldCover 2020-2021, Terrascope
+    temporal:
+      mode: year
+      ui: slider
+      years: [2020, 2021]
+      layer_by_year:
+        "2020": WORLDCOVER_2020_MAP
+        "2021": WORLDCOVER_2021_MAP
+  modis_landcover:
+    label: MODIS Land Cover (Yearly)
+    # NASA GIBS MODIS Land Cover uses TIME parameter for years
+    wms_name: MODIS_Combined_L3_IGBP_Land_Cover_Type_Annual
+    type: raster
+    published: true
+    default_visible: false
+    queryable: false
+    source_type: wms_external
+    wms_base_url: https://gibs.earthdata.nasa.gov/wms/epsg3857/best/wms.cgi
+    wms_version: "1.3.0"  # NASA GIBS uses WMS 1.3.0
+    format: image/png
+    transparent: true
+    tiled: true
+    z_index: 5
+    legend_url: https://gibs.earthdata.nasa.gov/legends/MODIS_IGBP_Land_Cover_Type_H.png
+    attribution: NASA GIBS, MODIS Land Cover
+    temporal:
+      mode: year
+      ui: slider
+      years: [2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022]
+      time_param:
+        enabled: true
+        format: "{year}-01-01"
+  # ═══════════════════════════════════════════════════════════════════════════
+  # WEATHER & CLIMATE LAYERS (NASA GIBS) - Daily time-enabled
+  # GetCapabilities: https://gibs.earthdata.nasa.gov/wms/epsg3857/best/wms.cgi?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetCapabilities
+  # ═══════════════════════════════════════════════════════════════════════════
+  gibs_precipitation:
+    label: Precipitation Rate (IMERG)
+    wms_name: IMERG_Precipitation_Rate
+    type: raster
+    published: true
+    default_visible: false
+    queryable: false
+    source_type: wms_external
+    wms_base_url: https://gibs.earthdata.nasa.gov/wms/epsg3857/best/wms.cgi
+    wms_version: "1.3.0"
+    format: image/png
+    transparent: true
+    tiled: true
+    z_index: 6
+    legend_url: https://gibs.earthdata.nasa.gov/legends/GPM_Precipitation_Rate_H.png
+    attribution: NASA GIBS, GPM IMERG
+    temporal:
+      mode: date
+      ui: slider
+      default_offset_days: -1  # Yesterday (GIBS data lags ~1 day)
+      range_days: 30           # Last 30 days available in slider
+      time_param:
+        enabled: true
+        format: "{date}"       # YYYY-MM-DD
+  gibs_cloud_fraction:
+    label: Cloud Fraction (MODIS Terra)
+    wms_name: MODIS_Terra_Cloud_Fraction_Day
+    type: raster
+    published: true
+    default_visible: false
+    queryable: false
+    source_type: wms_external
+    wms_base_url: https://gibs.earthdata.nasa.gov/wms/epsg3857/best/wms.cgi
+    wms_version: "1.3.0"
+    format: image/png
+    transparent: true
+    tiled: true
+    z_index: 6
+    legend_url: https://gibs.earthdata.nasa.gov/legends/MODIS_Cloud_Fraction_H.png
+    attribution: NASA GIBS, MODIS Terra
+    temporal:
+      mode: date
+      ui: slider
+      default_offset_days: -1
+      range_days: 30
+      time_param:
+        enabled: true
+        format: "{date}"
+  gibs_air_temperature:
+    label: Surface Air Temperature (AIRS)
+    wms_name: AIRS_L3_Surface_Air_Temperature_Daily_Day
+    type: raster
+    published: true
+    default_visible: false
+    queryable: false
+    source_type: wms_external
+    wms_base_url: https://gibs.earthdata.nasa.gov/wms/epsg3857/best/wms.cgi
+    wms_version: "1.3.0"
+    format: image/png
+    transparent: true
+    tiled: true
+    z_index: 6
+    legend_url: https://gibs.earthdata.nasa.gov/legends/AIRS_Surface_Air_Temperature_Daily_Day_H.png
+    attribution: NASA GIBS, AIRS
+    temporal:
+      mode: date
+      ui: slider
+      default_offset_days: -2  # AIRS often lags 2 days
+      range_days: 30
+      time_param:
+        enabled: true
+        format: "{date}"
+  gibs_aerosol_index:
+    label: Aerosol Index (OMPS)
+    wms_name: OMPS_Aerosol_Index
+    type: raster
+    published: true
+    default_visible: false
+    queryable: false
+    source_type: wms_external
+    wms_base_url: https://gibs.earthdata.nasa.gov/wms/epsg3857/best/wms.cgi
+    wms_version: "1.3.0"
+    format: image/png
+    transparent: true
+    tiled: true
+    z_index: 6
+    legend_url: https://gibs.earthdata.nasa.gov/legends/OMPS_Aerosol_Index_H.png
+    attribution: NASA GIBS, OMPS (smoke/dust/aerosol)
+    temporal:
+      mode: date
+      ui: slider
+      default_offset_days: -1
+      range_days: 30
+      time_param:
+        enabled: true
+        format: "{date}"
+  gibs_snow_cover:
+    label: Snow Cover (MODIS Terra)
+    wms_name: MODIS_Terra_L3_NDSI_Snow_Cover_Daily
+    type: raster
+    published: true
+    default_visible: false
+    queryable: false
+    source_type: wms_external
+    wms_base_url: https://gibs.earthdata.nasa.gov/wms/epsg3857/best/wms.cgi
+    wms_version: "1.3.0"
+    format: image/png
+    transparent: true
+    tiled: true
+    z_index: 6
+    legend_url: https://gibs.earthdata.nasa.gov/legends/MODIS_NDSI_Snow_Cover_H.png
+    attribution: NASA GIBS, MODIS Terra
+    temporal:
+      mode: date
+      ui: slider
+      default_offset_days: -3  # Snow cover often lags 3 days
+      range_days: 30
+      time_param:
+        enabled: true
+        format: "{date}"
+  gibs_viirs_truecolor:
+    label: True Color (VIIRS SNPP)
+    wms_name: VIIRS_SNPP_CorrectedReflectance_TrueColor
+    type: raster
+    published: true
+    default_visible: false
+    queryable: false
+    source_type: wms_external
+    wms_base_url: https://gibs.earthdata.nasa.gov/wms/epsg3857/best/wms.cgi
+    wms_version: "1.3.0"
+    format: image/jpeg  # True color is better as JPEG
+    transparent: false
+    tiled: true
+    z_index: 4  # Below other rasters
+    legend: false  # True color imagery has no legend
+    attribution: NASA GIBS, VIIRS SNPP
+    temporal:
+      mode: date
+      ui: slider
+      default_offset_days: -1
+      range_days: 30
+      time_param:
+        enabled: true
+        format: "{date}"
   ethiopia_aoi:
     wms_name: ethiopia_aoi
     label: Ethiopia - Area of Interest
@@ -193,6 +624,7 @@ layers:
     published: true
     default_visible: false
     queryable: false
+    legend: false
     min_scale: 50000000
     max_scale: 10000
     opacity: 0.5
@@ -205,6 +637,7 @@ layers:
     published: true
     default_visible: false
     queryable: true
+    legend: false
     min_scale: 20000000
     max_scale: 100000
     opacity: 0.5
@@ -220,6 +653,7 @@ layers:
     published: true
     default_visible: false
     queryable: false
+    legend: false
     min_scale: 50000000
     max_scale: 10000
     opacity: 0.5
@@ -232,6 +666,7 @@ layers:
     published: true
     default_visible: false
     queryable: true
+    legend: false
     min_scale: 10000000
     max_scale: 50000
     opacity: 0.5
@@ -248,7 +683,8 @@ layers:
     published: true
     default_visible: false
     queryable: false
-    min_scale: 5000000
+    legend: false
+    min_scale: 10000000
     max_scale: 50000
     opacity: 0.5
     identify_fields: []
@@ -260,8 +696,9 @@ layers:
     published: true
     default_visible: true
     queryable: true
-    min_scale: 1000000
-    max_scale: 10000
+    legend_mode: full
+    min_scale: 5000000
+    max_scale: 50000
     opacity: 0.5
     identify_fields:
     - TABIA
@@ -279,6 +716,7 @@ layers:
     published: true
     default_visible: false
     queryable: false
+    legend: false
     min_scale: 50000000
     max_scale: 10000
     opacity: 0.5
@@ -291,6 +729,7 @@ layers:
     published: true
     default_visible: false
     queryable: false
+    legend: false
     min_scale: 50000000
     max_scale: 10000
     opacity: 0.5
@@ -303,6 +742,7 @@ layers:
     published: true
     default_visible: false
     queryable: false
+    legend: false
     min_scale: 50000000
     max_scale: 10000
     opacity: 0.5
@@ -326,6 +766,7 @@ layers:
     published: true
     default_visible: true
     queryable: false
+    legend_mode: full
     min_scale: 1000000
     max_scale: 25000
     identify_fields: []
@@ -338,6 +779,7 @@ layers:
     published: true
     default_visible: false
     queryable: false
+    legend_mode: full
     min_scale: 50000000
     max_scale: 50000
     identify_fields: []
@@ -385,6 +827,7 @@ layers:
     published: true
     default_visible: true
     queryable: true
+    legend_mode: full
     min_scale: 2000000
     max_scale: 25000
     identify_fields:
@@ -398,12 +841,13 @@ layers:
     published: true
     default_visible: false
     queryable: true
+    legend_mode: full
     min_scale: 5000000
     max_scale: 25000
     identify_fields:
-    - NAME
-    - TYPE
-    - WOREDA
+    - INSTITUTIO
+    - TYPE_OF_IN
+    - WOREDA_NAM
   tigray_schools_2006:
     wms_name: tigray_schools_2006
     label: Tigray - Schools (2006)
@@ -412,12 +856,13 @@ layers:
     published: true
     default_visible: false
     queryable: true
+    legend_mode: full
     min_scale: 5000000
     max_scale: 25000
     identify_fields:
-    - NAME
-    - TYPE
-    - WOREDA
+    - Name
+    - Type
+    - Woreda_Nam
   ethiopia_dem:
     wms_name: ethiopia_dem
     label: Ethiopia - DEM
@@ -427,6 +872,7 @@ layers:
     queryable: false
     min_scale: 50000000
     max_scale: 50000
+    legend_mode: full
     identify_fields: []
   ethiopia_hillshade:
     wms_name: ethiopia_hillshade
@@ -447,6 +893,7 @@ layers:
     queryable: false
     min_scale: 50000000
     max_scale: 50000
+    legend_mode: full
     identify_fields: []
   ethiopia_slope_rgb:
     wms_name: ethiopia_slope_rgb
@@ -457,6 +904,7 @@ layers:
     queryable: false
     min_scale: 50000000
     max_scale: 50000
+    legend_mode: none
     identify_fields: []
   ethiopia_contour:
     wms_name: ethiopia_contour
@@ -499,6 +947,7 @@ layers:
     published: true
     default_visible: false
     queryable: false
+    legend_mode: full
     min_scale: 50000000
     max_scale: 100000
     opacity: 0.5
@@ -535,6 +984,7 @@ layers:
     published: true
     default_visible: false
     queryable: false
+    legend_mode: full
     min_scale: 10000000
     max_scale: 50000
     opacity: 0.5
@@ -547,6 +997,7 @@ layers:
     published: true
     default_visible: false
     queryable: false
+    legend_mode: full
     min_scale: 50000000
     max_scale: 100000
     identify_fields: []
@@ -569,6 +1020,7 @@ layers:
     published: true
     default_visible: false
     queryable: false
+    legend_mode: full
     min_scale: 50000000
     max_scale: 100000
     opacity: 0.5
@@ -593,6 +1045,7 @@ layers:
     published: true
     default_visible: false
     queryable: false
+    legend_mode: full
     min_scale: 50000000
     max_scale: 100000
     opacity: 0.5
@@ -605,6 +1058,7 @@ layers:
     published: true
     default_visible: false
     queryable: false
+    legend_mode: full
     min_scale: 20000000
     max_scale: 100000
     opacity: 0.5

@@ -56,6 +56,10 @@ class LayerFactory {
             if (layerDef.base_layer && layerDef.source_type === 'xyz') {
               layer = this._createXYZLayer(layerId, layerDef);
               console.log(`[LayerFactory] Created XYZ basemap: ${layerId}`);
+            } else if (layerDef.source_type === 'wms_external') {
+              // External WMS source (e.g., NASA FIRMS)
+              layer = this._createExternalWMSLayer(layerId, layerDef);
+              console.log(`[LayerFactory] Created external WMS layer: ${layerId} (WMS: ${layerDef.wms_name})`);
             } else {
               layer = this._createTileWMSLayer(layerId, layerDef);
               console.log(`[LayerFactory] Created WMS layer: ${layerId} (WMS: ${layerDef.wms_name})`);
@@ -103,6 +107,85 @@ class LayerFactory {
     layer.set('isBasemap', true);
 
     console.debug(`[LayerFactory] ${layerId}: XYZ basemap, url=${layerDef.url_template}, opacity=${layerDef.opacity || 1.0}`);
+
+    return layer;
+  }
+
+  /**
+   * Create an external WMS layer (e.g., NASA FIRMS, ESA WorldCover).
+   * Uses TileWMS with the layer's wms_base_url instead of the global MapServer URL.
+   * Supports configurable WMS version (1.1.1 or 1.3.0).
+   * 
+   * @private
+   */
+  _createExternalWMSLayer(layerId, layerDef) {
+    const wmsUrl = layerDef.wms_base_url;
+    if (!wmsUrl) {
+      throw new Error(`External WMS layer ${layerId} missing wms_base_url`);
+    }
+
+    // Default to WMS 1.1.1 for better compatibility with external services
+    const wmsVersion = layerDef.wms_version || '1.1.1';
+    
+    // Build WMS params - use SRS for 1.1.1, CRS for 1.3.0
+    const params = {
+      'LAYERS': layerDef.wms_name,
+      'TRANSPARENT': layerDef.transparent !== false,
+      'FORMAT': layerDef.format || 'image/png',
+      'VERSION': wmsVersion
+    };
+    
+    // WMS 1.1.1 uses SRS, 1.3.0 uses CRS
+    if (wmsVersion === '1.1.1') {
+      params['SRS'] = 'EPSG:3857';
+    } else {
+      params['CRS'] = 'EPSG:3857';
+    }
+
+    // Apply initial TIME param for time_enabled layers
+    // Default to yesterday if no specific time_default is set
+    if (layerDef.time_enabled) {
+      const paramName = layerDef.time_param_name || 'TIME';
+      // Use time_default if set, otherwise use yesterday (GIBS lag)
+      let initialDate = layerDef.time_default;
+      if (!initialDate) {
+        const d = new Date();
+        d.setDate(d.getDate() - 1);
+        const yyyy = d.getFullYear();
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const dd = String(d.getDate()).padStart(2, '0');
+        initialDate = `${yyyy}-${mm}-${dd}`;
+      }
+      params[paramName] = initialDate;
+      console.debug(`[LayerFactory] ${layerId}: Initial TIME=${initialDate}`);
+    }
+
+    const source = new ol.source.TileWMS({
+      url: wmsUrl,
+      params: params,
+      crossOrigin: 'anonymous',
+      attributions: layerDef.attribution || ''
+    });
+
+    const opacity = layerDef.opacity !== undefined ? layerDef.opacity : 1.0;
+    const layer = new ol.layer.Tile({
+      source: source,
+      title: layerDef.label,
+      visible: false,  // Will be set by InteractionController
+      opacity: opacity
+    });
+
+    const zIndex = this._getLayerZIndex(layerDef);
+    layer.setZIndex(zIndex);
+
+    // Attach metadata for later reference
+    layer.layerId = layerId;
+    layer.layerDef = layerDef;
+    layer.set('layerId', layerId);
+    layer.set('layerDef', layerDef);
+    layer.set('isExternalWMS', true);
+
+    console.debug(`[LayerFactory] ${layerId}: External WMS, url=${wmsUrl}, layer=${layerDef.wms_name}, zIndex=${zIndex}`);
 
     return layer;
   }
@@ -181,17 +264,27 @@ class LayerFactory {
   }
 
   _getLayerZIndex(layerDef) {
+    // Explicit z_index from registry takes priority
+    if (typeof layerDef.z_index === 'number') {
+      return layerDef.z_index;
+    }
+
     // Basemaps always at bottom
     if (layerDef.base_layer) {
       return 0;
     }
 
+    // External WMS overlays (e.g., NASA FIRMS)
+    if (layerDef.source_type === 'wms_external') {
+      return 5;
+    }
+
     const layerType = (layerDef.type || '').toLowerCase();
     const geometryType = (layerDef.geometry_type || '').toLowerCase();
 
-    // Rasters above basemaps
+    // Rasters above basemaps (TSIRD rasters at 10)
     if (layerType === 'raster') {
-      return 5;
+      return 10;
     }
 
     // UI/overlay layers at top
