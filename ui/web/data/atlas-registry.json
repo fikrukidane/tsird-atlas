@@ -33,6 +33,10 @@
     },
     "identify": {
       "enabled": true
+    },
+    "search": {
+      "enabled": true,
+      "index_url": "data/search-index.json"
     }
   },
   "categories": [
