@@ -89,7 +89,8 @@ LAYER
   CONNECTION "/data/gold/atlas_4326/ethiopia/EthioWoredasNew.shp"
   DATA "EthioWoredasNew"
   LABELITEM "W_NAME"
-  LABELMAXSCALEDENOM 1500000
+  LABELMAXSCALEDENOM 2000000
+  LABELMINSCALEDENOM 100000
   METADATA
     "wms_title" "Ethiopia - Woredas"
     "wms_srs" "EPSG:3857 EPSG:4326"
@@ -199,7 +200,8 @@ LAYER
   CONNECTION "/data/gold/atlas_4326/TigraiTabiasNew.shp"
   DATA "TigraiTabiasNew"
   LABELITEM "TABIA"
-  LABELMAXSCALEDENOM 100000
+  LABELMAXSCALEDENOM 500000
+  LABELMINSCALEDENOM 10000
   METADATA
     "wms_title" "Tigray - Tabias (Admin)"
     "wms_srs" "EPSG:3857 EPSG:4326"
@@ -544,8 +546,9 @@ LAYER
   CONNECTIONTYPE OGR
   CONNECTION "/data/gold/atlas_4326/TigrayNewWoredas.shp"
   DATA "TigrayNewWoredas"
-  LABELITEM "wor_name"
-  LABELMAXSCALEDENOM 1000000
+  LABELITEM "WEREDA"
+  LABELMAXSCALEDENOM 2000000
+  LABELMINSCALEDENOM 100000
   METADATA
     "wms_title" "Tigray - Woreda"
     "wms_srs" "EPSG:3857 EPSG:4326"
@@ -570,7 +573,7 @@ LAYER
       OUTLINEWIDTH 2
       FONT "arial"
       TYPE TRUETYPE
-      SIZE 9
+      SIZE 10
       POSITION AUTO
       PARTIALS FALSE
     END
@@ -596,15 +599,15 @@ LAYER
     "wms_include_items" "TOWN_NAME,WEREDA,REGION,ZONES,POP,POPTOT"
   END
   TEMPLATE "dummy.html"
-  # Graduated symbols by population
+  # Graduated symbols by population - Red stars
   CLASS
     NAME "0 - 50,000"
     EXPRESSION ([POPTOT] <= 50000)
     STYLE
-      SYMBOL "circle"
-      SIZE 5
-      COLOR 255 203 197
-      OUTLINECOLOR 100 50 50
+      SYMBOL "star"
+      SIZE 6
+      COLOR 200 30 30
+      OUTLINECOLOR 100 20 20
     END
     LABEL
       COLOR 132 31 31
@@ -622,10 +625,10 @@ LAYER
     NAME "50,000 - 80,000"
     EXPRESSION ([POPTOT] > 50000 AND [POPTOT] <= 80000)
     STYLE
-      SYMBOL "circle"
-      SIZE 7
-      COLOR 255 175 169
-      OUTLINECOLOR 100 50 50
+      SYMBOL "star"
+      SIZE 8
+      COLOR 220 30 30
+      OUTLINECOLOR 100 20 20
     END
     LABEL
       COLOR 132 31 31
@@ -643,10 +646,10 @@ LAYER
     NAME "80,000 - 120,000"
     EXPRESSION ([POPTOT] > 80000 AND [POPTOT] <= 120000)
     STYLE
-      SYMBOL "circle"
-      SIZE 9
-      COLOR 255 144 141
-      OUTLINECOLOR 100 50 50
+      SYMBOL "star"
+      SIZE 10
+      COLOR 230 20 20
+      OUTLINECOLOR 80 10 10
     END
     LABEL
       COLOR 132 31 31
@@ -664,10 +667,10 @@ LAYER
     NAME "120,000 - 200,000"
     EXPRESSION ([POPTOT] > 120000 AND [POPTOT] <= 200000)
     STYLE
-      SYMBOL "circle"
+      SYMBOL "star"
       SIZE 12
-      COLOR 255 97 94
-      OUTLINECOLOR 100 50 50
+      COLOR 240 15 15
+      OUTLINECOLOR 80 10 10
     END
     LABEL
       COLOR 132 31 31
@@ -685,10 +688,10 @@ LAYER
     NAME "> 200,000"
     EXPRESSION ([POPTOT] > 200000)
     STYLE
-      SYMBOL "circle"
-      SIZE 15
-      COLOR 255 31 26
-      OUTLINECOLOR 100 50 50
+      SYMBOL "star"
+      SIZE 14
+      COLOR 255 0 0
+      OUTLINECOLOR 80 10 10
     END
     LABEL
       COLOR 132 31 31

@@ -10,3 +10,5 @@ arial-italic     /fonts/ariali.ttf
 arial-narrow     /fonts/ARIALN.TTF
 verdana          /fonts/verdana.ttf
 verdana-italic   /fonts/verdanai.ttf
+noto-ethiopic    /fonts/NotoSansEthiopic-Regular.ttf
+noto-ethiopic-bold /fonts/NotoSansEthiopic-Bold.ttf

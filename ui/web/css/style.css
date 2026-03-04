@@ -666,3 +666,87 @@ header h1 {
   color: #c44;
   font-style: italic;
 }
+
+/* ─────────────────────────────────────── */
+/* Display Settings Panel                  */
+/* ─────────────────────────────────────── */
+
+.toc-display-settings {
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+}
+
+.toc-display-settings-header {
+  font-size: 11px;
+  font-weight: 700;
+  color: #444;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid #ddd;
+}
+
+.toc-display-settings-row {
+  display: flex;
+  align-items: center;
+  font-size: 12px;
+}
+
+.toc-display-settings-label {
+  color: #555;
+  margin-right: 10px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.toc-display-settings-slider {
+  flex: 1;
+  max-width: 120px;
+  height: 5px;
+  margin: 0 10px;
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+  background: linear-gradient(to right, rgba(74,144,217,0.3) 0%, #4a90d9 100%);
+  border-radius: 3px;
+}
+
+.toc-display-settings-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  background: #4a90d9;
+  border: 2px solid white;
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+  transition: transform 0.1s ease;
+}
+
+.toc-display-settings-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.1);
+}
+
+.toc-display-settings-slider::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  background: #4a90d9;
+  border: 2px solid white;
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+}
+
+.toc-display-settings-value {
+  color: #333;
+  font-weight: 700;
+  min-width: 40px;
+  text-align: right;
+  font-size: 13px;
+}

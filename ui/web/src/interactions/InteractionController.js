@@ -65,6 +65,9 @@ class InteractionController {
     // Clear existing content
     container.innerHTML = '';
 
+    // Render Display Settings panel (global boundary opacity)
+    this._renderDisplaySettings(container);
+
     // Render categories
     for (const category of this.tocModel) {
       const categoryElement = this._renderCategory(category);
@@ -73,6 +76,9 @@ class InteractionController {
 
     // Credits panel (UI-only)
     this._renderCreditsPanel(container);
+
+    // Update display settings visibility based on raster/basemap state
+    this._updateDisplaySettingsVisibility();
 
     console.log('[InteractionController] TOC rendered successfully');
   }
@@ -255,27 +261,30 @@ class InteractionController {
     layerLabel.className = 'toc-layer-label';
     layerLabel.textContent = layerRef.label;
 
-    // Legend toggle button
-    const legendToggle = document.createElement('button');
-    legendToggle.className = 'toc-legend-toggle';
-    legendToggle.title = 'Show/hide legend';
-    legendToggle.innerHTML = '<span class="legend-icon">◧</span>';
-    legendToggle.addEventListener('click', (e) => {
-      e.stopPropagation();
-      this._toggleLegend(layerId, layerDef.wms_name, layerDiv, legendToggle);
-    });
-
     layerRow.appendChild(layerCheckbox);
     layerRow.appendChild(layerLabel);
-    layerRow.appendChild(legendToggle);
-    layerDiv.appendChild(layerRow);
 
-    // Legend container (hidden by default)
-    const legendContainer = document.createElement('div');
-    legendContainer.className = 'toc-legend-container';
-    legendContainer.id = `legend-${layerId}`;
-    legendContainer.style.display = 'none';
-    layerDiv.appendChild(legendContainer);
+    // Legend toggle button (only for WMS layers, not basemaps)
+    if (!layerDef.base_layer) {
+      const legendToggle = document.createElement('button');
+      legendToggle.className = 'toc-legend-toggle';
+      legendToggle.title = 'Show/hide legend';
+      legendToggle.innerHTML = '<span class="legend-icon">◧</span>';
+      legendToggle.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this._toggleLegend(layerId, layerDef.wms_name, layerDiv, legendToggle);
+      });
+      layerRow.appendChild(legendToggle);
+
+      // Legend container (hidden by default)
+      const legendContainer = document.createElement('div');
+      legendContainer.className = 'toc-legend-container';
+      legendContainer.id = `legend-${layerId}`;
+      legendContainer.style.display = 'none';
+      layerDiv.appendChild(legendContainer);
+    }
+
+    layerDiv.appendChild(layerRow);
 
     return layerDiv;
   }
@@ -416,18 +425,115 @@ class InteractionController {
     }
   }
 
-  _updatePolygonOpacity() {
-    const anyRasterVisible = this.olLayers.some(layer => {
-      const def = layer.get('layerDef');
-      return def?.type === 'raster' && layer.getVisible();
+  /**
+   * Boundary layer IDs that are controlled by the global opacity slider.
+   * @private
+   */
+  _getBoundaryLayerIds() {
+    return [
+      'ethiopia_zones', 'ethiopia_woredas', 'ethiopia_admin', 'ethiopia_aoi',
+      'tigray_woreda', 'tigray_tabias',
+      'ethiopia_boundary_level1', 'ethiopia_boundary_level2', 'ethiopia_boundary_level3'
+    ];
+  }
+
+  /**
+   * Render Display Settings panel with global boundary opacity slider.
+   * @private
+   */
+  _renderDisplaySettings(container) {
+    const panel = document.createElement('div');
+    panel.className = 'toc-display-settings';
+    panel.id = 'display-settings-panel';
+
+    const header = document.createElement('div');
+    header.className = 'toc-display-settings-header';
+    header.textContent = 'Display Settings';
+
+    const row = document.createElement('div');
+    row.className = 'toc-display-settings-row';
+
+    const label = document.createElement('span');
+    label.className = 'toc-display-settings-label';
+    label.textContent = 'Boundary Opacity:';
+
+    // Load from localStorage or default to 50%
+    const savedOpacity = localStorage.getItem('atlas_boundary_opacity');
+    const initialValue = savedOpacity !== null ? parseInt(savedOpacity) : 50;
+
+    const slider = document.createElement('input');
+    slider.type = 'range';
+    slider.className = 'toc-display-settings-slider';
+    slider.id = 'boundary-opacity-slider';
+    slider.min = '0';
+    slider.max = '100';
+    slider.value = String(initialValue);
+    slider.title = 'Adjust boundary layer transparency';
+
+    const valueLabel = document.createElement('span');
+    valueLabel.className = 'toc-display-settings-value';
+    valueLabel.id = 'boundary-opacity-value';
+    valueLabel.textContent = `${initialValue}%`;
+
+    slider.addEventListener('input', (e) => {
+      const value = parseInt(e.target.value);
+      valueLabel.textContent = `${value}%`;
+      this._applyBoundaryOpacity(value / 100);
+      localStorage.setItem('atlas_boundary_opacity', String(value));
     });
 
-    this.olLayers.forEach(layer => {
-      const def = layer.get('layerDef');
-      if (def?.type === 'vector' && def?.geometry_type === 'polygon') {
-        layer.setOpacity(anyRasterVisible ? 0.20 : 1.0);
+    row.appendChild(label);
+    row.appendChild(slider);
+    row.appendChild(valueLabel);
+
+    panel.appendChild(header);
+    panel.appendChild(row);
+    container.appendChild(panel);
+
+    // Apply initial boundary opacity
+    this._applyBoundaryOpacity(initialValue / 100);
+  }
+
+  /**
+   * Apply opacity to all boundary layers.
+   * @private
+   */
+  _applyBoundaryOpacity(opacity) {
+    const boundaryIds = this._getBoundaryLayerIds();
+    for (const layerId of boundaryIds) {
+      const layer = this.layerMap[layerId];
+      if (layer) {
+        layer.setOpacity(opacity);
       }
+    }
+    console.log(`[InteractionController] Boundary opacity set to ${Math.round(opacity * 100)}%`);
+  }
+
+  /**
+   * Update display settings panel visibility.
+   * Show only when a raster or basemap layer is visible.
+   * @private
+   */
+  _updateDisplaySettingsVisibility() {
+    const panel = document.getElementById('display-settings-panel');
+    if (!panel) return;
+
+    // Check if any raster or basemap is visible
+    const anyRasterOrBasemapVisible = this.olLayers.some(layer => {
+      const def = layer.get('layerDef');
+      if (!def) return false;
+      const isRaster = def.type === 'raster';
+      const isBasemap = def.base_layer === true;
+      return (isRaster || isBasemap) && layer.getVisible();
     });
+
+    panel.style.display = anyRasterOrBasemapVisible ? 'block' : 'none';
+  }
+
+  _updatePolygonOpacity() {
+    // Deprecated: Now using global boundary opacity from Display Settings
+    // This method is kept for backwards compatibility but defers to slider value
+    this._updateDisplaySettingsVisibility();
   }
 
   /**
@@ -458,6 +564,7 @@ class InteractionController {
   /**
    * Handle layer toggle.
    * Milestone 2: Integrates scale constraints and mutex enforcement
+   * Milestone 2.5: Basemap radio behavior (only one basemap visible at a time)
    * @private
    */
   _onLayerToggle(layerId, enabled) {
@@ -467,6 +574,13 @@ class InteractionController {
       return;
     }
 
+    const layerDef = this.layerDefs[layerId];
+
+    // Basemap radio behavior: when turning ON a basemap, turn OFF all others
+    if (enabled && layerDef && layerDef.base_layer) {
+      this._enforceBasemapMutex(layerId);
+    }
+
     // Update user-requested state
     this.userVisibilityState[layerId] = enabled;
 
@@ -474,6 +588,49 @@ class InteractionController {
     this._updateLayerVisibility(layerId);
 
     console.log(`[InteractionController] Layer toggled: ${layerId} = ${enabled} (user request)`);
+  }
+
+  /**
+   * Enforce basemap mutex: only one basemap visible at a time.
+   * When a basemap is turned ON, all other basemaps are turned OFF.
+   * @private
+   */
+  _enforceBasemapMutex(activeBasemapId) {
+    // Find all basemap layers and turn them off (except the active one)
+    for (const [layerId, layerDef] of Object.entries(this.layerDefs)) {
+      if (layerDef.base_layer && layerId !== activeBasemapId) {
+        // Turn off this basemap
+        this.userVisibilityState[layerId] = false;
+        
+        const layer = this.layerMap[layerId];
+        if (layer) {
+          layer.setVisible(false);
+        }
+        
+        // Update checkbox in UI
+        const checkbox = document.getElementById(`layer-${layerId}`);
+        if (checkbox) {
+          checkbox.checked = false;
+        }
+        
+        console.log(`[InteractionController] Basemap mutex: ${layerId} turned OFF (${activeBasemapId} is active)`);
+      }
+    }
+  }
+
+  /**
+   * Handle opacity slider change for a layer.
+   * @private
+   */
+  _onOpacityChange(layerId, opacity) {
+    const layer = this.layerMap[layerId];
+    if (!layer) {
+      console.warn(`[InteractionController] Layer not found for opacity change: ${layerId}`);
+      return;
+    }
+
+    layer.setOpacity(opacity);
+    console.log(`[InteractionController] Layer opacity changed: ${layerId} = ${Math.round(opacity * 100)}%`);
   }
 
   /**
