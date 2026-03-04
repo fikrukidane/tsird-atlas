@@ -247,7 +247,7 @@ layers:
     label: Eritrea - Country
     wms_name: eritrea_admin0
     type: vector
-    published: true
+    published: false  # GADM data not yet loaded
     default_visible: false
     queryable: true
     source_type: wms
@@ -263,7 +263,7 @@ layers:
     label: Eritrea - Regions (Zobas)
     wms_name: eritrea_admin1
     type: vector
-    published: true
+    published: false  # GADM data not yet loaded
     default_visible: false
     queryable: true
     source_type: wms
@@ -281,7 +281,7 @@ layers:
     label: Eritrea - Districts
     wms_name: eritrea_admin2
     type: vector
-    published: true
+    published: false  # GADM data not yet loaded
     default_visible: false
     queryable: true
     source_type: wms
@@ -1080,7 +1080,7 @@ layers:
     label: Ethiopia - Rainfall Stations
     type: vector
     geometry_type: polygon
-    published: true
+    published: false  # Data file rain_stat.shp not available
     default_visible: false
     queryable: false
     min_scale: 20000000

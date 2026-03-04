@@ -4,6 +4,29 @@ MAP
   EXTENT 33.0 3.0 48.0 15.5
   FONTSET "/fonts/fonts.txt"
   SYMBOLSET "/symbols/symbols.sym"
+  IMAGETYPE "png"
+
+  # Output format definitions
+  OUTPUTFORMAT
+    NAME "png"
+    DRIVER "AGG/PNG"
+    MIMETYPE "image/png"
+    IMAGEMODE RGBA
+    EXTENSION "png"
+    FORMATOPTION "INTERLACE=OFF"
+    TRANSPARENT ON
+  END
+
+  OUTPUTFORMAT
+    NAME "png8"
+    DRIVER "AGG/PNG8"
+    MIMETYPE "image/png; mode=8bit"
+    IMAGEMODE RGBA
+    EXTENSION "png"
+    FORMATOPTION "QUANTIZE_FORCE=ON"
+    FORMATOPTION "QUANTIZE_COLORS=256"
+    TRANSPARENT ON
+  END
 
   WEB
     METADATA
