@@ -25,6 +25,9 @@ ui:
     enabled: true
   identify:
     enabled: true
+  search:
+    enabled: true
+    index_url: data/search-index.json
 categories:
 - id: cat_mapelements
   label: Map Elements
@@ -424,6 +427,7 @@ layers:
     queryable: false
     min_scale: 50000000
     max_scale: 50000
+    legend_mode: full
     identify_fields: []
   ethiopia_hillshade:
     wms_name: ethiopia_hillshade
@@ -444,6 +448,7 @@ layers:
     queryable: false
     min_scale: 50000000
     max_scale: 50000
+    legend_mode: full
     identify_fields: []
   ethiopia_slope_rgb:
     wms_name: ethiopia_slope_rgb
@@ -454,6 +459,7 @@ layers:
     queryable: false
     min_scale: 50000000
     max_scale: 50000
+    legend_mode: full
     identify_fields: []
   ethiopia_contour:
     wms_name: ethiopia_contour

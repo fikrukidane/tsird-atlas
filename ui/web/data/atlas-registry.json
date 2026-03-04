@@ -560,6 +560,7 @@
       "queryable": false,
       "min_scale": 50000000,
       "max_scale": 50000,
+      "legend_mode": "full",
       "identify_fields": []
     },
     "ethiopia_hillshade": {
@@ -582,6 +583,7 @@
       "queryable": false,
       "min_scale": 50000000,
       "max_scale": 50000,
+      "legend_mode": "full",
       "identify_fields": []
     },
     "ethiopia_slope_rgb": {
@@ -593,6 +595,7 @@
       "queryable": false,
       "min_scale": 50000000,
       "max_scale": 50000,
+      "legend_mode": "full",
       "identify_fields": []
     },
     "ethiopia_contour": {

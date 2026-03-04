@@ -291,8 +291,9 @@ class InteractionController {
     layerRow.appendChild(layerCheckbox);
     layerRow.appendChild(layerLabel);
 
-    // Legend toggle button (only for WMS layers, not basemaps)
-    if (!layerDef.base_layer) {
+    // Legend toggle button (only for layers with legend_mode='full' or legend=true)
+    const showLegendToggle = layerDef.legend_mode === 'full' || layerDef.legend === true;
+    if (showLegendToggle && !layerDef.base_layer) {
       const legendToggle = document.createElement('button');
       legendToggle.className = 'toc-legend-toggle';
       legendToggle.title = 'Show/hide legend';

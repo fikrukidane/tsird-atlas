@@ -237,7 +237,10 @@ class RegistryLoader {
         source_type: layerMeta.source_type,
         base_layer: layerMeta.base_layer === true,
         url_template: layerMeta.url_template,
-        opacity: layerMeta.opacity
+        opacity: layerMeta.opacity,
+        // Legend fields
+        legend_mode: layerMeta.legend_mode || 'none',
+        legend: layerMeta.legend === true
       };
     }
 
