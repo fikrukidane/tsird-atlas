@@ -349,7 +349,7 @@
       "source_type": "xyz",
       "base_layer": true,
       "url_template": "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
-      "attribution": "© OpenStreetMap contributors",
+      "attribution": "\u00a9 OpenStreetMap contributors",
       "opacity": 1.0,
       "min_scale": 500000000,
       "max_scale": 1
@@ -361,7 +361,7 @@
       "source_type": "xyz",
       "base_layer": true,
       "url_template": "https://server.arcgisonline.com/ArcGIS/rest/services/World_Terrain_Base/MapServer/tile/{z}/{y}/{x}",
-      "attribution": "© Esri, USGS, NOAA",
+      "attribution": "\u00a9 Esri, USGS, NOAA",
       "opacity": 1.0,
       "min_scale": 500000000,
       "max_scale": 1
@@ -568,7 +568,7 @@
       "tiled": true,
       "z_index": 5,
       "legend": false,
-      "attribution": "© ESA WorldCover 2020-2021, Terrascope",
+      "attribution": "\u00a9 ESA WorldCover 2020-2021, Terrascope",
       "temporal": {
         "mode": "year",
         "ui": "slider",

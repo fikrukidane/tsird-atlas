@@ -132,22 +132,6 @@ async function initializeApplication(registryPath = 'data/atlas-registry.json') 
     console.log('');
 
     // ────────────────────────────────────────────────────────────
-    // Step 8.5: Load search index (Phase 3)
-    // ────────────────────────────────────────────────────────────
-    if (registry.atlasConfig.search && registry.atlasConfig.search.enabled) {
-      console.log('Step 8.5: Loading search index...');
-      try {
-        await interaction.loadSearchIndex(registry.atlasConfig.search.index_url);
-        console.log('✓ Search index loaded');
-        console.log(`  - Index URL: ${registry.atlasConfig.search.index_url}`);
-      } catch (err) {
-        console.warn('⚠ Search index failed to load:', err.message);
-        console.log('  - Search functionality will be disabled');
-      }
-      console.log('');
-    }
-
-    // ────────────────────────────────────────────────────────────
     // Step 9: Log final state
     // ────────────────────────────────────────────────────────────
     console.log('Step 9: Monitoring WMS requests (check DevTools Network tab)...');
