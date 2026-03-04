@@ -49,6 +49,30 @@ class InteractionController {
     this.creditsPanel = null;
     this.creditsBody = null;
     this.creditsList = null;
+
+    // Search functionality
+    this.searchIndex = null;  // Loaded async
+    this.searchHighlightLayer = null;  // Overlay for highlight
+    this.searchHighlightTimeout = null;
+  }
+
+  /**
+   * Load search index from JSON file.
+   * @param {string} url - URL to search-index.json
+   */
+  async loadSearchIndex(url) {
+    try {
+      const cacheBust = Date.now();
+      const response = await fetch(`${url}?v=${cacheBust}`);
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      this.searchIndex = await response.json();
+      console.log(`[InteractionController] Search index loaded: ${this.searchIndex.stats.total} features`);
+    } catch (error) {
+      console.warn('[InteractionController] Failed to load search index:', error);
+      this.searchIndex = null;
+    }
   }
 
   /**
@@ -64,6 +88,9 @@ class InteractionController {
 
     // Clear existing content
     container.innerHTML = '';
+
+    // Render Search box (above Display Settings)
+    this._renderSearchBox(container);
 
     // Render Display Settings panel (global boundary opacity)
     this._renderDisplaySettings(container);
@@ -507,6 +534,243 @@ class InteractionController {
       }
     }
     console.log(`[InteractionController] Boundary opacity set to ${Math.round(opacity * 100)}%`);
+  }
+
+  /**
+   * Render the search box for woredas/tabias.
+   * @private
+   */
+  _renderSearchBox(container) {
+    const searchPanel = document.createElement('div');
+    searchPanel.className = 'toc-search-panel';
+    searchPanel.id = 'search-panel';
+
+    const searchWrapper = document.createElement('div');
+    searchWrapper.className = 'toc-search-wrapper';
+
+    const searchInput = document.createElement('input');
+    searchInput.type = 'text';
+    searchInput.className = 'toc-search-input';
+    searchInput.id = 'search-input';
+    searchInput.placeholder = 'Search Tabia or Woreda…';
+    searchInput.autocomplete = 'off';
+
+    const searchResults = document.createElement('div');
+    searchResults.className = 'toc-search-results';
+    searchResults.id = 'search-results';
+    searchResults.style.display = 'none';
+
+    searchWrapper.appendChild(searchInput);
+    searchWrapper.appendChild(searchResults);
+    searchPanel.appendChild(searchWrapper);
+    container.appendChild(searchPanel);
+
+    // Attach event handlers
+    let selectedIndex = -1;
+
+    searchInput.addEventListener('input', (e) => {
+      const query = e.target.value.trim();
+      selectedIndex = -1;
+      if (query.length < 2) {
+        searchResults.style.display = 'none';
+        searchResults.innerHTML = '';
+        return;
+      }
+      const results = this._searchFeatures(query);
+      this._renderSearchResults(results, searchResults);
+      searchResults.style.display = results.length > 0 ? 'block' : 'none';
+    });
+
+    searchInput.addEventListener('keydown', (e) => {
+      const items = searchResults.querySelectorAll('.toc-search-result-item');
+      if (items.length === 0) return;
+
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        selectedIndex = Math.min(selectedIndex + 1, items.length - 1);
+        this._highlightSearchResult(items, selectedIndex);
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        selectedIndex = Math.max(selectedIndex - 1, 0);
+        this._highlightSearchResult(items, selectedIndex);
+      } else if (e.key === 'Enter') {
+        e.preventDefault();
+        if (selectedIndex >= 0 && selectedIndex < items.length) {
+          items[selectedIndex].click();
+        } else if (items.length > 0) {
+          items[0].click();
+        }
+      } else if (e.key === 'Escape') {
+        searchResults.style.display = 'none';
+        searchInput.blur();
+      }
+    });
+
+    // Close dropdown when clicking outside
+    document.addEventListener('click', (e) => {
+      if (!searchPanel.contains(e.target)) {
+        searchResults.style.display = 'none';
+      }
+    });
+  }
+
+  /**
+   * Search features in the index.
+   * @private
+   */
+  _searchFeatures(query) {
+    if (!this.searchIndex || !this.searchIndex.features) {
+      return [];
+    }
+
+    const queryNorm = query.toLowerCase().trim();
+    const features = this.searchIndex.features;
+    const results = [];
+
+    // Split into prefix matches and substring matches
+    const prefixMatches = [];
+    const substringMatches = [];
+
+    for (const feature of features) {
+      if (feature.name_norm.startsWith(queryNorm)) {
+        prefixMatches.push(feature);
+      } else if (feature.name_norm.includes(queryNorm)) {
+        substringMatches.push(feature);
+      }
+    }
+
+    // Combine: prefix first, then substring
+    results.push(...prefixMatches, ...substringMatches);
+
+    // Limit to 10 results
+    return results.slice(0, 10);
+  }
+
+  /**
+   * Render search results dropdown.
+   * @private
+   */
+  _renderSearchResults(results, container) {
+    container.innerHTML = '';
+
+    for (const feature of results) {
+      const item = document.createElement('div');
+      item.className = 'toc-search-result-item';
+      item.setAttribute('data-feature-id', feature.id);
+
+      // Format display: Tabias show parent woreda
+      let displayText = feature.name;
+      if (feature.type === 'tabia' && feature.parent) {
+        displayText = `${feature.name} (${feature.parent})`;
+      }
+
+      const typeSpan = document.createElement('span');
+      typeSpan.className = `toc-search-type toc-search-type-${feature.type}`;
+      typeSpan.textContent = feature.type === 'woreda' ? 'W' : 'T';
+
+      const textSpan = document.createElement('span');
+      textSpan.className = 'toc-search-text';
+      textSpan.textContent = displayText;
+
+      item.appendChild(typeSpan);
+      item.appendChild(textSpan);
+
+      item.addEventListener('click', () => {
+        this._selectSearchResult(feature);
+        container.style.display = 'none';
+        document.getElementById('search-input').value = '';
+      });
+
+      container.appendChild(item);
+    }
+  }
+
+  /**
+   * Highlight a search result in the dropdown.
+   * @private
+   */
+  _highlightSearchResult(items, index) {
+    items.forEach((item, i) => {
+      item.classList.toggle('selected', i === index);
+    });
+  }
+
+  /**
+   * Handle selection of a search result.
+   * @private
+   */
+  _selectSearchResult(feature) {
+    console.log(`[InteractionController] Selected: ${feature.name} (${feature.type})`);
+
+    // Get the map view
+    const map = this.mapController.map;
+    const view = map.getView();
+
+    // Transform bbox from 4326 to view CRS (3857)
+    const bbox4326 = feature.bbox_4326;
+    const extent4326 = [bbox4326[0], bbox4326[1], bbox4326[2], bbox4326[3]];
+    const extent3857 = ol.proj.transformExtent(extent4326, 'EPSG:4326', 'EPSG:3857');
+
+    // Set max zoom based on feature type
+    const maxZoom = feature.type === 'tabia' ? 13 : 11;
+
+    // Fit view to extent
+    view.fit(extent3857, {
+      padding: [50, 50, 50, 50],
+      duration: 400,
+      maxZoom: maxZoom
+    });
+
+    // Add temporary highlight
+    this._highlightExtent(extent3857);
+  }
+
+  /**
+   * Add a temporary highlight rectangle to the map.
+   * @private
+   */
+  _highlightExtent(extent) {
+    const map = this.mapController.map;
+
+    // Clear any existing highlight
+    if (this.searchHighlightLayer) {
+      map.removeLayer(this.searchHighlightLayer);
+      this.searchHighlightLayer = null;
+    }
+    if (this.searchHighlightTimeout) {
+      clearTimeout(this.searchHighlightTimeout);
+    }
+
+    // Create highlight feature
+    const polygon = ol.geom.Polygon.fromExtent(extent);
+    const feature = new ol.Feature(polygon);
+
+    // Create vector layer with highlight style
+    this.searchHighlightLayer = new ol.layer.Vector({
+      source: new ol.source.Vector({
+        features: [feature]
+      }),
+      style: new ol.style.Style({
+        stroke: new ol.style.Stroke({
+          color: 'rgba(255, 165, 0, 0.9)',  // Orange
+          width: 3
+        }),
+        fill: new ol.style.Fill({
+          color: 'rgba(255, 165, 0, 0.15)'
+        })
+      }),
+      zIndex: 1000
+    });
+
+    map.addLayer(this.searchHighlightLayer);
+
+    // Fade out and remove after 2 seconds
+    this.searchHighlightTimeout = setTimeout(() => {
+      if (this.searchHighlightLayer) {
+        map.removeLayer(this.searchHighlightLayer);
+        this.searchHighlightLayer = null;
+      }
+    }, 2000);
   }
 
   /**
