@@ -9,11 +9,12 @@
  * 5. Render TOC
  * 6. Initialize layer visibility
  * 7. Set up interaction handlers
+ * 8. Phase 3: Search, Navigator, Measure tools
  */
 
 async function initializeApplication(registryPath = 'data/atlas-registry.json') {
   console.log('═══════════════════════════════════════════════════════════');
-  console.log('TSIRD Phase 2 - Stage 6 Milestone 1 (Basic Map + Registry)');
+  console.log('TSIRD Phase 3 — Search, Navigator, Measure Tools');
   console.log('═══════════════════════════════════════════════════════════');
   console.log('Initializing application...\n');
 
@@ -157,40 +158,66 @@ async function initializeApplication(registryPath = 'data/atlas-registry.json') 
     console.log('');
 
     // ────────────────────────────────────────────────────────────
+    // Phase 3: Initialize Search, Navigator, Measure Tools
+    // ────────────────────────────────────────────────────────────
+    console.log('Step 10: Initializing Phase 3 tools...');
+    
+    // Create highlight layer and add to map
+    const highlightLayer = HighlightOverlay.createHighlightLayer();
+    mapController.map.addLayer(highlightLayer);
+    console.log('  ✓ Highlight overlay layer added');
+    
+    // Add Navigator Map (OverviewMap)
+    NavigatorMap.add(mapController.map);
+    console.log('  ✓ Navigator map (overview) added');
+    
+    // Initialize Gazetteer Search Service
+    try {
+      await GazetteerSearchService.initGazetteerSearch();
+      const status = GazetteerSearchService.getStatus();
+      console.log(`  ✓ Gazetteer search: ${status.recordCount} records`);
+    } catch (e) {
+      console.warn('  ⚠ Gazetteer search init failed:', e.message);
+    }
+    
+    // Create Phase 3 UI Components
+    FullZoomButton.create(mapController.map);
+    console.log('  ✓ Full Zoom button added');
+    
+    MeasurePanel.create(mapController.map);
+    console.log('  ✓ Measure tools added');
+    
+    SearchBox.create(mapController.map, highlightLayer);
+    console.log('  ✓ Search box added');
+    
+    console.log('');
+
+    // ────────────────────────────────────────────────────────────
     // Initialization complete
     // ────────────────────────────────────────────────────────────
     console.log('═══════════════════════════════════════════════════════════');
-    console.log('✓ APPLICATION INITIALIZED SUCCESSFULLY (MILESTONE 2)');
+    console.log('✓ APPLICATION INITIALIZED SUCCESSFULLY (PHASE 3)');
     console.log('═══════════════════════════════════════════════════════════');
     console.log('');
-    console.log('Milestone 2 Definition of Done:');
-    console.log('  ✓ Map loads, view fits registry extent');
-    console.log('  ✓ TOC renders in correct order');
-    console.log('  ✓ Toggling layers updates visibility');
-    console.log('  ✓ Only published layers appear');
-    console.log('  ✓ WMS tile requests to services.wms.base_url');
-    console.log('  ✓ No WFS traffic (GetFeatureInfo only on click)');
-    console.log('  ✓ Scale constraints enforced (layers auto-hide/show on zoom)');
-    console.log('  ✓ Mutex pairs enforced (roads/towns never overlap)');
-    console.log('  ✓ GetFeatureInfo on click (queryable layers only)');
-    console.log('  ✓ Attribute allowlist filtering (identify_fields)');
-    console.log('  ✓ Out-of-scale visual indicators in TOC');
-    console.log('  ✗ Search UI — Deferred to Phase 3 (search: [] in registry)');
+    console.log('Phase 3 Features:');
+    console.log('  ✓ Search Woredas/Tabias (autocomplete)');
+    console.log('  ✓ Navigator Map (overview inset)');
+    console.log('  ✓ Full Zoom (fit to extent)');
+    console.log('  ✓ Measure Distance/Area');
+    console.log('  ✓ Highlight overlay on search selection');
     console.log('');
-    console.log('Test Checklist (Manual):');
-    console.log('  1. Zoom in/out: Roads swap at 1:1M, Towns swap at 1:2M');
-    console.log('  2. Toggle both roads ON: Only in-scale one visible');
-    console.log('  3. Click health facilities: Only allowlisted fields shown');
-    console.log('  4. Out-of-scale layers: TOC shows disabled style');
-    console.log('');
-    console.log('Ready for: Final testing + deployment');
+    console.log('Phase 2 Features (retained):');
+    console.log('  ✓ Layer catalog with scale constraints');
+    console.log('  ✓ GetFeatureInfo on click');
+    console.log('  ✓ Mutex pairs enforcement');
     console.log('');
 
     return {
       mapController,
       layers,
       interaction,
-      registry
+      registry,
+      highlightLayer
     };
 
   } catch (error) {
@@ -243,7 +270,7 @@ function displayErrorPage(message) {
 
 // Auto-initialize when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
-  initializeApplication('data/atlas-registry.json?v=20260303b');
+  initializeApplication('data/atlas-registry.json?v=20260305');
 });
 
 // Export for testing
