@@ -31,7 +31,9 @@ class RegistryLoader {
    */
   async load() {
     try {
-      const response = await fetch(this.registryPath);
+      // Resolve path relative to current page URL (handles /map/ prefix)
+      const resolvedUrl = new URL(this.registryPath, window.location.href);
+      const response = await fetch(resolvedUrl);
       
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: Could not fetch registry`);
