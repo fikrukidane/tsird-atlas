@@ -242,8 +242,25 @@ function displayErrorPage(message) {
 }
 
 // Auto-initialize when DOM is ready
-document.addEventListener('DOMContentLoaded', () => {
-  initializeApplication('data/atlas-registry.json?v=20260303b');
+document.addEventListener('DOMContentLoaded', async () => {
+  await initializeApplication('data/atlas-registry.json?v=20260305');
+  
+  // ────────────────────────────────────────────────────────────
+  // Phase 3: Initialize Gazetteer Search (dev verification)
+  // ────────────────────────────────────────────────────────────
+  try {
+    console.log('');
+    console.log('Phase 3: Initializing Gazetteer Search...');
+    await window.tsirdSearch.init();
+    console.log('✓ Gazetteer search ready');
+    console.log('  Console API: window.tsirdSearch.search("query")');
+    
+    // Dev verification: test search
+    const testResults = window.tsirdSearch.search('adw');
+    console.log(`  Test search("adw"): ${testResults.length} results`);
+  } catch (e) {
+    console.warn('Gazetteer search init skipped:', e.message);
+  }
 });
 
 // Export for testing

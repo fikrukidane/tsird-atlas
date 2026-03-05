@@ -65,18 +65,24 @@
   <!-- UI Components -->
   <script src="src/ui/TocResizer.js?v=20260303b"></script>
 
+  <!-- Search (Phase 3) -->
+  <script src="src/search/TextUtils.js?v=20260305"></script>
+  <script src="src/search/GazetteerLoader.js?v=20260305"></script>
+  <script src="src/search/SearchIndex.js?v=20260305"></script>
+  <script src="src/search/GazetteerSearchService.js?v=20260305"></script>
+
   <!-- Application Orchestration -->
-  <script src="src/main.js?v=20260303b"></script>
+  <script src="src/main.js?v=20260305"></script>
 
   <!-- ═════════════════════════════════════════════════════════════ -->
   <!-- Development Console Log -->
   <!-- ═════════════════════════════════════════════════════════════ -->
   <script>
-    console.log('TSIRD Phase 2 Milestone 2 — Frontend Loaded');
+    console.log('TSIRD Phase 3 Part 1 — Search Foundation Loaded');
     console.log('Registry path: data/atlas-registry.json');
+    console.log('Gazetteer: /map/data/gazetteer-woreda-tabia.v1.json');
+    console.log('Console API: window.tsirdSearch.init() then .search("query")');
     console.log('Open DevTools (F12) to view initialization logs.');
-    console.log('Network tab: watch for WMS GetMap + GetFeatureInfo requests (no WFS GetFeature)');
-    console.log('Milestone 2: Scale enforcement, mutex pairs, identify (GetFeatureInfo)');
   </script>
 </body>
 </html>
