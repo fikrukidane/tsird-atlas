@@ -1,0 +1,21 @@
+{
+  "version": "v1",
+  "generated_utc": "2026-03-05T00:00:00Z",
+  "crs": "EPSG:4326",
+  "schema": {
+    "description": "Gazetteer for Tigray Woredas and Tabias",
+    "record_fields": {
+      "type": "woreda | tabia",
+      "id": "string-stable-id",
+      "name": "Official Name",
+      "name_norm": "normalized-name (lowercase, no punctuation)",
+      "aliases": ["optional", "alternate names"],
+      "parent": {
+        "woreda_id": "null for woreda, string for tabia"
+      },
+      "center": ["lon", "lat"],
+      "bbox": ["minx", "miny", "maxx", "maxy"]
+    }
+  },
+  "records": []
+}
