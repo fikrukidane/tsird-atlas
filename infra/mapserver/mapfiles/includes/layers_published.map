@@ -30,33 +30,6 @@ LAYER
 END
 
 LAYER
-  NAME "ethiopia_woredas"
-  STATUS ON
-  TYPE POLYGON
-  STATUS ON
-  CONNECTIONTYPE OGR
-  CONNECTION "/data/gold/atlas_4326/ethio_wereda.shp"
-  DATA "ethio_wereda"
-  METADATA
-    "wms_title" "Ethiopia - Woredas"
-    "wms_srs" "EPSG:3857 EPSG:4326"
-    "wms_enable_request" "*"
-    "wms_queryable" "true"
-    "wms_feature_info_mime_type" "text/plain"
-    "gml_include_items" "W_NAME,REGION_R2I,Area_km2,Pop_04,Pop_Den,Admin_Unit"
-    "wms_include_items" "W_NAME,REGION_R2I,Area_km2,Pop_04,Pop_Den,Admin_Unit"
-  END
-  TEMPLATE "dummy.html"
-  CLASS
-    STYLE
-      OUTLINECOLOR 100 100 100
-      COLOR 220 220 220
-      WIDTH 1
-    END
-  END
-END
-
-LAYER
   NAME "tigray_tabias"
   STATUS ON
   TYPE POLYGON
