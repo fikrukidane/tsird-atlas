@@ -329,6 +329,7 @@ END
       "init=epsg:4326"
     END
     DATA "/data/gold/eritrea/gadm41_ERI_1.shp"
+    LABELITEM "NAME_1"
     METADATA
       "wms_title" "Eritrea - Regions (Zobas)"
       "wms_enable_request" "*"
@@ -337,8 +338,23 @@ END
     CLASS
       NAME "Eritrea Zobas"
       STYLE
-        OUTLINECOLOR 160 82 45
+        COLOR 240 230 215
+        OUTLINECOLOR 140 100 55
         WIDTH 1.5
+        OPACITY 40
+      END
+      LABEL
+        TYPE TRUETYPE
+        FONT "arial"
+        SIZE 10
+        COLOR 80 50 20
+        OUTLINECOLOR 255 255 255
+        OUTLINEWIDTH 2
+        POSITION CC
+        PARTIALS FALSE
+        MAXSCALEDENOM 3000000
+        MINSCALEDENOM 50000
+        FORCE FALSE
       END
     END
   END
@@ -351,6 +367,7 @@ END
       "init=epsg:4326"
     END
     DATA "/data/gold/eritrea/gadm41_ERI_2.shp"
+    LABELITEM "NAME_2"
     METADATA
       "wms_title" "Eritrea - Districts"
       "wms_enable_request" "*"
@@ -359,8 +376,23 @@ END
     CLASS
       NAME "Eritrea Districts"
       STYLE
-        OUTLINECOLOR 205 133 63
-        WIDTH 1
+        COLOR 245 238 225
+        OUTLINECOLOR 175 135 80
+        WIDTH 0.8
+        OPACITY 35
+      END
+      LABEL
+        TYPE TRUETYPE
+        FONT "arial"
+        SIZE 8
+        COLOR 90 60 30
+        OUTLINECOLOR 255 255 255
+        OUTLINEWIDTH 2
+        POSITION CC
+        PARTIALS FALSE
+        MAXSCALEDENOM 800000
+        MINSCALEDENOM 20000
+        FORCE FALSE
       END
     END
   END

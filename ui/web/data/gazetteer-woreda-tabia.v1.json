@@ -1,0 +1,52 @@
+{
+  "version": "v1",
+  "generated_utc": "2026-03-05T00:00:00Z",
+  "crs": "EPSG:4326",
+  "schema": {
+    "description": "Gazetteer for Tigray Woredas and Tabias",
+    "record_fields": {
+      "type": "woreda | tabia",
+      "id": "string-stable-id",
+      "name": "Official Name",
+      "name_norm": "normalized-name (lowercase, no punctuation)",
+      "aliases": ["optional", "alternate names"],
+      "parent": {
+        "woreda_id": "null for woreda, string for tabia"
+      },
+      "center": ["lon", "lat"],
+      "bbox": ["minx", "miny", "maxx", "maxy"]
+    }
+  },
+  "records": [
+    {
+      "type": "woreda",
+      "id": "woreda-adwa",
+      "name": "Adwa",
+      "name_norm": "adwa",
+      "aliases": ["Adiwa"],
+      "parent": {"woreda_id": null},
+      "center": [38.898, 14.167],
+      "bbox": [38.85, 14.12, 38.95, 14.22]
+    },
+    {
+      "type": "tabia",
+      "id": "tabia-mesanu",
+      "name": "Mesanu",
+      "name_norm": "mesanu",
+      "aliases": ["Mesanu Tabia"],
+      "parent": {"woreda_id": "woreda-adwa"},
+      "center": [38.91, 14.18],
+      "bbox": [38.90, 14.17, 38.92, 14.19]
+    },
+    {
+      "type": "woreda",
+      "id": "woreda-abi-adi",
+      "name": "Abi Adi",
+      "name_norm": "abi adi",
+      "aliases": ["Abiadi"],
+      "parent": {"woreda_id": null},
+      "center": [38.733, 13.933],
+      "bbox": [38.70, 13.90, 38.76, 13.96]
+    }
+  ]
+}

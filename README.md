@@ -114,16 +114,20 @@ MapServer Publication
 
 ### System Status
 
-**Operational**
+**Operational — v1.0.0 Production**
 - Vector normalization pipeline (audit -> normalize -> separate)
 - CRS override catalog (YAML)
 - Geometry validation and quarantine model
 - MapServer WMS/WFS publication
 - PostGIS storage (gold schema)
 - Audit reporting
-- **Layer styling** (20 vector layers with CLASS/STYLE definitions)
+- **Layer styling** — polygon hierarchy, muted categorical fills (Tigray zones, Ethiopia regions)
 - **WMS GetLegendGraphic support** (LEGEND object + CLASS NAME attributes)
 - **Legend UI** (inline legend display in TOC)
+- **Phase 3 Atlas UI** — bilingual Woreda/Tabia gazetteer search, zoom-to-feature, orange highlight overlay, navigator map, distance/area measurement tools, persistent Display Settings panel
+- **Cleaned TOC** — Ethiopia Administrative / Tigray State / Horn of Africa hierarchy
+- **Bilingual labels** — NotoSansEthiopic for Tigrinya, Arial for English
+- **FastAPI gazetteer** (`/map/api/gazetteer`) backed by PostGIS
 
 **In Progress**
 - Incremental orchestration
@@ -134,6 +138,28 @@ MapServer Publication
 - Automated testing suite
 - Real-time incremental updates
 - Full WCS raster configuration
+
+---
+
+## Atlas Access
+
+| Environment | URL |
+|---|---|
+| **Public** | https://lab.tigrayinsights.net |
+| **Internal path** | https://lab.tigrayinsights.net/map/ |
+| **Local development** | http://localhost:18080/map/ |
+
+All atlas assets (UI, data, WMS OGC endpoint) are served under the `/map` path prefix.
+
+**Operational verification:**
+```bash
+# Atlas UI
+curl -I https://lab.tigrayinsights.net/map/
+# Registry
+curl https://lab.tigrayinsights.net/map/data/atlas-registry.json
+# WMS
+curl "https://lab.tigrayinsights.net/map/ogc?SERVICE=WMS&REQUEST=GetCapabilities"
+```
 
 ---
 

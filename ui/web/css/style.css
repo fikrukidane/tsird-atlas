@@ -121,10 +121,32 @@ header h1 {
   flex-shrink: 0;
   background: var(--color-bg);
   border-left: 1px solid var(--color-border);
+  /* No scroll here — scroll lives in .toc-scroll-panel child */
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  font-size: 14px;
+}
+
+/* ── Sticky Display Settings header ── */
+.toc-settings-panel {
+  flex: 0 0 auto;
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: var(--color-bg);
+  padding: 12px 12px 0 12px;
+  border-bottom: 2px solid var(--color-border);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.06);
+}
+
+/* ── Scrollable TOC body ── */
+.toc-scroll-panel {
+  flex: 1 1 auto;
   overflow-y: auto;
   overflow-x: hidden;
+  min-height: 0;
   padding: 12px;
-  font-size: 14px;
 }
 
 /* ─────────────────────────────────────── */
@@ -1084,4 +1106,199 @@ header h1 {
 
 .atlas-scale-line .atlas-scale-line-inner::after {
   right: 0;
+}}
+
+/* ==========================================
+   Phase 3: Search, Navigator, Measure Tools
+   ========================================== */
+
+/* Tools Container */
+.phase3-tools-container {
+  position: absolute;
+  top: 10px;
+  left: 60px;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: auto;
+}
+
+/* Search Box */
+.phase3-search-box {
+  position: relative;
+  width: 280px;
+}
+
+.phase3-search-box .search-input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 2px solid #ddd;
+  border-radius: 6px;
+  font-size: 14px;
+  background: white;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.phase3-search-box .search-input:focus {
+  border-color: #4285f4;
+}
+
+.phase3-search-box .search-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 0 0 6px 6px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  max-height: 300px;
+  overflow-y: auto;
+  z-index: 1000;
+}
+
+.phase3-search-box .search-dropdown.hidden {
+  display: none;
+}
+
+.phase3-search-box .search-result {
+  padding: 10px 12px;
+  cursor: pointer;
+  border-bottom: 1px solid #eee;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.phase3-search-box .search-result:last-child {
+  border-bottom: none;
+}
+
+.phase3-search-box .search-result:hover,
+.phase3-search-box .search-result.selected {
+  background: #f0f7ff;
+}
+
+.phase3-search-box .result-name {
+  font-weight: 500;
+  color: #333;
+}
+
+.phase3-search-box .result-type {
+  font-size: 12px;
+  color: #666;
+}
+
+.phase3-search-box .search-no-results {
+  padding: 12px;
+  color: #888;
+  text-align: center;
+  font-style: italic;
+}
+
+/* Tool Buttons */
+.phase3-tool-btn {
+  padding: 8px;
+  border: none;
+  border-radius: 4px;
+  background: white;
+  cursor: pointer;
+  font-size: 16px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+  transition: background 0.2s, transform 0.1s;
+}
+
+.phase3-tool-btn:hover {
+  background: #f0f0f0;
+}
+
+.phase3-tool-btn:active {
+  transform: scale(0.95);
+}
+
+/* Measure Panel */
+.phase3-measure-panel {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: white;
+  padding: 6px;
+  border-radius: 6px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+}
+
+.phase3-measure-panel .measure-buttons {
+  display: flex;
+  gap: 4px;
+}
+
+.phase3-measure-panel .measure-btn {
+  padding: 6px 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background: white;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.phase3-measure-panel .measure-btn:hover {
+  background: #f5f5f5;
+  border-color: #bbb;
+}
+
+.phase3-measure-panel .measure-btn.active {
+  background: #4285f4;
+  color: white;
+  border-color: #4285f4;
+}
+
+.phase3-measure-panel .measure-clear {
+  color: #d32f2f;
+}
+
+.phase3-measure-panel .measure-readout {
+  padding: 0 8px;
+  font-size: 13px;
+  color: #333;
+  min-width: 80px;
+}
+
+.phase3-measure-panel .measure-readout.has-value {
+  font-weight: 600;
+  color: #1565c0;
+}
+
+/* Full Zoom Button */
+.full-zoom-btn {
+  padding: 8px 12px;
+}
+
+/* Overview Map (Navigator) - Top Right */
+.phase3-overview {
+  position: absolute !important;
+  top: 10px !important;
+  right: 10px !important;
+  bottom: auto !important;
+  left: auto !important;
+}
+
+.phase3-overview .ol-overviewmap-map {
+  width: 180px;
+  height: 120px;
+  border: 2px solid #4285f4;
+  border-radius: 4px;
+}
+
+.phase3-overview .ol-overviewmap-box {
+  border: 2px solid #ff6b00;
+  background: rgba(255, 107, 0, 0.2);
+}
+
+.phase3-overview button {
+  background: white !important;
+  color: #333 !important;
 }

@@ -167,17 +167,29 @@ class InteractionController {
     // Apply density attribute on TOC root
     this._applyDensity(this.density);
 
-    // Render Display Settings panel (global boundary opacity)
-    this._renderDisplaySettings(container);
+    // ── Build two-panel sidebar: sticky header + scrollable body ──
+    const settingsPanel = document.createElement('div');
+    settingsPanel.id = 'display-settings-container';
+    settingsPanel.className = 'toc-settings-panel';
 
-    // Render categories
+    const scrollPanel = document.createElement('div');
+    scrollPanel.id = 'toc-scroll-container';
+    scrollPanel.className = 'toc-scroll-panel';
+
+    container.appendChild(settingsPanel);
+    container.appendChild(scrollPanel);
+
+    // Render Display Settings panel (global boundary opacity) into sticky header
+    this._renderDisplaySettings(settingsPanel);
+
+    // Render categories into scrollable body
     for (const category of this.tocModel) {
       const categoryElement = this._renderCategory(category);
-      container.appendChild(categoryElement);
+      scrollPanel.appendChild(categoryElement);
     }
 
     // Credits panel (UI-only)
-    this._renderCreditsPanel(container);
+    this._renderCreditsPanel(scrollPanel);
 
     // Update display settings visibility based on raster/basemap state
     this._updateDisplaySettingsVisibility();
@@ -1300,19 +1312,12 @@ class InteractionController {
    * @private
    */
   _updateDisplaySettingsVisibility() {
+    // Display Settings is always visible — it is not conditional on layer state.
+    // The panel is structurally sticky inside .toc-settings-panel and must never
+    // be hidden by layer toggle events.
     const panel = document.getElementById('display-settings-panel');
     if (!panel) return;
-
-    // Check if any raster or basemap is visible
-    const anyRasterOrBasemapVisible = this.olLayers.some(layer => {
-      const def = layer.get('layerDef');
-      if (!def) return false;
-      const isRaster = def.type === 'raster';
-      const isBasemap = def.base_layer === true;
-      return (isRaster || isBasemap) && layer.getVisible();
-    });
-
-    panel.style.display = anyRasterOrBasemapVisible ? 'block' : 'none';
+    panel.style.display = 'block';
   }
 
   _updatePolygonOpacity() {

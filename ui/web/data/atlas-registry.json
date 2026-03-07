@@ -37,78 +37,59 @@
   },
   "categories": [
     {
-      "id": "cat_mapelements",
-      "label": "Map Elements",
-      "closed": false,
-      "groups": [
-        {
-          "id": "grp_sample_grid",
-          "label": "SAMPLE_GRID",
-          "layers": []
-        },
-        {
-          "id": "grp_credits",
-          "label": "Credits",
-          "layers": []
-        }
-      ]
-    },
-    {
       "id": "cat_adminRegional",
-      "label": "Administrative (Regional)",
+      "label": "Ethiopia Administrative",
       "closed": false,
       "groups": [
         {
           "id": "grp_boundaries",
           "label": "Administrative Boundaries",
           "layers": [
-            "ethiopia_admin",
             "ethiopia_boundary_level1",
             "ethiopia_boundary_level2",
-            "ethiopia_boundary_level3"
-          ]
-        },
-        {
-          "id": "grp_regions",
-          "label": "Regions",
-          "layers": [
             "ethiopia_zones",
-            "ethiopia_woredas"
+            "ethiopia_woredas",
+            "ethiopia_admin"
           ]
         },
         {
-          "id": "grp_tigray_woreda_new",
-          "label": "TigrayWoredaNew",
-          "layers": [
-            "tigray_woreda"
-          ]
-        },
-        {
-          "id": "grp_tigrai_tabias_new",
-          "label": "TigraiTabiasNew",
-          "layers": [
-            "tigray_tabias"
-          ]
-        },
-        {
-          "id": "grp_additional_roads",
-          "label": "Other Road Networks",
-          "layers": [
-            "tigray_roads_2006t"
-          ]
-        },
-        {
-          "id": "grp_towns",
+          "id": "grp_towns_ethiopia",
           "label": "Towns",
           "layers": [
-            "ethiopia_towns",
+            "ethiopia_towns"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "cat_tigray_state",
+      "label": "Tigray State",
+      "closed": false,
+      "groups": [
+        {
+          "id": "grp_tigray_core",
+          "label": "Administrative",
+          "layers": [
+            "tigray_woredas_ti_en_pg",
+            "tigray_tabias_ti_en_pg",
             "tigray_towns"
           ]
-        },
+        }
+      ]
+    },
+    {
+      "id": "cat_horn_of_africa",
+      "label": "Horn of Africa",
+      "closed": false,
+      "groups": [
         {
-          "id": "grp_population_density_2006",
-          "label": "PopulationDensity2006",
-          "layers": []
+          "id": "grp_eritrea_admin",
+          "label": "Eritrea Administrative",
+          "layers": [
+            "eritrea_admin0",
+            "eritrea_admin1",
+            "eritrea_admin2"
+          ]
         }
       ]
     },
@@ -119,37 +100,31 @@
       "groups": [
         {
           "id": "grp_tigray_schools_2006",
-          "label": "TigraySchools2006",
+          "label": "Schools",
           "layers": [
             "tigray_schools_2006"
           ]
         },
         {
           "id": "grp_health_institutions",
-          "label": "Health_Institutions",
+          "label": "Health Facilities",
           "layers": [
             "tigray_health_facilities_2006"
           ]
         },
         {
           "id": "grp_tigray_roads_2006",
-          "label": "TigrayRoadsIn2006",
+          "label": "Tigray Roads (2006)",
           "layers": [
-            "tigray_roads_2006"
+            "tigray_roads_2006",
+            "tigray_roads_2006t"
           ]
         },
         {
-          "id": "grp_ethiopia_roads_old",
-          "label": "EthiopiaRoadsOld",
+          "id": "grp_ethiopia_roads",
+          "label": "Ethiopia Roads",
           "layers": [
-            "ethiopia_roads"
-          ]
-        },
-        {
-          "id": "grp_ethiopia_roads_other",
-          "label": "Ethiopia Roads (Other)",
-          "layers": [
-            "ethiopia_roads_baseline",
+            "ethiopia_roads",
             "ethiopia_roads_raw"
           ]
         }
@@ -262,16 +237,16 @@
       ]
     },
     {
-      "id": "cat_basemaps",
-      "label": "Basemaps",
-      "closed": false,
+      "id": "cat_landcover",
+      "label": "Land Use & Land Cover",
+      "closed": true,
       "groups": [
         {
-          "id": "grp_basemaps_public",
-          "label": "Public Basemaps",
+          "id": "grp_landcover_global",
+          "label": "Global Land Cover",
           "layers": [
-            "osm_basemap",
-            "esri_terrain"
+            "esa_worldcover",
+            "modis_landcover"
           ]
         }
       ]
@@ -310,32 +285,16 @@
       ]
     },
     {
-      "id": "cat_landcover",
-      "label": "Land Use & Land Cover",
-      "closed": true,
-      "groups": [
-        {
-          "id": "grp_landcover_global",
-          "label": "Global Land Cover",
-          "layers": [
-            "esa_worldcover",
-            "modis_landcover"
-          ]
-        }
-      ]
-    },
-    {
-      "id": "cat_horn_of_africa",
-      "label": "Horn of Africa",
+      "id": "cat_basemaps",
+      "label": "Basemaps",
       "closed": false,
       "groups": [
         {
-          "id": "grp_eritrea_admin",
-          "label": "Eritrea Administrative",
+          "id": "grp_basemaps_public",
+          "label": "Public Basemaps",
           "layers": [
-            "eritrea_admin0",
-            "eritrea_admin1",
-            "eritrea_admin2"
+            "osm_basemap",
+            "esri_terrain"
           ]
         }
       ]
@@ -344,6 +303,7 @@
   "layers": {
     "osm_basemap": {
       "label": "OpenStreetMap",
+      "wms_name": "osm_basemap",
       "published": true,
       "default_visible": true,
       "source_type": "xyz",
@@ -356,6 +316,7 @@
     },
     "esri_terrain": {
       "label": "ESRI World Terrain",
+      "wms_name": "esri_terrain",
       "published": true,
       "default_visible": false,
       "source_type": "xyz",
@@ -809,7 +770,7 @@
     },
     "ethiopia_zones": {
       "wms_name": "ethiopia_zones",
-      "label": "Ethiopia - Administrative Zones",
+      "label": "Zones",
       "type": "vector",
       "geometry_type": "polygon",
       "published": true,
@@ -827,7 +788,7 @@
     },
     "ethiopia_admin": {
       "wms_name": "ethiopia_admin",
-      "label": "Ethiopia - Admin Regions",
+      "label": "Old Awrajas",
       "type": "vector",
       "geometry_type": "polygon",
       "published": true,
@@ -841,7 +802,7 @@
     },
     "ethiopia_woredas": {
       "wms_name": "ethiopia_woredas",
-      "label": "Ethiopia - Woredas",
+      "label": "Woredas",
       "type": "vector",
       "geometry_type": "polygon",
       "published": true,
@@ -896,7 +857,7 @@
     },
     "ethiopia_boundary_level1": {
       "wms_name": "ethiopia_boundary_level1",
-      "label": "Level 1 Boundaries",
+      "label": "Country",
       "type": "vector",
       "geometry_type": "polygon",
       "published": true,
@@ -910,7 +871,7 @@
     },
     "ethiopia_boundary_level2": {
       "wms_name": "ethiopia_boundary_level2",
-      "label": "Level 2 Boundaries",
+      "label": "Regions",
       "type": "vector",
       "geometry_type": "polygon",
       "published": true,
@@ -964,7 +925,7 @@
     },
     "ethiopia_roads_raw": {
       "wms_name": "ethiopia_roads_raw",
-      "label": "Ethiopia Roads (Raw Shapefile)",
+      "label": "Roads (All types)",
       "type": "vector",
       "geometry_type": "linestring",
       "published": true,
@@ -989,7 +950,7 @@
     },
     "tigray_roads_2006t": {
       "wms_name": "tigray_roads_2006t",
-      "label": "Tigray Roads 2006 (Alt)",
+      "label": "Tigray Roads 2006 (All types)",
       "type": "vector",
       "geometry_type": "linestring",
       "published": true,
@@ -1001,7 +962,7 @@
     },
     "ethiopia_towns": {
       "wms_name": "ethiopia_towns",
-      "label": "Ethiopia - Towns",
+      "label": "Towns (Ethiopia)",
       "type": "vector",
       "geometry_type": "point",
       "published": true,
@@ -1017,7 +978,7 @@
     },
     "tigray_towns": {
       "wms_name": "tigray_towns",
-      "label": "Tigray - Towns",
+      "label": "Towns (Tigray)",
       "type": "vector",
       "geometry_type": "point",
       "published": true,
@@ -1329,9 +1290,58 @@
       "min_scale": 50000000,
       "max_scale": 100000,
       "identify_fields": []
+    },
+    "tigray_tabias_ti_en_pg": {
+      "label": "Tabias",
+      "type": "vector",
+      "geometry_type": "polygon",
+      "published": true,
+      "default_visible": false,
+      "legend_mode": "none",
+      "opacity": 0.5,
+      "min_scale": 5000000,
+      "max_scale": 50000,
+      "queryable": true,
+      "wms_name": "tigray_tabias_ti_en_pg",
+      "identify_fields": [
+        "TABIA",
+        "tabia_tig",
+        "WEREDA",
+        "ZONES",
+        "SQ_KM",
+        "HECTARES",
+        "DENSITY"
+      ],
+      "attribution": "Source: PostGIS (tsird) bilingual labels"
+    },
+    "tigray_woredas_ti_en_pg": {
+      "label": "Woredas",
+      "type": "vector",
+      "geometry_type": "polygon",
+      "published": true,
+      "default_visible": false,
+      "legend_mode": "none",
+      "opacity": 0.5,
+      "min_scale": 10000000,
+      "max_scale": 50000,
+      "queryable": true,
+      "wms_name": "tigray_woredas_ti_en_pg",
+      "identify_fields": [
+        "WEREDA",
+        "woreda_tig",
+        "ZONE_NAME",
+        "Tot_Popula",
+        "SUM_SQ_KM",
+        "SUM_HECTAR"
+      ],
+      "attribution": "Source: PostGIS (tsird) bilingual labels"
     }
   },
   "search": [],
+  "search_config": {
+    "enabled": true,
+    "index_url": "data/gazetteer-woreda-tabia.v1.json"
+  },
   "rules": {
     "basemap_mutex": true,
     "scale_mutex_pairs": [

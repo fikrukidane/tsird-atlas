@@ -3,80 +3,85 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>TSIRD Phase 2 — Tigray Insights Web Atlas</title>
+  <title>TSIRD Atlas — Tigray Insights Digital Atlas</title>
 
   <!-- OpenLayers CSS -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@8.1.0/ol.css" />
 
   <!-- Application CSS -->
-  <link rel="stylesheet" href="css/style.css?v=20260303b" />
+  <link rel="stylesheet" href="css/style.css?v=20260308" />
+  <link rel="stylesheet" href="css/phase3-controls.css?v=20260308" />
 </head>
 <body>
   <div id="app-container">
-    <!-- Header -->
     <header>
-      <h1>🗺️ TSIRD Phase 2 — Tigray Insights Digital Atlas</h1>
+      <h1>🗺️ TSIRD Atlas — Tigray Insights Digital Atlas</h1>
     </header>
-
-    <!-- Main Content: Map + TOC -->
     <div id="main-container">
-      <!-- Map Container (flex) -->
       <div id="map-container">
         <div id="map-loading" class="loading">Loading map...</div>
-        <!-- OpenLayers target element -->
         <div id="map" class="map"></div>
       </div>
-
-      <!-- Resize Handle -->
       <div id="toc-resizer" title="Drag to resize"></div>
-
-      <!-- TOC Sidebar (resizable) -->
       <div id="toc-container">
         <div class="loading">Loading layers...</div>
       </div>
     </div>
   </div>
 
-  <!-- ═════════════════════════════════════════════════════════════ -->
-  <!-- External Libraries -->
-  <!-- ═════════════════════════════════════════════════════════════ -->
+  <!-- ══════════════════════════════════════════════════════ -->
+  <!-- External Libraries                                     -->
+  <!-- ══════════════════════════════════════════════════════ -->
 
-  <!-- OpenLayers (WMS & map rendering) -->
+  <!-- OpenLayers (global `ol`) -->
   <script src="https://cdn.jsdelivr.net/npm/ol@8.1.0/dist/ol.js"></script>
 
   <!-- js-yaml (YAML registry parsing) -->
   <script src="https://cdn.jsdelivr.net/npm/js-yaml@4.1.0/dist/js-yaml.min.js"></script>
 
-  <!-- ═════════════════════════════════════════════════════════════ -->
-  <!-- Application Modules -->
-  <!-- ═════════════════════════════════════════════════════════════ -->
+  <!-- ══════════════════════════════════════════════════════ -->
+  <!-- Application Modules (plain classic scripts)           -->
+  <!-- ══════════════════════════════════════════════════════ -->
 
-  <!-- Registry Loading -->
-  <script src="src/registry/RegistryLoader.js?v=20260303b"></script>
+  <!-- Registry -->
+  <script src="src/registry/RegistryLoader.js?v=20260308"></script>
 
-  <!-- Map Management -->
-  <script src="src/map/MapController.js?v=20260303b"></script>
-  <script src="src/map/LayerFactory.js?v=20260303b"></script>
-  <script src="src/map/ScaleEngine.js?v=20260303b"></script>  <!-- Milestone 2: Scale calculations -->
+  <!-- Map -->
+  <script src="src/map/MapController.js?v=20260308"></script>
+  <script src="src/map/LayerFactory.js?v=20260308"></script>
+  <script src="src/map/ScaleEngine.js?v=20260308"></script>
 
   <!-- Interactions -->
-  <script src="src/interactions/InteractionController.js?v=20260303b"></script>
+  <script src="src/interactions/InteractionController.js?v=20260308"></script>
 
-  <!-- UI Components -->
-  <script src="src/ui/TocResizer.js?v=20260303b"></script>
+  <!-- UI -->
+  <script src="src/ui/TocResizer.js?v=20260308"></script>
+
+  <!-- ══════════════════════════════════════════════════════ -->
+  <!-- Phase 3: Search, Navigator, Measure                    -->
+  <!-- ══════════════════════════════════════════════════════ -->
+
+  <!-- Config constant (TSIRD_FULL_EXTENT_4326) -->
+  <script src="src/config/extents.js?v=20260308"></script>
+
+  <!-- Tools (HighlightOverlay, MeasureTool — must load before controls) -->
+  <script src="src/tools/HighlightOverlay.js?v=20260308"></script>
+  <script src="src/tools/MeasureTool.js?v=20260308"></script>
+
+  <!-- OL Controls (extend ol.control.Control) -->
+  <script src="src/controls/SearchControl.js?v=20260308"></script>
+  <script src="src/controls/FullZoomControl.js?v=20260308"></script>
+  <script src="src/controls/MeasureControl.js?v=20260308"></script>
 
   <!-- Application Orchestration -->
-  <script src="src/main.js?v=20260303b"></script>
+  <script src="src/main.js?v=20260308"></script>
 
-  <!-- ═════════════════════════════════════════════════════════════ -->
-  <!-- Development Console Log -->
-  <!-- ═════════════════════════════════════════════════════════════ -->
+  <!-- Dev log -->
   <script>
-    console.log('TSIRD Phase 2 Milestone 2 — Frontend Loaded');
-    console.log('Registry path: data/atlas-registry.json');
+    console.log('TSIRD Phase 3 — Search, Navigator, Measure Tools');
+    console.log('Registry: data/atlas-registry.json');
+    console.log('Gazetteer API: /map/api/gazetteer?q=...');
     console.log('Open DevTools (F12) to view initialization logs.');
-    console.log('Network tab: watch for WMS GetMap + GetFeatureInfo requests (no WFS GetFeature)');
-    console.log('Milestone 2: Scale enforcement, mutex pairs, identify (GetFeatureInfo)');
   </script>
 </body>
 </html>
