@@ -107,6 +107,12 @@
   border-color: #1565c0;
 }
 
+/* ── Native OL zoom control — pushed below the Phase 3 toolbar ── */
+.ol-zoom {
+  top: 56px;
+  left: 8px;
+}
+
 /* ═══════════════════════════════════════════════════════
    Navigator Map — top-right, not covering scale bar
    ═══════════════════════════════════════════════════════ */

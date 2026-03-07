@@ -1312,19 +1312,12 @@ class InteractionController {
    * @private
    */
   _updateDisplaySettingsVisibility() {
+    // Display Settings is always visible — it is not conditional on layer state.
+    // The panel is structurally sticky inside .toc-settings-panel and must never
+    // be hidden by layer toggle events.
     const panel = document.getElementById('display-settings-panel');
     if (!panel) return;
-
-    // Check if any raster or basemap is visible
-    const anyRasterOrBasemapVisible = this.olLayers.some(layer => {
-      const def = layer.get('layerDef');
-      if (!def) return false;
-      const isRaster = def.type === 'raster';
-      const isBasemap = def.base_layer === true;
-      return (isRaster || isBasemap) && layer.getVisible();
-    });
-
-    panel.style.display = anyRasterOrBasemapVisible ? 'block' : 'none';
+    panel.style.display = 'block';
   }
 
   _updatePolygonOpacity() {

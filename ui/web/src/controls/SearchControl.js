@@ -121,7 +121,11 @@ class SearchControl {
     this._close();
     if (!record.bbox) return;
     var extent3857 = ol.proj.transformExtent(record.bbox, 'EPSG:4326', 'EPSG:3857');
-    this._map.getView().fit(extent3857, { padding: [40, 40, 40, 40], duration: 400 });
+    // Tabias are small — use more padding and cap zoom so context remains visible
+    var fitOptions = record.type === 'tabia'
+      ? { padding: [80, 80, 80, 80], maxZoom: 12, duration: 400 }
+      : { padding: [40, 40, 40, 40], duration: 400 };
+    this._map.getView().fit(extent3857, fitOptions);
     HighlightOverlay.show(record.bbox);
   }
 
