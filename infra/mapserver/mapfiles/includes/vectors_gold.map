@@ -599,16 +599,18 @@ LAYER
     "wms_include_items" "WEREDA,woreda_tig,ZONE_NAME,Tot_Popula,SUM_SQ_KM,SUM_HECTAR,wor_name"
   END
   TEMPLATE "dummy.html"
+  CLASSITEM "ZONE_NAME"
 
+  # Central Zone — soft blue
   CLASS
-    NAME "woredas"
-
-    # optional: show a subtle boundary so you can confirm it draws
+    NAME "Central"
+    EXPRESSION "Central"
     STYLE
-      OUTLINECOLOR 80 80 80
-      WIDTH 1
+      COLOR 200 220 245
+      OUTLINECOLOR 75 105 150
+      WIDTH 1.5
+      OPACITY 65
     END
-
     LABEL
       TYPE TRUETYPE
       FONT "noto-ethiopic"
@@ -619,14 +621,11 @@ LAYER
       POSITION CC
       PARTIALS FALSE
       OFFSET 0 -8
-
       MAXSCALEDENOM 2000000
       MINSCALEDENOM 100000
-
       FORCE TRUE
       TEXT "[woreda_tig]"
     END
-
     LABEL
       TYPE TRUETYPE
       FONT "arial"
@@ -637,10 +636,301 @@ LAYER
       POSITION CC
       PARTIALS FALSE
       OFFSET 0 8
-
       MAXSCALEDENOM 2000000
       MINSCALEDENOM 100000
+      FORCE TRUE
+      TEXT "[WEREDA]"
+    END
+  END
 
+  # Eastern Zone — soft green-mint
+  CLASS
+    NAME "Eastern"
+    EXPRESSION "Eastern"
+    STYLE
+      COLOR 195 235 210
+      OUTLINECOLOR 60 120 85
+      WIDTH 1.5
+      OPACITY 65
+    END
+    LABEL
+      TYPE TRUETYPE
+      FONT "noto-ethiopic"
+      SIZE 12
+      COLOR 20 20 20
+      OUTLINECOLOR 255 255 255
+      OUTLINEWIDTH 3
+      POSITION CC
+      PARTIALS FALSE
+      OFFSET 0 -8
+      MAXSCALEDENOM 2000000
+      MINSCALEDENOM 100000
+      FORCE TRUE
+      TEXT "[woreda_tig]"
+    END
+    LABEL
+      TYPE TRUETYPE
+      FONT "arial"
+      SIZE 10
+      COLOR 20 20 20
+      OUTLINECOLOR 255 255 255
+      OUTLINEWIDTH 3
+      POSITION CC
+      PARTIALS FALSE
+      OFFSET 0 8
+      MAXSCALEDENOM 2000000
+      MINSCALEDENOM 100000
+      FORCE TRUE
+      TEXT "[WEREDA]"
+    END
+  END
+
+  # Mekelle Zone — muted peach/orange
+  CLASS
+    NAME "Mekelle"
+    EXPRESSION "Mekelle"
+    STYLE
+      COLOR 255 222 195
+      OUTLINECOLOR 145 95 55
+      WIDTH 1.5
+      OPACITY 65
+    END
+    LABEL
+      TYPE TRUETYPE
+      FONT "noto-ethiopic"
+      SIZE 12
+      COLOR 20 20 20
+      OUTLINECOLOR 255 255 255
+      OUTLINEWIDTH 3
+      POSITION CC
+      PARTIALS FALSE
+      OFFSET 0 -8
+      MAXSCALEDENOM 2000000
+      MINSCALEDENOM 100000
+      FORCE TRUE
+      TEXT "[woreda_tig]"
+    END
+    LABEL
+      TYPE TRUETYPE
+      FONT "arial"
+      SIZE 10
+      COLOR 20 20 20
+      OUTLINECOLOR 255 255 255
+      OUTLINEWIDTH 3
+      POSITION CC
+      PARTIALS FALSE
+      OFFSET 0 8
+      MAXSCALEDENOM 2000000
+      MINSCALEDENOM 100000
+      FORCE TRUE
+      TEXT "[WEREDA]"
+    END
+  END
+
+  # North Western Zone — muted lavender
+  CLASS
+    NAME "North Western"
+    EXPRESSION "North Western"
+    STYLE
+      COLOR 215 200 240
+      OUTLINECOLOR 100 78 148
+      WIDTH 1.5
+      OPACITY 65
+    END
+    LABEL
+      TYPE TRUETYPE
+      FONT "noto-ethiopic"
+      SIZE 12
+      COLOR 20 20 20
+      OUTLINECOLOR 255 255 255
+      OUTLINEWIDTH 3
+      POSITION CC
+      PARTIALS FALSE
+      OFFSET 0 -8
+      MAXSCALEDENOM 2000000
+      MINSCALEDENOM 100000
+      FORCE TRUE
+      TEXT "[woreda_tig]"
+    END
+    LABEL
+      TYPE TRUETYPE
+      FONT "arial"
+      SIZE 10
+      COLOR 20 20 20
+      OUTLINECOLOR 255 255 255
+      OUTLINEWIDTH 3
+      POSITION CC
+      PARTIALS FALSE
+      OFFSET 0 8
+      MAXSCALEDENOM 2000000
+      MINSCALEDENOM 100000
+      FORCE TRUE
+      TEXT "[WEREDA]"
+    END
+  END
+
+  # South Eastern Zone — muted tan/sand
+  CLASS
+    NAME "South Eastern"
+    EXPRESSION "South Eastern"
+    STYLE
+      COLOR 235 215 182
+      OUTLINECOLOR 128 102 50
+      WIDTH 1.5
+      OPACITY 65
+    END
+    LABEL
+      TYPE TRUETYPE
+      FONT "noto-ethiopic"
+      SIZE 12
+      COLOR 20 20 20
+      OUTLINECOLOR 255 255 255
+      OUTLINEWIDTH 3
+      POSITION CC
+      PARTIALS FALSE
+      OFFSET 0 -8
+      MAXSCALEDENOM 2000000
+      MINSCALEDENOM 100000
+      FORCE TRUE
+      TEXT "[woreda_tig]"
+    END
+    LABEL
+      TYPE TRUETYPE
+      FONT "arial"
+      SIZE 10
+      COLOR 20 20 20
+      OUTLINECOLOR 255 255 255
+      OUTLINEWIDTH 3
+      POSITION CC
+      PARTIALS FALSE
+      OFFSET 0 8
+      MAXSCALEDENOM 2000000
+      MINSCALEDENOM 100000
+      FORCE TRUE
+      TEXT "[WEREDA]"
+    END
+  END
+
+  # Southern Zone — muted rose
+  CLASS
+    NAME "Southern"
+    EXPRESSION "Southern"
+    STYLE
+      COLOR 240 200 215
+      OUTLINECOLOR 138 68 90
+      WIDTH 1.5
+      OPACITY 65
+    END
+    LABEL
+      TYPE TRUETYPE
+      FONT "noto-ethiopic"
+      SIZE 12
+      COLOR 20 20 20
+      OUTLINECOLOR 255 255 255
+      OUTLINEWIDTH 3
+      POSITION CC
+      PARTIALS FALSE
+      OFFSET 0 -8
+      MAXSCALEDENOM 2000000
+      MINSCALEDENOM 100000
+      FORCE TRUE
+      TEXT "[woreda_tig]"
+    END
+    LABEL
+      TYPE TRUETYPE
+      FONT "arial"
+      SIZE 10
+      COLOR 20 20 20
+      OUTLINECOLOR 255 255 255
+      OUTLINEWIDTH 3
+      POSITION CC
+      PARTIALS FALSE
+      OFFSET 0 8
+      MAXSCALEDENOM 2000000
+      MINSCALEDENOM 100000
+      FORCE TRUE
+      TEXT "[WEREDA]"
+    END
+  END
+
+  # Western Zone — muted olive green
+  CLASS
+    NAME "Western"
+    EXPRESSION "Western"
+    STYLE
+      COLOR 205 235 192
+      OUTLINECOLOR 70 122 58
+      WIDTH 1.5
+      OPACITY 65
+    END
+    LABEL
+      TYPE TRUETYPE
+      FONT "noto-ethiopic"
+      SIZE 12
+      COLOR 20 20 20
+      OUTLINECOLOR 255 255 255
+      OUTLINEWIDTH 3
+      POSITION CC
+      PARTIALS FALSE
+      OFFSET 0 -8
+      MAXSCALEDENOM 2000000
+      MINSCALEDENOM 100000
+      FORCE TRUE
+      TEXT "[woreda_tig]"
+    END
+    LABEL
+      TYPE TRUETYPE
+      FONT "arial"
+      SIZE 10
+      COLOR 20 20 20
+      OUTLINECOLOR 255 255 255
+      OUTLINEWIDTH 3
+      POSITION CC
+      PARTIALS FALSE
+      OFFSET 0 8
+      MAXSCALEDENOM 2000000
+      MINSCALEDENOM 100000
+      FORCE TRUE
+      TEXT "[WEREDA]"
+    END
+  END
+
+  # Fallback (unclassified zone)
+  CLASS
+    NAME "Other"
+    STYLE
+      COLOR 220 220 220
+      OUTLINECOLOR 85 90 95
+      WIDTH 1.5
+      OPACITY 65
+    END
+    LABEL
+      TYPE TRUETYPE
+      FONT "noto-ethiopic"
+      SIZE 12
+      COLOR 20 20 20
+      OUTLINECOLOR 255 255 255
+      OUTLINEWIDTH 3
+      POSITION CC
+      PARTIALS FALSE
+      OFFSET 0 -8
+      MAXSCALEDENOM 2000000
+      MINSCALEDENOM 100000
+      FORCE TRUE
+      TEXT "[woreda_tig]"
+    END
+    LABEL
+      TYPE TRUETYPE
+      FONT "arial"
+      SIZE 10
+      COLOR 20 20 20
+      OUTLINECOLOR 255 255 255
+      OUTLINEWIDTH 3
+      POSITION CC
+      PARTIALS FALSE
+      OFFSET 0 8
+      MAXSCALEDENOM 2000000
+      MINSCALEDENOM 100000
       FORCE TRUE
       TEXT "[WEREDA]"
     END
@@ -1035,11 +1325,10 @@ LAYER
   END
   TEMPLATE "dummy.html"
   CLASS
-    NAME "Level 1 Boundary"
+    NAME "Country Boundary"
     STYLE
-      OUTLINECOLOR 100 100 100
-      COLOR 220 220 220
-      WIDTH 1
+      OUTLINECOLOR 20 20 20
+      WIDTH 3
     END
   END
 END
@@ -1052,6 +1341,8 @@ LAYER
   CONNECTIONTYPE OGR
   CONNECTION "/data/gold/atlas_4326/bound02.shp"
   DATA "bound02"
+  CLASSITEM "REGION"
+  LABELITEM "REGION"
   METADATA
     "wms_title" "Ethiopia - Boundary Level 2"
     "wms_srs" "EPSG:3857 EPSG:4326"
@@ -1062,12 +1353,291 @@ LAYER
     "wms_include_items" "REGION,AREA,PERIMETER"
   END
   TEMPLATE "dummy.html"
+
   CLASS
-    NAME "Level 2 Boundary"
+    NAME "Tigray"
+    EXPRESSION "TIGRAY"
     STYLE
-      OUTLINECOLOR 100 100 100
+      COLOR 200 180 210
+      OUTLINECOLOR 90 55 80
+      WIDTH 2
+      OPACITY 45
+    END
+    LABEL
+      TYPE TRUETYPE
+      FONT "arial"
+      SIZE 10
+      COLOR 35 35 35
+      OUTLINECOLOR 255 255 255
+      OUTLINEWIDTH 2
+      POSITION CC
+      PARTIALS FALSE
+      MAXSCALEDENOM 12000000
+      MINSCALEDENOM 200000
+      FORCE FALSE
+    END
+  END
+
+  CLASS
+    NAME "Amhara"
+    EXPRESSION "AMHARA"
+    STYLE
+      COLOR 180 210 240
+      OUTLINECOLOR 50 80 130
+      WIDTH 2
+      OPACITY 45
+    END
+    LABEL
+      TYPE TRUETYPE
+      FONT "arial"
+      SIZE 10
+      COLOR 35 35 35
+      OUTLINECOLOR 255 255 255
+      OUTLINEWIDTH 2
+      POSITION CC
+      PARTIALS FALSE
+      MAXSCALEDENOM 12000000
+      MINSCALEDENOM 200000
+      FORCE FALSE
+    END
+  END
+
+  CLASS
+    NAME "Benishangul-Gumuz"
+    EXPRESSION "BENISHANGUL-GUM"
+    STYLE
+      COLOR 190 220 190
+      OUTLINECOLOR 55 115 60
+      WIDTH 2
+      OPACITY 45
+    END
+    LABEL
+      TYPE TRUETYPE
+      FONT "arial"
+      SIZE 10
+      COLOR 35 35 35
+      OUTLINECOLOR 255 255 255
+      OUTLINEWIDTH 2
+      POSITION CC
+      PARTIALS FALSE
+      MAXSCALEDENOM 12000000
+      MINSCALEDENOM 200000
+      FORCE FALSE
+    END
+  END
+
+  CLASS
+    NAME "Oromia"
+    EXPRESSION "OROMIA"
+    STYLE
+      COLOR 235 215 175
+      OUTLINECOLOR 120 98 40
+      WIDTH 2
+      OPACITY 45
+    END
+    LABEL
+      TYPE TRUETYPE
+      FONT "arial"
+      SIZE 10
+      COLOR 35 35 35
+      OUTLINECOLOR 255 255 255
+      OUTLINEWIDTH 2
+      POSITION CC
+      PARTIALS FALSE
+      MAXSCALEDENOM 12000000
+      MINSCALEDENOM 200000
+      FORCE FALSE
+    END
+  END
+
+  CLASS
+    NAME "Dire Dawa"
+    EXPRESSION "DIRE DAWA"
+    STYLE
+      COLOR 245 225 200
+      OUTLINECOLOR 140 108 72
+      WIDTH 2
+      OPACITY 45
+    END
+    LABEL
+      TYPE TRUETYPE
+      FONT "arial"
+      SIZE 9
+      COLOR 35 35 35
+      OUTLINECOLOR 255 255 255
+      OUTLINEWIDTH 2
+      POSITION CC
+      PARTIALS FALSE
+      MAXSCALEDENOM 5000000
+      MINSCALEDENOM 100000
+      FORCE FALSE
+    END
+  END
+
+  CLASS
+    NAME "Harari"
+    EXPRESSION "HARARI"
+    STYLE
+      COLOR 220 195 230
+      OUTLINECOLOR 108 75 130
+      WIDTH 2
+      OPACITY 45
+    END
+    LABEL
+      TYPE TRUETYPE
+      FONT "arial"
+      SIZE 9
+      COLOR 35 35 35
+      OUTLINECOLOR 255 255 255
+      OUTLINEWIDTH 2
+      POSITION CC
+      PARTIALS FALSE
+      MAXSCALEDENOM 5000000
+      MINSCALEDENOM 100000
+      FORCE FALSE
+    END
+  END
+
+  CLASS
+    NAME "Southern Region"
+    EXPRESSION "SOUTHERN REGION"
+    STYLE
+      COLOR 190 230 215
+      OUTLINECOLOR 50 118 100
+      WIDTH 2
+      OPACITY 45
+    END
+    LABEL
+      TYPE TRUETYPE
+      FONT "arial"
+      SIZE 10
+      COLOR 35 35 35
+      OUTLINECOLOR 255 255 255
+      OUTLINEWIDTH 2
+      POSITION CC
+      PARTIALS FALSE
+      MAXSCALEDENOM 12000000
+      MINSCALEDENOM 200000
+      FORCE FALSE
+    END
+  END
+
+  CLASS
+    NAME "Gambella"
+    EXPRESSION "GAMBELLA"
+    STYLE
+      COLOR 210 235 190
+      OUTLINECOLOR 85 122 55
+      WIDTH 2
+      OPACITY 45
+    END
+    LABEL
+      TYPE TRUETYPE
+      FONT "arial"
+      SIZE 10
+      COLOR 35 35 35
+      OUTLINECOLOR 255 255 255
+      OUTLINEWIDTH 2
+      POSITION CC
+      PARTIALS FALSE
+      MAXSCALEDENOM 12000000
+      MINSCALEDENOM 200000
+      FORCE FALSE
+    END
+  END
+
+  CLASS
+    NAME "Afar"
+    EXPRESSION "AFAR"
+    STYLE
+      COLOR 245 220 185
+      OUTLINECOLOR 135 102 48
+      WIDTH 2
+      OPACITY 45
+    END
+    LABEL
+      TYPE TRUETYPE
+      FONT "arial"
+      SIZE 10
+      COLOR 35 35 35
+      OUTLINECOLOR 255 255 255
+      OUTLINEWIDTH 2
+      POSITION CC
+      PARTIALS FALSE
+      MAXSCALEDENOM 12000000
+      MINSCALEDENOM 200000
+      FORCE FALSE
+    END
+  END
+
+  CLASS
+    NAME "Somali Region"
+    EXPRESSION "SOMALI REGION"
+    STYLE
+      COLOR 235 215 200
+      OUTLINECOLOR 120 98 78
+      WIDTH 2
+      OPACITY 45
+    END
+    LABEL
+      TYPE TRUETYPE
+      FONT "arial"
+      SIZE 10
+      COLOR 35 35 35
+      OUTLINECOLOR 255 255 255
+      OUTLINEWIDTH 2
+      POSITION CC
+      PARTIALS FALSE
+      MAXSCALEDENOM 12000000
+      MINSCALEDENOM 200000
+      FORCE FALSE
+    END
+  END
+
+  CLASS
+    NAME "Addis Abeba"
+    EXPRESSION "ADDIS ABEBA"
+    STYLE
+      COLOR 245 205 205
+      OUTLINECOLOR 140 72 72
+      WIDTH 2
+      OPACITY 45
+    END
+    LABEL
+      TYPE TRUETYPE
+      FONT "arial"
+      SIZE 9
+      COLOR 35 35 35
+      OUTLINECOLOR 255 255 255
+      OUTLINEWIDTH 2
+      POSITION CC
+      PARTIALS FALSE
+      MAXSCALEDENOM 5000000
+      MINSCALEDENOM 100000
+      FORCE FALSE
+    END
+  END
+
+  CLASS
+    NAME "Other Region"
+    STYLE
       COLOR 220 220 220
-      WIDTH 1
+      OUTLINECOLOR 80 80 80
+      WIDTH 2
+      OPACITY 45
+    END
+    LABEL
+      TYPE TRUETYPE
+      FONT "arial"
+      SIZE 10
+      COLOR 35 35 35
+      OUTLINECOLOR 255 255 255
+      OUTLINEWIDTH 2
+      POSITION CC
+      PARTIALS FALSE
+      MAXSCALEDENOM 12000000
+      MINSCALEDENOM 200000
+      FORCE FALSE
     END
   END
 END
