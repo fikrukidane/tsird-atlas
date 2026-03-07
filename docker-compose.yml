@@ -73,6 +73,22 @@ services:
       retries: 3
     restart: unless-stopped
 
+  tsird-api:
+    build: ./api
+    container_name: tsird-api
+    env_file: .env.tsird
+    networks:
+      - tsird-network
+    depends_on:
+      tsird-postgis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/health')\" || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    restart: unless-stopped
+
   tsird-edge:
     build: ./infra/edge
     container_name: tsird-edge
@@ -83,6 +99,8 @@ services:
       tsird-web:
         condition: service_healthy
       tsird-mapserver:
+        condition: service_healthy
+      tsird-api:
         condition: service_healthy
     ports:
       - "127.0.0.1:${TSIRD_EDGE_PORT}:8080"
