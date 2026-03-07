@@ -1,0 +1,120 @@
+/* ═══════════════════════════════════════════════════════
+   Phase 3 Toolbar — compact horizontal row, top-left
+   ═══════════════════════════════════════════════════════ */
+
+/* Shared wrapper that OL adds around every control element */
+.ol-control.tsird-control {
+  background: transparent;
+  padding: 0;
+  border-radius: 0;
+  box-shadow: none;
+  /* Remove OL's default positioning so our toolbar can control placement */
+  position: static;
+}
+
+/* ── The single horizontal toolbar in the top-left ── */
+.tsird-phase3-toolbar {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  gap: 4px;
+  z-index: 100;
+  /* pointer-events so map still gets wheel/drag outside toolbar */
+  pointer-events: none;
+}
+.tsird-phase3-toolbar > * {
+  pointer-events: all;
+  flex: 0 0 auto;
+}
+
+/* ── Search widget ── */
+.tsird-search-widget {
+  position: relative;
+  width: 280px;
+  max-width: 280px;
+  background: #fff;
+  border-radius: 4px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+}
+.tsird-search-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 5px 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 12px;
+  line-height: 1.2;
+  outline: none;
+}
+.tsird-search-input:focus {
+  border-color: #1976d2;
+}
+.tsird-search-results {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  width: 100%;
+  max-height: 240px;
+  overflow-y: auto;
+  background: #fff;
+  border: 1px solid #ccc;
+  border-top: none;
+  border-radius: 0 0 4px 4px;
+  z-index: 1000;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.12);
+}
+.tsird-search-results .item {
+  padding: 5px 8px;
+  font-size: 12px;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tsird-search-results .item.active,
+.tsird-search-results .item:hover {
+  background: #e8f0fe;
+  color: #1a73e8;
+}
+
+/* ── Shared toolbar button style ── */
+.tsird-toolbar-btn {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  padding: 5px 9px;
+  font-size: 12px;
+  line-height: 1.2;
+  white-space: nowrap;
+  background: #fff;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+  user-select: none;
+  transition: background 0.15s;
+}
+.tsird-toolbar-btn:hover {
+  background: #e8f0fe;
+  border-color: #1976d2;
+  color: #1976d2;
+}
+.tsird-toolbar-btn.active {
+  background: #1976d2;
+  color: #fff;
+  border-color: #1565c0;
+}
+
+/* ═══════════════════════════════════════════════════════
+   Navigator Map — top-right, not covering scale bar
+   ═══════════════════════════════════════════════════════ */
+.ol-overviewmap.ol-custom-overviewmap {
+  top: 8px !important;
+  right: 8px !important;
+  left: auto !important;
+  bottom: auto !important;
+}
+/* Prevent the overview map from overlapping the right sidebar by keeping it
+   within the map viewport (the sidebar is outside .ol-viewport) */

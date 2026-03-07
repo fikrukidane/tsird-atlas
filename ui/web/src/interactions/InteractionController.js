@@ -167,17 +167,29 @@ class InteractionController {
     // Apply density attribute on TOC root
     this._applyDensity(this.density);
 
-    // Render Display Settings panel (global boundary opacity)
-    this._renderDisplaySettings(container);
+    // ── Build two-panel sidebar: sticky header + scrollable body ──
+    const settingsPanel = document.createElement('div');
+    settingsPanel.id = 'display-settings-container';
+    settingsPanel.className = 'toc-settings-panel';
 
-    // Render categories
+    const scrollPanel = document.createElement('div');
+    scrollPanel.id = 'toc-scroll-container';
+    scrollPanel.className = 'toc-scroll-panel';
+
+    container.appendChild(settingsPanel);
+    container.appendChild(scrollPanel);
+
+    // Render Display Settings panel (global boundary opacity) into sticky header
+    this._renderDisplaySettings(settingsPanel);
+
+    // Render categories into scrollable body
     for (const category of this.tocModel) {
       const categoryElement = this._renderCategory(category);
-      container.appendChild(categoryElement);
+      scrollPanel.appendChild(categoryElement);
     }
 
     // Credits panel (UI-only)
-    this._renderCreditsPanel(container);
+    this._renderCreditsPanel(scrollPanel);
 
     // Update display settings visibility based on raster/basemap state
     this._updateDisplaySettingsVisibility();
