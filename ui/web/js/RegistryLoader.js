@@ -190,24 +190,8 @@ class RegistryLoader {
       wmsBaseUrl = window.TSIRD_WMS_BASE_URL;
     }
     
-    // Safety guard: warn if relative URL in production-like context
-    if (wmsBaseUrl.startsWith('/')) {
-      console.warn(
-        `[RegistryLoader] WMS base_url is relative: '${wmsBaseUrl}'. ` +
-        `This will resolve to the frontend origin (${window.location.origin}), not MapServer. ` +
-        `For local dev, use: http://localhost:18080/map/ogc. ` +
-        `For production, use absolute URL or set window.TSIRD_WMS_BASE_URL override.`
-      );
-      
-      // In dev mode, attempt to resolve to known dev MapServer if on localhost:8001
-      if (window.location.hostname === 'localhost' && window.location.port === '8001') {
-        const devUrl = 'http://localhost:18080/map/ogc';
-        console.warn(
-          `[RegistryLoader] Auto-resolving to dev MapServer: ${devUrl}`
-        );
-        wmsBaseUrl = devUrl;
-      }
-    }
+    // Relative WMS URLs (e.g. /map/ogc) resolve correctly via the browser origin.
+    // This is the expected production configuration — no override needed.
     
     console.log(`[RegistryLoader] Final WMS base URL: ${wmsBaseUrl}`);
 

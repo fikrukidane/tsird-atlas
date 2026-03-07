@@ -14,7 +14,7 @@ atlas:
   - 14.9
 services:
   wms:
-    base_url: http://localhost:18080/map/ogc
+    base_url: /map/ogc
     allowed_requests:
     - GetCapabilities
     - GetMap
