@@ -140,54 +140,95 @@ LAYER
     "wms_include_items" "RDLNTYPETX,RDLNSTATTX,RDLNTYPE,RDLNSTAT,LENGTH"
   END
   TEMPLATE "dummy.html"
-  # Classified by road type
+  # Classified by RDLNTYPETX — actual values: "Primary and secondary roads", "Connector"
   CLASS
-    NAME "All-weather roads (asphalt)"
-    EXPRESSION "All-weather roads (asphalt)"
+    NAME "Primary and secondary roads"
+    EXPRESSION "Primary and secondary roads"
     STYLE
       COLOR 166 64 49
-      WIDTH 3
-    END
-  END
-  CLASS
-    NAME "All-weather roads (gravel)"
-    EXPRESSION "All-weather roads (gravel)"
-    STYLE
-      COLOR 211 120 107
       WIDTH 2
     END
   END
   CLASS
-    NAME "Dry-weather roads"
-    EXPRESSION "Dry-weather roads"
+    NAME "Connector"
+    EXPRESSION "Connector"
     STYLE
-      COLOR 176 112 100
+      COLOR 150 150 150
       WIDTH 1
-    END
-  END
-  CLASS
-    NAME "Motorable tracks"
-    EXPRESSION "Motorable tracks (status uncertain)"
-    STYLE
-      COLOR 207 168 160
-      WIDTH 1
-      PATTERN 3 3 END
-    END
-  END
-  CLASS
-    NAME "Railway"
-    EXPRESSION "Railway"
-    STYLE
-      COLOR 10 0 96
-      WIDTH 2
-      PATTERN 5 3 END
+      PATTERN 4 3 END
     END
   END
   CLASS
     NAME "Other Roads"
     STYLE
-      COLOR 150 150 150
+      COLOR 180 180 180
       WIDTH 1
+    END
+  END
+END
+
+LAYER
+  NAME "tigray_tabias_ti_en_pg"
+  TYPE POLYGON
+  STATUS ON
+  
+  CONNECTIONTYPE POSTGIS
+  CONNECTION "host=tsird-postgis port=5432 dbname=tsird user=tsird password=change_me_strong"
+  DATA "geometry FROM tigray_tabias_ws USING UNIQUE gid USING SRID=4326"
+
+  METADATA
+    "wms_title" "Tigray - Tabias (TI + EN)"
+    "wms_srs" "EPSG:3857"
+    "wms_enable_request" "*"
+    "wms_queryable" "true"
+    "wms_feature_info_mime_type" "text/plain"
+    "gml_include_items" "TABIA,tabia_tig,WEREDA,ZONES,SQ_KM,HECTARES,DENSITY"
+    "wms_include_items" "TABIA,tabia_tig,WEREDA,ZONES,SQ_KM,HECTARES,DENSITY"
+  END
+  TEMPLATE "dummy.html"
+  
+  CLASS
+    NAME "tabias"
+
+    STYLE
+      OUTLINECOLOR 120 120 120
+      WIDTH 0.5
+    END
+
+    LABEL
+      TYPE TRUETYPE
+      FONT "noto-ethiopic"
+      SIZE 10
+      COLOR 30 30 30
+      OUTLINECOLOR 255 255 255
+      OUTLINEWIDTH 2
+      POSITION CC
+      PARTIALS FALSE
+      OFFSET 0 -7
+
+      MAXSCALEDENOM 500000
+      MINSCALEDENOM 10000
+
+      FORCE TRUE
+      TEXT "[tabia_tig]"
+    END
+
+    LABEL
+      TYPE TRUETYPE
+      FONT "arial"
+      SIZE 9
+      COLOR 30 30 30
+      OUTLINECOLOR 255 255 255
+      OUTLINEWIDTH 2
+      POSITION CC
+      PARTIALS FALSE
+      OFFSET 0 7
+
+      MAXSCALEDENOM 500000
+      MINSCALEDENOM 10000
+
+      FORCE TRUE
+      TEXT "[TABIA]"
     END
   END
 END
@@ -298,7 +339,7 @@ LAYER
   END
 END
 
-LAYER
+# LAYER
 #   NAME "tigray_health_2006"
 #   TYPE POINT
 #   STATUS ON
@@ -535,6 +576,73 @@ LAYER
       SYMBOL "circle"
       SIZE 4
       COLOR 150 150 150
+    END
+  END
+END
+
+LAYER
+  NAME "tigray_woredas_ti_en_pg"
+  TYPE POLYGON
+  STATUS ON
+  
+  CONNECTIONTYPE POSTGIS
+  CONNECTION "host=tsird-postgis port=5432 dbname=tsird user=tsird password=change_me_strong"
+  DATA "geometry FROM tigray_woredas_ws USING UNIQUE gid USING SRID=4326"
+
+  METADATA
+    "wms_title" "Tigray - Woredas (TI + EN)"
+    "wms_srs" "EPSG:3857"
+    "wms_enable_request" "*"
+    "wms_queryable" "true"
+    "wms_feature_info_mime_type" "text/plain"
+    "gml_include_items" "WEREDA,woreda_tig,ZONE_NAME,Tot_Popula,SUM_SQ_KM,SUM_HECTAR,wor_name"
+    "wms_include_items" "WEREDA,woreda_tig,ZONE_NAME,Tot_Popula,SUM_SQ_KM,SUM_HECTAR,wor_name"
+  END
+  TEMPLATE "dummy.html"
+
+  CLASS
+    NAME "woredas"
+
+    # optional: show a subtle boundary so you can confirm it draws
+    STYLE
+      OUTLINECOLOR 80 80 80
+      WIDTH 1
+    END
+
+    LABEL
+      TYPE TRUETYPE
+      FONT "noto-ethiopic"
+      SIZE 12
+      COLOR 20 20 20
+      OUTLINECOLOR 255 255 255
+      OUTLINEWIDTH 3
+      POSITION CC
+      PARTIALS FALSE
+      OFFSET 0 -8
+
+      MAXSCALEDENOM 2000000
+      MINSCALEDENOM 100000
+
+      FORCE TRUE
+      TEXT "[woreda_tig]"
+    END
+
+    LABEL
+      TYPE TRUETYPE
+      FONT "arial"
+      SIZE 10
+      COLOR 20 20 20
+      OUTLINECOLOR 255 255 255
+      OUTLINEWIDTH 3
+      POSITION CC
+      PARTIALS FALSE
+      OFFSET 0 8
+
+      MAXSCALEDENOM 2000000
+      MINSCALEDENOM 100000
+
+      FORCE TRUE
+      TEXT "[WEREDA]"
     END
   END
 END
@@ -1019,7 +1127,7 @@ LAYER
   END
 END
 
-LAYER
+# LAYER
 #   NAME "ethiopia_wereda"
 #   TYPE POLYGON
 #   STATUS ON
