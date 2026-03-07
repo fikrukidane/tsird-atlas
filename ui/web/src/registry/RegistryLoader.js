@@ -1,110 +1,67 @@
 /**
  * RegistryLoader — Load and normalize YAML/JSON registry
- * 
- * Single responsibility: Parse registry file and emit normalized internal model.
- * 
+ *
+ * Plain browser global class (no ES module syntax).
+ * Loaded via <script src="src/registry/RegistryLoader.js">.
+ *
  * Output structure:
  *   {
  *     atlasConfig: { title, center, zoom, canonical_crs, view_crs, extent },
  *     tocModel: [ { id, label, groups: [ { id, label, layers: [...] } ] } ],
  *     layerDefs: { [layer_id]: { wms_name, label, published, ... } },
- *     scaleMutexPairs: [ [id1, id2], ... ]
+ *     scaleMutexPairs: [ [id1, id2], ... ],
+ *     wmsBaseUrl: string,
+ *     search_config: object
  *   }
  */
-
 class RegistryLoader {
   constructor(registryPath) {
     this.registryPath = registryPath;
     this.rawRegistry = null;
     this.lastError = null;
-    
-    // Event listeners
     this._onLoadListeners = [];
     this._onErrorListeners = [];
   }
 
-  /**
-   * Load and parse registry from path.
-   * Supports both .yaml (via js-yaml) and .json
-   * 
-   * @returns {Promise<Object>} Normalized registry model
-   */
   async load() {
     try {
-      // Resolve path relative to current page URL (handles /map/ prefix)
       const resolvedUrl = new URL(this.registryPath, window.location.href);
       const response = await fetch(resolvedUrl);
-      
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: Could not fetch registry`);
       }
-
-      const contentType = response.headers.get('content-type');
+      const contentType = response.headers.get('content-type') || '';
       let data;
-
-      if (contentType && contentType.includes('json')) {
+      if (contentType.includes('json') || this.registryPath.endsWith('.json')) {
         data = await response.json();
       } else if (this.registryPath.endsWith('.yaml') || this.registryPath.endsWith('.yml')) {
-        // Text response for YAML; parse with js-yaml (must be loaded globally)
         const text = await response.text();
         if (typeof window.jsyaml === 'undefined') {
-          throw new Error('js-yaml library not loaded. Include <script src="https://cdn.jsdelivr.net/npm/js-yaml@4.1.0/dist/js-yaml.min.js"></script>');
+          throw new Error('js-yaml not loaded');
         }
         data = window.jsyaml.load(text);
       } else {
-        throw new Error(`Unsupported registry format: ${this.registryPath}`);
+        // Try JSON fallback
+        data = await response.json();
       }
-
       this.rawRegistry = data;
       const normalized = this._normalize(data);
-      
       this._emit('load', normalized);
       return normalized;
-
     } catch (error) {
       this.lastError = error;
       console.error('[RegistryLoader] Error:', error.message);
-      this._emit('error', {
-        message: 'Registry unavailable. Please try again later.',
-        details: error.message
-      });
+      this._emit('error', { message: 'Registry unavailable.', details: error.message });
       throw error;
     }
   }
 
-  /**
-   * Validate registry matches frozen CONFIG_MODEL.md schema.
-   * 
-   * Frozen contract requirements:
-   *   - version field must exist
-   *   - atlas, services, ui must exist
-   *   - categories must be array
-   *   - categories[].groups[].layers must be array of STRINGS (layer IDs only)
-   *   - layers must be top-level DICT with full metadata
-   *   - search must exist (can be empty array)
-   *   - rules must exist
-   * 
-   * @private
-   * @throws {Error} If schema is invalid
-   */
   _validateSchema(raw) {
     const errors = [];
-
-    // Check required top-level fields
-    if (!raw.version) {
-      errors.push("Missing 'version' field");
-    }
-    if (!raw.atlas) {
-      errors.push("Missing 'atlas' configuration");
-    }
-    if (!raw.services || !raw.services.wms) {
-      errors.push("Missing 'services.wms' configuration");
-    }
-    if (!raw.ui) {
-      errors.push("Missing 'ui' configuration");
-    }
-
-    // Check categories structure
+    if (!raw.version) errors.push("Missing 'version' field");
+    if (!raw.atlas) errors.push("Missing 'atlas' configuration");
+    if (!raw.services || !raw.services.wms) errors.push("Missing 'services.wms'");
+    if (!raw.ui) errors.push("Missing 'ui' configuration");
     if (!Array.isArray(raw.categories)) {
       errors.push("'categories' must be an array");
     } else {
@@ -118,14 +75,9 @@ class RegistryLoader {
             if (!Array.isArray(grp.layers)) {
               errors.push(`categories[${i}].groups[${j}] missing 'layers' array`);
             } else {
-              // Validate each layer is a STRING (ID), not an object
               for (let k = 0; k < grp.layers.length; k++) {
-                const layer = grp.layers[k];
-                if (typeof layer !== 'string') {
-                  errors.push(
-                    `categories[${i}].groups[${j}].layers[${k}] must be ID string, ` +
-                    `got ${typeof layer}. (Frozen schema: use layer IDs only, metadata in top-level 'layers' dict)`
-                  );
+                if (typeof grp.layers[k] !== 'string') {
+                  errors.push(`categories[${i}].groups[${j}].layers[${k}] must be ID string`);
                 }
               }
             }
@@ -133,44 +85,26 @@ class RegistryLoader {
         }
       }
     }
-
-    // Check layers dict exists
     if (typeof raw.layers !== 'object' || raw.layers === null) {
-      errors.push("Missing top-level 'layers' dictionary (must contain full layer metadata)");
+      errors.push("Missing top-level 'layers' dictionary");
     }
-
-    // Check search exists
     if (!Array.isArray(raw.search)) {
       errors.push("Missing 'search' array (can be empty)");
     }
-
-    // Check rules exists
     if (!raw.rules) {
       errors.push("Missing 'rules' object");
     }
-
     if (errors.length > 0) {
-      throw new Error(
-        'Registry schema validation failed:\n  - ' + errors.join('\n  - ')
-      );
+      console.error('[RegistryLoader] Schema validation errors:', errors);
+      throw new Error('Registry schema validation failed:\n  - ' + errors.join('\n  - '));
     }
   }
 
-  /**
-   * Normalize raw registry into internal model.
-   * Handles frozen CONFIG_MODEL.md schema where:
-   *   - categories[].groups[].layers[] = array of STRING IDs (not objects)
-   *   - full layer metadata in top-level raw.layers[layer_id]
-   * 
-   * @private
-   */
   _normalize(raw) {
-    // STEP 1: Validate schema (will throw if invalid)
     this._validateSchema(raw);
 
-    // STEP 2: Extract atlas config
+    // Atlas config
     const atlas = raw.atlas || {};
-    const uiConfig = raw.ui || {};
     const atlasConfig = {
       title: atlas.title || 'TSIRD Atlas',
       center: atlas.center || [38.5, 13.5],
@@ -178,175 +112,103 @@ class RegistryLoader {
       canonical_crs: atlas.canonical_crs || 'EPSG:4326',
       view_crs: atlas.view_crs || 'EPSG:3857',
       extent: atlas.extent || [33.0, 3.0, 48.0, 15.5],
-      // Search config (Phase 3)
-      search: uiConfig.search ? {
-        enabled: uiConfig.search.enabled === true,
-        index_url: uiConfig.search.index_url || 'data/search-index.json'
-      } : { enabled: false, index_url: null }
     };
 
-    // STEP 3: Extract WMS base URL with environment override
-    let wmsBaseUrl = (raw.services?.wms?.base_url) || '/map/ogc';
-    
-    // Environment override: check for window.TSIRD_WMS_BASE_URL
+    // WMS base URL
+    let wmsBaseUrl = (raw.services && raw.services.wms && raw.services.wms.base_url) || '/map/ogc';
     if (window.TSIRD_WMS_BASE_URL) {
-      console.warn(
-        `[RegistryLoader] WMS base_url overridden by environment: ${window.TSIRD_WMS_BASE_URL}`
-      );
       wmsBaseUrl = window.TSIRD_WMS_BASE_URL;
     }
-    
-    // Safety guard: warn if relative URL in production-like context
-    if (wmsBaseUrl.startsWith('/')) {
-      console.warn(
-        `[RegistryLoader] WMS base_url is relative: '${wmsBaseUrl}'. ` +
-        `This will resolve to the frontend origin (${window.location.origin}), not MapServer. ` +
-        `For local dev, use: http://localhost:18080/map/ogc. ` +
-        `For production, use absolute URL or set window.TSIRD_WMS_BASE_URL override.`
-      );
-      
-      // In dev mode, attempt to resolve to known dev MapServer if on localhost:8001
-      if (window.location.hostname === 'localhost' && window.location.port === '8001') {
-        const devUrl = 'http://localhost:18080/map/ogc';
-        console.warn(
-          `[RegistryLoader] Auto-resolving to dev MapServer: ${devUrl}`
-        );
-        wmsBaseUrl = devUrl;
-      }
-    }
-    
-    console.log(`[RegistryLoader] Final WMS base URL: ${wmsBaseUrl}`);
 
-    // STEP 4: Build layer definitions from raw.layers dictionary
+    // Layer definitions
     const layerDefs = {};
     const layersDict = raw.layers || {};
-    
-    for (const [layerId, layerMeta] of Object.entries(layersDict)) {
-      // Pass through all raw properties, then override/normalize as needed
+    for (const layerId of Object.keys(layersDict)) {
+      const m = layersDict[layerId];
       layerDefs[layerId] = {
-        ...layerMeta,
-        wms_name: layerMeta.wms_name,
-        label: layerMeta.label || layerMeta.wms_name || layerId,
-        type: layerMeta.type,
-        published: layerMeta.published !== false,
-        default_visible: layerMeta.default_visible === true,
-        queryable: layerMeta.queryable === true,
-        min_scale: layerMeta.min_scale,
-        max_scale: layerMeta.max_scale,
-        identify_fields: layerMeta.identify_fields || [],
-        source: layerMeta.source,
-        geometry_type: layerMeta.geometry_type,
-        attribution: layerMeta.attribution,
-        source_type: layerMeta.source_type,
-        base_layer: layerMeta.base_layer === true,
-        url_template: layerMeta.url_template,
-        opacity: layerMeta.opacity,
-        legend_mode: layerMeta.legend_mode ?? layerMeta.legendMode ?? null,
-        legend: typeof layerMeta.legend !== 'undefined' ? layerMeta.legend : true,
-        legend_url: layerMeta.legend_url || null,  // Static legend URL for external WMS
-        // External WMS fields
-        wms_base_url: layerMeta.wms_base_url,
-        wms_version: layerMeta.wms_version,
-        format: layerMeta.format,
-        transparent: layerMeta.transparent,
-        tiled: layerMeta.tiled,
-        z_index: layerMeta.z_index,
-        // Temporal (time-series) support - legacy mode (year/date)
-        temporal: layerMeta.temporal || null,
-        // Global temporal control support (new unified model)
-        time_enabled: layerMeta.time_enabled === true || (layerMeta.temporal && layerMeta.temporal.mode === 'date'),
-        time_mode: layerMeta.time_mode || 'global',  // 'global' follows global date, 'local' uses per-layer
-        time_default: layerMeta.time_default || null,  // ISO date string default
-        time_param_name: layerMeta.time_param_name || 'TIME',  // WMS TIME param name
+        ...m,
+        wms_name: m.wms_name,
+        label: m.label || m.wms_name || layerId,
+        type: m.type,
+        published: m.published !== false,
+        default_visible: m.default_visible === true,
+        queryable: m.queryable === true,
+        min_scale: m.min_scale,
+        max_scale: m.max_scale,
+        identify_fields: m.identify_fields || [],
+        source: m.source,
+        geometry_type: m.geometry_type,
+        attribution: m.attribution,
+        source_type: m.source_type,
+        base_layer: m.base_layer === true,
+        url_template: m.url_template,
+        opacity: m.opacity,
+        legend_mode: m.legend_mode !== undefined ? m.legend_mode : (m.legendMode !== undefined ? m.legendMode : null),
+        legend: m.legend !== undefined ? m.legend : true,
+        legend_url: m.legend_url || null,
+        wms_base_url: m.wms_base_url,
+        wms_version: m.wms_version,
+        format: m.format,
+        transparent: m.transparent,
+        tiled: m.tiled,
+        z_index: m.z_index,
+        temporal: m.temporal || null,
+        time_enabled: m.time_enabled === true || !!(m.temporal && m.temporal.mode === 'date'),
+        time_mode: m.time_mode || 'global',
+        time_default: m.time_default || null,
+        time_param_name: m.time_param_name || 'TIME',
       };
     }
 
-    // STEP 5: Build TOC model from categories[].groups[].layers[] (now strings)
+    // TOC model
     const tocModel = [];
     const categories = raw.categories || [];
-    
     for (const category of categories) {
-      const categoryNode = {
-        id: category.id || `cat_${categories.indexOf(category)}`,
+      const catNode = {
+        id: category.id || ('cat_' + categories.indexOf(category)),
         label: category.label || 'Category',
         closed: category.closed === true,
         groups: []
       };
-
-      const groups = category.groups || [];
-      for (const group of groups) {
-        const groupNode = {
-          id: group.id || `grp_${groups.indexOf(group)}`,
+      for (const group of (category.groups || [])) {
+        const grpNode = {
+          id: group.id || ('grp_' + (category.groups || []).indexOf(group)),
           label: group.label || 'Group',
           closed: group.closed === true,
           layers: []
         };
-
-        const layerIds = group.layers || [];  // Array of STRINGS now
-        for (const layerId of layerIds) {
-          // Look up layer metadata from raw.layers[layerId]
+        for (const layerId of (group.layers || [])) {
           const layerMeta = layersDict[layerId];
           if (!layerMeta) {
-            console.warn(`[RegistryLoader] Layer '${layerId}' referenced in TOC but not defined in layers dict`);
+            console.warn('[RegistryLoader] Layer \'' + layerId + '\' in TOC but not in layers dict');
             continue;
           }
-
-          // Only add to TOC if published
           if (layerMeta.published !== false) {
-            groupNode.layers.push({
-              id: layerId,
-              label: layerMeta.label || layerId
-            });
+            grpNode.layers.push({ id: layerId, label: layerMeta.label || layerId });
           }
         }
-
-        // Always include group to preserve folder structure
-        categoryNode.groups.push(groupNode);
+        catNode.groups.push(grpNode);
       }
-
-      // Always include category to preserve folder structure
-      tocModel.push(categoryNode);
+      tocModel.push(catNode);
     }
 
-    // STEP 6: Extract scale mutex pairs
-    const scaleMutexPairs = (raw.rules?.scale_mutex_pairs) || [];
+    const scaleMutexPairs = (raw.rules && raw.rules.scale_mutex_pairs) || [];
 
     return {
+      ...raw,
       atlasConfig,
       wmsBaseUrl,
       tocModel,
       layerDefs,
-      scaleMutexPairs
+      scaleMutexPairs,
     };
   }
 
-  /**
-   * Attach event listener for load success.
-   */
-  onLoad(callback) {
-    this._onLoadListeners.push(callback);
-  }
+  onLoad(callback) { this._onLoadListeners.push(callback); }
+  onError(callback) { this._onErrorListeners.push(callback); }
 
-  /**
-   * Attach event listener for load error.
-   */
-  onError(callback) {
-    this._onErrorListeners.push(callback);
-  }
-
-  /**
-   * @private Emit event to listeners
-   */
   _emit(eventType, data) {
-    if (eventType === 'load') {
-      this._onLoadListeners.forEach(cb => cb(data));
-    } else if (eventType === 'error') {
-      this._onErrorListeners.forEach(cb => cb(data));
-    }
+    const list = eventType === 'load' ? this._onLoadListeners : this._onErrorListeners;
+    list.forEach(function(cb) { cb(data); });
   }
-}
-
-// Export for use in main.js
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = RegistryLoader;
 }

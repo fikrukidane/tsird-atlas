@@ -1,205 +1,66 @@
 /**
- * MeasureTool.js — Distance and area measurement
+ * MeasureTool — Measurement interactions using global `ol`.
+ * Plain browser global class.
  */
-
-const MeasureTool = {
-  _layer: null,
-  _source: null,
-  _draw: null,
-  _mode: 'none', // 'none' | 'distance' | 'area'
-  _map: null,
-  _lastMeasurement: null,
-  _onMeasureCallback: null,
-
-  /**
-   * Initialize the measurement tool.
-   * 
-   * @param {ol.Map} map - OpenLayers map instance
-   * @param {Function} [onMeasure] - Callback when measurement completes
-   */
-  init(map, onMeasure) {
-    if (!map) {
-      console.error('[MeasureTool] Map instance required');
-      return;
-    }
-
-    this._map = map;
-    this._onMeasureCallback = onMeasure;
-
-    // Create vector source and layer
-    this._source = new ol.source.Vector();
-    this._layer = new ol.layer.Vector({
-      source: this._source,
+class MeasureTool {
+  constructor(map) {
+    this.map = map;
+    this.draw = null;
+    this.source = new ol.source.Vector();
+    this.layer = new ol.layer.Vector({
+      source: this.source,
       style: new ol.style.Style({
-        fill: new ol.style.Fill({
-          color: 'rgba(66, 133, 244, 0.2)'
-        }),
-        stroke: new ol.style.Stroke({
-          color: '#4285f4',
-          width: 2
-        }),
-        image: new ol.style.Circle({
-          radius: 5,
-          fill: new ol.style.Fill({
-            color: '#4285f4'
-          })
-        })
+        stroke: new ol.style.Stroke({ color: '#3399CC', width: 2 }),
+        fill: new ol.style.Fill({ color: 'rgba(51,153,204,0.2)' })
       }),
-      zIndex: 1001
+      zIndex: 998
     });
-
-    this._layer.set('name', 'measure-layer');
-    map.addLayer(this._layer);
-
-    console.log('[MeasureTool] Initialized');
-  },
-
-  /**
-   * Get the measurement layer.
-   */
-  getLayer() {
-    return this._layer;
-  },
-
-  /**
-   * Set measurement mode.
-   * 
-   * @param {'none' | 'distance' | 'area'} mode
-   */
-  setMode(mode) {
-    // Remove existing draw interaction
-    if (this._draw) {
-      this._map.removeInteraction(this._draw);
-      this._draw = null;
-    }
-
-    this._mode = mode;
-
-    if (mode === 'none') {
-      console.log('[MeasureTool] Mode: none');
-      return;
-    }
-
-    // Create draw interaction
-    const type = mode === 'distance' ? 'LineString' : 'Polygon';
-
-    this._draw = new ol.interaction.Draw({
-      source: this._source,
-      type: type,
-      style: new ol.style.Style({
-        fill: new ol.style.Fill({
-          color: 'rgba(66, 133, 244, 0.2)'
-        }),
-        stroke: new ol.style.Stroke({
-          color: '#4285f4',
-          width: 2,
-          lineDash: [5, 5]
-        }),
-        image: new ol.style.Circle({
-          radius: 5,
-          fill: new ol.style.Fill({
-            color: '#4285f4'
-          })
-        })
-      })
-    });
-
-    this._draw.on('drawend', (event) => {
-      this._handleDrawEnd(event);
-    });
-
-    this._map.addInteraction(this._draw);
-    console.log(`[MeasureTool] Mode: ${mode}`);
-  },
-
-  /**
-   * Handle draw end event.
-   */
-  _handleDrawEnd(event) {
-    const geom = event.feature.getGeometry();
-    let measurement;
-
-    if (this._mode === 'distance') {
-      // Geodesic length
-      const length = ol.sphere.getLength(geom, { projection: 'EPSG:3857' });
-      measurement = {
-        type: 'distance',
-        value: length,
-        formatted: this._formatLength(length)
-      };
-    } else if (this._mode === 'area') {
-      // Geodesic area
-      const area = ol.sphere.getArea(geom, { projection: 'EPSG:3857' });
-      measurement = {
-        type: 'area',
-        value: area,
-        formatted: this._formatArea(area)
-      };
-    }
-
-    this._lastMeasurement = measurement;
-    console.log('[MeasureTool] Measurement:', measurement.formatted);
-
-    if (this._onMeasureCallback) {
-      this._onMeasureCallback(measurement);
-    }
-  },
-
-  /**
-   * Format length for display.
-   */
-  _formatLength(length) {
-    if (length > 1000) {
-      return (length / 1000).toFixed(2) + ' km';
-    }
-    return length.toFixed(0) + ' m';
-  },
-
-  /**
-   * Format area for display.
-   */
-  _formatArea(area) {
-    if (area > 1000000) {
-      return (area / 1000000).toFixed(2) + ' km²';
-    } else if (area > 10000) {
-      return (area / 10000).toFixed(2) + ' ha';
-    }
-    return area.toFixed(0) + ' m²';
-  },
-
-  /**
-   * Clear all measurements.
-   */
-  clear() {
-    if (this._source) {
-      this._source.clear();
-    }
-    this._lastMeasurement = null;
-    console.log('[MeasureTool] Cleared');
-    
-    if (this._onMeasureCallback) {
-      this._onMeasureCallback(null);
-    }
-  },
-
-  /**
-   * Get current mode.
-   */
-  getMode() {
-    return this._mode;
-  },
-
-  /**
-   * Get last measurement.
-   */
-  getLastMeasurement() {
-    return this._lastMeasurement;
+    map.addLayer(this.layer);
+    var tooltipEl = document.createElement('div');
+    tooltipEl.style.cssText = 'background:rgba(0,0,0,0.75);color:#fff;padding:3px 8px;border-radius:4px;font-size:12px;pointer-events:none;';
+    this.tooltipOverlay = new ol.Overlay({ element: tooltipEl, offset: [0,-15], positioning: 'bottom-center' });
+    map.addOverlay(this.tooltipOverlay);
+    this.tooltipEl = tooltipEl;
   }
-};
 
-// Export
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = MeasureTool;
-} else if (typeof window !== 'undefined') {
-  window.MeasureTool = MeasureTool;
+  activate(type) {
+    this.deactivate();
+    this.source.clear();
+    this.draw = new ol.interaction.Draw({ source: this.source, type: type });
+    var self = this;
+    this.draw.on('drawstart', function(evt) {
+      evt.feature.getGeometry().on('change', function(e) {
+        var geom = e.target;
+        var output = '', coord;
+        if (geom instanceof ol.geom.Polygon) {
+          output = self._fmtArea(geom);
+          coord = geom.getInteriorPoint().getCoordinates();
+        } else if (geom instanceof ol.geom.LineString) {
+          output = self._fmtLen(geom);
+          coord = geom.getLastCoordinate();
+        }
+        self.tooltipEl.textContent = output;
+        self.tooltipOverlay.setPosition(coord);
+      });
+    });
+    this.draw.on('drawend', function() { self.tooltipOverlay.setPosition(undefined); });
+    this.map.addInteraction(this.draw);
+  }
+
+  deactivate() {
+    if (this.draw) { this.map.removeInteraction(this.draw); this.draw = null; }
+    this.tooltipOverlay.setPosition(undefined);
+  }
+
+  clear() { this.deactivate(); this.source.clear(); }
+
+  _fmtLen(line) {
+    var m = ol.sphere.getLength(line);
+    return m > 1000 ? (Math.round(m/100)/10) + ' km' : Math.round(m) + ' m';
+  }
+
+  _fmtArea(polygon) {
+    var a = ol.sphere.getArea(polygon);
+    return a > 1000000 ? (Math.round(a/100000)/10) + ' km²' : Math.round(a) + ' m²';
+  }
 }
