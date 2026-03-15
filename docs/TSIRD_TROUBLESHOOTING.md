@@ -759,14 +759,33 @@ nano /opt/tigrayinsights/apps/tsird/Docker\ Projects/TSIRD-Atlas-Data-Pipeline/c
 
 (Condensed: Container-specific issues)
 
-**Problem #13: MapServer Exit Code 1**
-```bash
-docker-compose logs tsird-mapserver | tail -50
-# Check for: mapfile syntax error, missing /etc/mapserver/tsird.map, permission denied
+**Problem #13: MapServer Exit Code 1 / `Unable to access file` / All vector layers blank**
 
-# Solution: Verify mapfile and redeploy
-docker cp /opt/tigrayinsights/apps/tsird/infra/mapserver/mapfiles/* tsird-mapserver:/etc/mapserver/
-docker-compose restart tsird-mapserver
+**Symptom A** — Container reports `unhealthy` or all WMS layers return a tiny (~425 byte) error response, and logs show:
+```
+msLoadMap(): Unable to access file. (/etc/mapserver/tsird.map)
+```
+**Cause**: `ms.config` uses wrong key `MS_MAPFILE_PATTERN` (MapServer 7.x) instead of `MS_MAP_PATTERN` (MapServer 8.x). The old key is silently ignored. When Apache FCGI workers are recycled, new child processes have no map path allowlist and reject the `map=` URL parameter even though the file exists.
+
+```bash
+# 1. Confirm the warning in logs
+docker logs tsird-mapserver 2>&1 | grep 'Unknown configuration option'
+# If broken: "Warning 1: Unknown configuration option 'MS_MAPFILE_PATTERN'."
+
+# 2. Fix: edit infra/mapserver/mapfiles/ms.config
+#    Change:  MS_MAPFILE_PATTERN  to  MS_MAP_PATTERN    then restart:
+docker compose restart tsird-mapserver
+
+# 3. Verify (should return 60000+ bytes, not ~425)
+curl -s "https://lab.tigrayinsights.net/map/ogc?SERVICE=WMS&REQUEST=GetCapabilities" | wc -c
+```
+See **Lesson 7** for full incident report.
+
+**Symptom B** — Container fails to start (exit code 1):
+```bash
+docker logs tsird-mapserver | tail -50
+# Check for: mapfile syntax error, missing /etc/mapserver/tsird.map, permission denied
+docker compose restart tsird-mapserver
 ```
 
 **Problem #14: PostgreSQL Health Check Fails**
@@ -933,6 +952,33 @@ chmod 777 /work/data/gold/
 - Use glob pattern `layer_name.*` to copy all components
 - Validate copied files include: .shp, .shx, .dbf, .prj, .cpg (if present)
 - Create quarantine manifest JSON listing all copied files
+
+---
+
+### Lesson 7: MapServer 8.x Config Key Rename Silently Breaks FCGI After Worker Recycle
+
+**What Happened** *(2026-03-15)*: All WMS vector layers disappeared from production. `tsird-mapserver` was marked `unhealthy`. Logs showed `msLoadMap(): Unable to access file. (/etc/mapserver/tsird.map)` yet the file existed and was readable by `www-data`.
+
+**Root Cause**:
+- `infra/mapserver/mapfiles/ms.config` contained `MS_MAPFILE_PATTERN` (MapServer 7.x key name).
+- MapServer 8.x renamed this to `MS_MAP_PATTERN`. The old name is **silently ignored** with only a log warning.
+- On initial container start, the `MS_MAP_PATTERN` env var from `docker-compose.yml` is inherited by FCGI children, so requests work.
+- After ~8 days uptime, Apache mod_fcgid recycled its workers. Recycled workers no longer inherited the env var, and `ms.config` provided no allowlist. MapServer rejected all `map=` URL parameters as a security violation.
+
+**Symptom timeline**: Atlas worked after deployment → all vector layers disappeared after FCGI worker recycle → GetCapabilities: HTTP 200 but only ~425 bytes (error body, not valid XML).
+
+**Fix** (commit d21ab55):
+```diff
+# infra/mapserver/mapfiles/ms.config
+- MS_MAPFILE_PATTERN "^(/mapfiles/|/etc/mapserver/).*\.map$"
++ MS_MAP_PATTERN     "^(/mapfiles/|/etc/mapserver/).*\.map$"
+```
+Then: `docker compose restart tsird-mapserver`
+
+**Prevention**:
+- After any MapServer version upgrade, grep logs for `Unknown configuration option`.
+- Health-check on response **size** not HTTP status: `curl ... | wc -c` must return 60000+ bytes.
+- See **Problem #13** for diagnostic commands.
 
 ---
 
