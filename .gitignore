@@ -78,3 +78,6 @@ tmp/
 # Test outputs
 test.png
 *.test.png
+mapfix/
+.~*.ipynb
+docs/*-v1.md
