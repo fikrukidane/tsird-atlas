@@ -14,7 +14,7 @@ MAP
       # Optional if you want scripts to omit STYLES:
       "wms_allow_getmap_without_styles" "true"
     END
-    TEMPLATE "/etc/mapserver/dummy.html"
+    TEMPLATE "dummy.html"
   END
 
   PROJECTION
@@ -67,7 +67,7 @@ MAP
     POINTS 0 0 0 1 1 1 1 0 0 0 END
   END
 
-  INCLUDE "/etc/mapserver/includes/vectors_gold.map"
+  INCLUDE "includes/vectors_gold.map"
 
   # PostGIS Gold Layers (main mapfile)
   LAYER
