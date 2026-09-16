@@ -5,6 +5,33 @@ This is a production-host operator recipe for the existing TSIRD deployment at
 without granting n8n a shell, Docker access, database access or write access to
 the serving API mount.
 
+## Root-only provisioning
+
+Use the checked-in helper rather than manually composing a `Match` block or
+editing `authorized_keys`. It is idempotent for the same keys, refuses to
+replace a different existing key, validates the SSH configuration, and does
+**not** reload SSH, pull an image, restart a container, transfer a release or
+advance `current.json`.
+
+Generate two separate public/private key pairs outside the repository and keep
+the private material only in the development n8n credential store. From the
+VPS root account, run:
+
+```bash
+cd /opt/tigrayinsights/apps/tsird
+sudo scripts/provision-drought-release-accounts.sh \
+  --upload-public-key /secure/path/tsird-release-upload.pub \
+  --activate-public-key /secure/path/tsird-release-activate.pub
+sudo sshd -t
+# Keep this administrative session open, then reload only after the check passes.
+sudo systemctl reload ssh
+```
+
+The script requires root because it creates system accounts and an SSH daemon
+drop-in. It leaves the existing application account, existing untracked
+backups, services, images and data unchanged. Do not use the normal VPS
+administrator key for either publisher key.
+
 ## Two narrowly scoped accounts
 
 1. `tsird-release-upload` is SFTP-only. It may upload a pre-approved release
@@ -31,8 +58,8 @@ The MapServer, API and browser never receive the SFTP ingress directory.
 
 ## Forced activation command
 
-Install the following root-owned wrapper outside the upload account's write
-paths, for example `/usr/local/sbin/tsird-activate-drought-release`:
+The provisioning helper installs a root-owned wrapper outside the upload
+account's write paths at `/usr/local/sbin/tsird-activate-drought-release`:
 
 ```bash
 #!/usr/bin/env bash
@@ -50,8 +77,8 @@ exec /usr/bin/python3 /opt/tigrayinsights/apps/tsird/tools/activate_drought_prod
   --public-root /opt/tigrayinsights/apps/tsird/releases/drought
 ```
 
-In the activation account's `authorized_keys`, force that wrapper and disable
-forwarding/TTY, for example:
+In the activation account's `authorized_keys`, the helper forces that wrapper
+and disables forwarding/TTY, for example:
 
 ```text
 command="/usr/local/sbin/tsird-activate-drought-release",no-port-forwarding,no-agent-forwarding,no-X11-forwarding,no-pty ssh-ed25519 AAAA... tsird-release-activate
