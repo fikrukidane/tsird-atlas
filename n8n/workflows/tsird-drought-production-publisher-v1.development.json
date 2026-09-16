@@ -1,0 +1,107 @@
+{
+  "name": "TSIRD · Drought Production Publisher v1 (manual only)",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "4173aa10-348b-4a91-b418-0ac3b11d1001",
+      "name": "Manual approved-release run",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [220, 300]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "4173aa10-348b-4a91-b418-0ac3b11d1002",
+              "name": "release_id",
+              "value": "replace-with-approved-utc-release-id",
+              "type": "string"
+            },
+            {
+              "id": "4173aa10-348b-4a91-b418-0ac3b11d100a",
+              "name": "production_host",
+              "value": "replace-with-production-vps-host",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "4173aa10-348b-4a91-b418-0ac3b11d1003",
+      "name": "Set approved release ID before manual run",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const { release_id: releaseId, production_host: productionHost } = $input.first().json;\nconst releaseIdPattern = /^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{6}Z(?:-[a-z0-9][a-z0-9-]*)?$/;\nconst hostPattern = /^[A-Za-z0-9.-]+$/;\nif (typeof releaseId !== 'string' || !releaseIdPattern.test(releaseId)) {\n  throw new Error('Set release_id to an approved UTC release directory name before running.');\n}\nif (typeof productionHost !== 'string' || !hostPattern.test(productionHost)) {\n  throw new Error('Set production_host to the verified production VPS host name or address before running.');\n}\nreturn [{ json: { release_id: releaseId, production_host: productionHost } }];"
+      },
+      "id": "4173aa10-348b-4a91-b418-0ac3b11d1004",
+      "name": "Validate fixed release ID",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [690, 300]
+    },
+    {
+      "parameters": {
+        "executeOnce": true,
+        "command": "=sh /workflows/tsird-drought-production-publisher-v1.sh --release-id {{ $json.release_id }} --host {{ $json.production_host }}"
+      },
+      "id": "4173aa10-348b-4a91-b418-0ac3b11d1005",
+      "name": "Publish fixed package with pinned VPS host key",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [940, 300]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "4173aa10-348b-4a91-b418-0ac3b11d1009",
+              "name": "operator_summary",
+              "value": "=Manual production publisher completed the pinned-host release transfer for {{$('Validate fixed release ID').first().json.release_id}}. The VPS activation utility revalidated the approved manifest and checksums before it could advance current.json.",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "4173aa10-348b-4a91-b418-0ac3b11d1010",
+      "name": "Record publisher receipt",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [1210, 300]
+    }
+  ],
+  "connections": {
+    "Manual approved-release run": {
+      "main": [[{"node": "Set approved release ID before manual run", "type": "main", "index": 0}]]
+    },
+    "Set approved release ID before manual run": {
+      "main": [[{"node": "Validate fixed release ID", "type": "main", "index": 0}]]
+    },
+    "Validate fixed release ID": {
+      "main": [[{"node": "Publish fixed package with pinned VPS host key", "type": "main", "index": 0}]]
+    },
+    "Publish fixed package with pinned VPS host key": {
+      "main": [[{"node": "Record publisher receipt", "type": "main", "index": 0}]]
+    }
+  },
+  "pinData": {},
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "saveExecutionProgress": true
+  },
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "tags": []
+}

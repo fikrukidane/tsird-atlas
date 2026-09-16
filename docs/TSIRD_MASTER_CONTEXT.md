@@ -116,11 +116,17 @@ must pin the resulting SHA image tags rather than a mutable image name. The
 private [release ledger template](drought/templates/drought-production-release-ledger.example.md)
 records the code, image, data-release, verification and rollback references
 together.
-The planned hand-off uses a restricted SFTP ingress account and a separate forced-command
-activation account. The activation utility accepts only an already-approved, checksum-verified
-release and atomically advances `current.json`; it cannot build data or run the model. This is
-repository-side release plumbing only: no VPS account, host configuration, transfer, or public
-activation has been performed. See [activation design](../infra/host-nginx/tsird-drought-release-activation.md).
+The hand-off uses a restricted SFTP ingress account and a separate forced-command
+activation account. The production VPS accounts, their restricted directories,
+and the SSH configuration were provisioned and boundary-tested on 2026-09-16;
+the activation utility accepts only an already-approved, checksum-verified
+release and atomically advances `current.json`. It cannot build data or run the
+model. A version-controlled, inactive local n8n publisher template now records
+the fixed seven-file transfer and activation sequence, but it is not yet
+imported or credential-configured. No release transfer, current-pointer change,
+image pull, service restart, or public activation has been performed. See the
+[activation design](../infra/host-nginx/tsird-drought-release-activation.md)
+and [n8n publisher setup](drought/n8n-production-publisher-setup.md).
 
 The public-only release viewer is `/map/drought/release/`. It calls only the
 approved-release API, displays neutral C1--C4 retrospective draft codes and

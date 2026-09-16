@@ -133,9 +133,10 @@ local manifest from `validated` to `approved`. It does not transfer or activate
 the release. A content correction requires a new release directory rather than
 rewriting an approved release.
 
-## Future publisher protocol
+## Manual publisher protocol
 
-The later fixed-purpose n8n publisher will:
+The tracked, inactive local n8n publisher template will, after its dedicated
+least-privilege keys and a verified VPS host key are staged locally:
 
 1. accept a supplied, already validated approved release ID;
 2. stage it below `releases/<release-id>` on production;
@@ -146,3 +147,11 @@ The later fixed-purpose n8n publisher will:
 It must not create a production dataset, execute a remote shell command,
 retrieve source data, build an image, or alter an Atlas model configuration.
 An upload failure leaves the current public release unchanged.
+
+The template and its fixed OpenSSH publisher script are version-controlled at
+`n8n/workflows/tsird-drought-production-publisher-v1.development.json` and
+`n8n/publisher/tsird-drought-production-publisher-v1.sh`. They are not yet
+imported or locally key-configured. The built-in n8n SFTP/SSH nodes are not
+used because the installed version does not expose host-key pinning. The fixed
+local staging boundary and one-time setup procedure are documented in
+[n8n production publisher setup](n8n-production-publisher-setup.md).
