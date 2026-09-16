@@ -107,6 +107,9 @@ publicly served release. See [production release contract](drought/production-re
 
 The tracked production overlay mounts only `/opt/tigrayinsights/apps/tsird/releases/drought`
 read-only into `tsird-api`; it does not start an n8n worker or expose raw evidence.
+It also requires immutable prebuilt web/API/edge image references and excludes
+the ETL service from the default production Compose profile, so the constrained
+VPS cannot build or process drought data during `compose up`.
 The planned hand-off uses a restricted SFTP ingress account and a separate forced-command
 activation account. The activation utility accepts only an already-approved, checksum-verified
 release and atomically advances `current.json`; it cannot build data or run the model. This is
