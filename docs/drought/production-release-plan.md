@@ -223,6 +223,10 @@ retention contact and individual password-set link before use.
 **Gate:** release approver confirms visual smoke test, route checks, freshness
 status and disclaimer visibility on production.
 
+Run the [public-release acceptance check](public-release-acceptance-check.md)
+after activation. It is a read-only verification of the public viewer and the
+approved asset boundary, not a promotion command.
+
 ### Phase 8 — invitation and monitored public launch
 
 1. Invite a small first cohort using the approved email, live protected URL and

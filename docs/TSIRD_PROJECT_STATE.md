@@ -121,6 +121,9 @@ layers.
   Public replay packaging sanitizes development action/priority/rule fields
   into neutral C1--C4 retrospective draft codes with retained evidence values;
   the validator rejects operational planning wording or those internal fields.
+  A separate read-only public-release acceptance script verifies the deliberate
+  no-release state locally and will verify the activated viewer, manifest
+  assets, and public replay boundary after a future promotion.
   No VPS inventory was repeated; no production credential, account, transfer,
   n8n publisher, raw-data mount or deployment has been created.
 - The `/map/` proxy contract remains active, including `/map/ogc` and `/map/api/gazetteer`. Public URLs in release notes are documented deployment targets, not availability checks performed here.
