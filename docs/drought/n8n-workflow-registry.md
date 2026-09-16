@@ -7,7 +7,11 @@ All schedule times use `Africa/Addis_Ababa`.
 
 ## Contract rules
 
-- n8n may call only fixed, internal `tsird-drought-runner` endpoints.
+- Source and evidence workflows may call only fixed, internal
+  `tsird-drought-runner` endpoints. The separately named, manual Production
+  Publisher is the sole exception: it invokes only its tracked fixed-purpose
+  OpenSSH script, which accepts one approved release ID and one verified VPS
+  host; it has no runner, source-retrieval, or schedule path.
 - New canonical workflows read job state from `GET /runs/{job_id}`. The older
   `GET /runs/development-test/{job_id}` endpoint remains compatibility-only.
 - The runner permits only one active job. Schedules must not overlap; a 409
@@ -118,13 +122,17 @@ Before any workflow becomes active:
 5. Change this registry row to **schedule-ready**, then activate only the
    reviewed schedule trigger.
 
-## Proposed Production Publisher (not imported or configured)
+## Manual Production Publisher (tracked template; not imported or configured)
 
-`production-publisher` is a future **manual-only** n8n workflow, not a source
-retrieval workflow and not a production schedule. It has no current n8n ID,
-no configured production credential, and no production-network route.
+`production-publisher` is a tracked, inactive **manual-only** n8n workflow
+template, not a source-retrieval workflow and not a production schedule. It
+has no current n8n ID, configured production credential, or production-network
+route. It uses a fixed OpenSSH publisher script and a separately verified
+production host key rather than the installed n8n SFTP/SSH nodes, which do not
+expose host-key pinning. Its exact import/binding/staging procedure is in
+[n8n production publisher setup](n8n-production-publisher-setup.md).
 
-It may be implemented only after a compact release directory passes
+It may be imported only after a compact release directory passes
 [`production-release-contract.md`](production-release-contract.md), a named
 approver changes its manifest from `validated` to `approved`, and a separate
 least-privilege SFTP/SSH account is provisioned for the production release-data
@@ -133,5 +141,11 @@ checksums, and switch a small current-release pointer. It must never retrieve
 data, build images, run a remote shell, publish raw rasters, alter the priority
 model, or accept arbitrary destination/command parameters.
 
-Until those gates are met, this proposed publisher remains documentation and a
-local manifest-validation contract only.
+The template permits one manual release ID, one verified production host, and
+exactly seven compact package files. The fixed script performs SFTP upload to
+the restricted ingress account, then issues the forced
+`activate <release-id>` request. The VPS repeats approval/checksum validation
+before changing its pointer. It cannot create a release, retrieve data, build
+images, execute an arbitrary remote command, remove files, or schedule itself.
+Until the credentials are bound and a named approver supplies a package, it
+remains an inactive local import template.

@@ -124,8 +124,14 @@ layers.
   A separate read-only public-release acceptance script verifies the deliberate
   no-release state locally and will verify the activated viewer, manifest
   assets, and public replay boundary after a future promotion.
-  No VPS inventory was repeated; no production credential, account, transfer,
-  n8n publisher, raw-data mount or deployment has been created. A tagged-source
+  No VPS inventory was repeated. On 2026-09-16, two restricted VPS release
+  accounts and their ingress/serving paths were provisioned and boundary-tested:
+  one account is SFTP-only to the ingress directory, and the other accepts only
+  the forced `activate <release-id>` command. A tracked, inactive local n8n
+  publisher template uses those distinct roles but has not been imported or
+  credential-configured. No release transfer, raw-data mount, current-pointer
+  change, production image pull, service restart, or deployment has occurred.
+  A tagged-source
   GitHub Actions workflow publishes the three prebuilt serving images (web, API
   and edge) to GHCR only for an explicit `tsird-drought-v*` tag or manual
   dispatch. The intended VPS configuration pins the generated SHA image tags;
