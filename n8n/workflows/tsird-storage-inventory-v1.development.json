@@ -1,0 +1,23 @@
+{
+  "name": "TSIRD · Drought storage inventory v1 (development)",
+  "nodes": [
+    {"parameters": {}, "id": "4c321986-f755-4dc7-946e-b119d565a9f8", "name": "Manual development run", "type": "n8n-nodes-base.manualTrigger", "typeVersion": 1, "position": [220, 220]},
+    {"parameters": {"rule": {"interval": [{"field": "cronExpression", "expression": "15 7 1 * *"}]}}, "id": "c90d178d-2a4c-4f96-8afe-da946e4db7b9", "name": "Monthly Addis capacity check", "type": "n8n-nodes-base.scheduleTrigger", "typeVersion": 1.2, "position": [220, 380]},
+    {"parameters": {"method": "POST", "url": "http://tsird-drought-runner:8090/runs/storage-inventory/development-test", "options": {"timeout": 30000}}, "id": "80356714-6685-498a-831c-65a386e4b17f", "name": "Request read-only inventory", "type": "n8n-nodes-base.httpRequest", "typeVersion": 4.2, "position": [510, 300]},
+    {"parameters": {"amount": 10, "unit": "seconds"}, "id": "89a614aa-a765-4106-a12e-6ba950ac9d89", "name": "Wait for inventory", "type": "n8n-nodes-base.wait", "typeVersion": 1.1, "position": [780, 300]},
+    {"parameters": {"url": "=http://tsird-drought-runner:8090/runs/{{ $json.job_id }}", "options": {"timeout": 30000}}, "id": "830323b9-4b77-4cb7-bbdb-9c26c5e2b24a", "name": "Read inventory receipt", "type": "n8n-nodes-base.httpRequest", "typeVersion": 4.2, "position": [1020, 300]},
+    {"parameters": {"assignments": {"assignments": [{"id": "1f5eb2a4-91ea-4d04-b3bf-846bb2440e76", "name": "operator_summary", "value": "=Drought storage inventory ended {{$json.status}} at {{$json.finished_at}}. Review managed bytes and free filesystem space; this workflow does not archive or delete data.", "type": "string"}]}, "options": {}}, "id": "1ea0eaae-bef8-4b5d-a88e-2c8ca09869aa", "name": "Record capacity receipt", "type": "n8n-nodes-base.set", "typeVersion": 3.4, "position": [1280, 300]}
+  ],
+  "connections": {
+    "Manual development run": {"main": [[{"node": "Request read-only inventory", "type": "main", "index": 0}]]},
+    "Monthly Addis capacity check": {"main": [[{"node": "Request read-only inventory", "type": "main", "index": 0}]]},
+    "Request read-only inventory": {"main": [[{"node": "Wait for inventory", "type": "main", "index": 0}]]},
+    "Wait for inventory": {"main": [[{"node": "Read inventory receipt", "type": "main", "index": 0}]]},
+    "Read inventory receipt": {"main": [[{"node": "Record capacity receipt", "type": "main", "index": 0}]]}
+  },
+  "pinData": {},
+  "active": false,
+  "settings": {"executionOrder": "v1", "saveManualExecutions": true, "saveExecutionProgress": true},
+  "meta": {"templateCredsSetupCompleted": true},
+  "tags": []
+}

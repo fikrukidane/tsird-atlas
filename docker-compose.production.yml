@@ -1,0 +1,34 @@
+# Production-only TSIRD overlay.
+#
+# Use on the existing Ubuntu VPS at /opt/tigrayinsights/apps/tsird together
+# with docker-compose.yml. It mounts only compact, publisher-approved drought
+# releases into the API; it does not mount n8n state, raw source artifacts or
+# the development drought runner.
+services:
+  # The constrained VPS must pull immutable prebuilt application images. The
+  # placeholder tag is intentionally rejected by the release preflight; do not
+  # replace it with a local `build` fallback.
+  tsird-web:
+    image: ${TSIRD_WEB_IMAGE:-ghcr.io/fikrukidane/tsird-atlas-web:REPLACE_ME}
+    build: !reset null
+
+  tsird-api:
+    image: ${TSIRD_API_IMAGE:-ghcr.io/fikrukidane/tsird-atlas-api:REPLACE_ME}
+    build: !reset null
+    environment:
+      DROUGHT_PUBLIC_RELEASE_ROOT: /data/drought/production-releases
+    volumes:
+      - type: bind
+        source: /opt/tigrayinsights/apps/tsird/releases/drought
+        target: /data/drought/production-releases
+        read_only: true
+
+  tsird-edge:
+    image: ${TSIRD_EDGE_IMAGE:-ghcr.io/fikrukidane/tsird-atlas-edge:REPLACE_ME}
+    build: !reset null
+
+  # Retrieval and processing remain on development infrastructure. Retaining
+  # this service behind a non-default profile prevents `compose up` on the VPS
+  # from starting or building it.
+  tsird-etl:
+    profiles: [development-only]

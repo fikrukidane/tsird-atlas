@@ -127,6 +127,17 @@ class SearchControl {
       : { padding: [40, 40, 40, 40], duration: 400 };
     this._map.getView().fit(extent3857, fitOptions);
     HighlightOverlay.show(record.bbox);
+    // Keep other tools decoupled from the search widget while letting them
+    // consume the canonical gazetteer identity.  In particular, the drought
+    // evidence-history view uses a Tabia's stable TSIRD ID rather than a name.
+    window.dispatchEvent(new CustomEvent('tsird:boundary-selected', {
+      detail: {
+        type: record.type,
+        id: record.id,
+        name_en: record.name_en || '',
+        name_ti: record.name_ti || ''
+      }
+    }));
   }
 
   _close() {

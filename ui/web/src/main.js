@@ -14,7 +14,8 @@
  *   7. Scale monitoring + GetFeatureInfo
  *   8. Phase 3: HighlightOverlay, SearchControl, FullZoomControl, MeasureControl, Navigator
  */
-async function initializeApplication(registryPath) {
+async function initializeApplication(registryPath, options) {
+  options = options || {};
   registryPath = registryPath || 'data/atlas-registry.json';
   console.log('═══════════════════════════════════════════════════════════');
   console.log('TSIRD Phase 3 — Search, Navigator, Measure Tools');
@@ -61,6 +62,44 @@ async function initializeApplication(registryPath) {
     interaction.initializeGetFeatureInfo(registry.wmsBaseUrl);
     console.log('✓ Scale monitoring active. Mutex pairs:', registry.scaleMutexPairs.length);
 
+    let droughtDashboard = null;
+    if (options.droughtWorkspace) {
+      droughtDashboard = new DroughtDashboard(mapController.map, {
+        priorityOnly: options.priorityOnly,
+        dataUrl: options.droughtDataUrl,
+        observedUrl: options.droughtObservedUrl,
+        observedRunsUrl: options.droughtObservedRunsUrl,
+        observedRunBaseUrl: options.droughtObservedRunBaseUrl,
+        preliminaryUrl: options.droughtPreliminaryUrl,
+        ndviUrl: options.droughtNdviUrl,
+        swiUrl: options.droughtSwiUrl,
+        lstUrl: options.droughtLstUrl,
+        waporUrl: options.droughtWaporUrl,
+        outlookUrl: options.droughtOutlookUrl,
+        priorityConfigurationUrl: options.droughtPriorityConfigurationUrl,
+        priorityPreviewsUrl: options.droughtPriorityPreviewsUrl,
+        priorityReplaysUrl: options.droughtPriorityReplaysUrl,
+        fewsNetRunsUrl: options.droughtFewsNetRunsUrl,
+        fewsNetRunBaseUrl: options.droughtFewsNetRunBaseUrl,
+        modelReadinessUrl: options.droughtModelReadinessUrl,
+        historyUrl: options.droughtHistoryUrl,
+        evidenceBaseUrl: options.droughtEvidenceBaseUrl,
+        boundaryUrl: options.droughtBoundaryUrl,
+        onEnsureContextLayers: layerIds => layerIds.forEach(layerId => interaction.setLayerVisible(layerId, true)),
+        onSetEvidenceLayer: activeLayerId => {
+          ['tigray_drought_chirps_dev', 'tigray_drought_chirps_raw_dev', 'tigray_drought_chirps_rapid_raw_dev',
+           'tigray_drought_chirps_rapid_tabia_dev', 'tigray_drought_ndvi_dev', 'tigray_drought_ndvi_raw_dev',
+           'tigray_drought_swi_dev', 'tigray_drought_swi_raw_dev', 'tigray_drought_lst_dev', 'tigray_drought_lst_raw_dev',
+           'tigray_drought_wapor_dev', 'tigray_drought_wapor_raw_dev',
+           'tigray_drought_road_accessibility_dev', 'tigray_drought_population_dev', 'tigray_drought_cropland_dev']
+            .forEach(layerId => interaction.setLayerVisible(layerId, layerId === activeLayerId));
+        }
+      });
+      await droughtDashboard.initialize();
+      if (!options.priorityOnly) interaction.setLayerVisible('tigray_drought_chirps_dev', true);
+      console.log('✓ Drought intelligence workspace initialized (development artifact)');
+    }
+
     // Step 8: Phase 3 — Highlight + Toolbar + Navigator
     console.log('Step 8: Adding Phase 3 controls...');
 
@@ -94,7 +133,7 @@ async function initializeApplication(registryPath) {
     console.log('✓ APPLICATION INITIALIZED SUCCESSFULLY (PHASE 3)');
     console.log('═══════════════════════════════════════════════════════════');
 
-    return { mapController, layers, interaction, registry };
+    return { mapController, layers, interaction, registry, droughtDashboard };
 
   } catch (error) {
     console.error('❌ APPLICATION INITIALIZATION FAILED:', error.message);
@@ -116,5 +155,9 @@ function displayErrorPage(message) {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
-  initializeApplication('data/atlas-registry.json?v=20260306');
+  // Purpose-built workspaces initialise themselves with their own relative
+  // API/data paths. Only the main Atlas page uses this generic bootstrap.
+  if (!document.body.dataset.tsirdPage) {
+    initializeApplication('data/atlas-registry.json?v=20260306');
+  }
 });

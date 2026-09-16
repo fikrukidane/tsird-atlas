@@ -1,0 +1,23 @@
+{
+  "name": "TSIRD · C3S seasonal forecast access probe v1 (development)",
+  "nodes": [
+    {"parameters": {}, "id": "4eeb2713-ebbd-46c4-b4bf-fab3f77bd69e", "name": "Manual development run", "type": "n8n-nodes-base.manualTrigger", "typeVersion": 1, "position": [220, 220]},
+    {"parameters": {"rule": {"interval": [{"field": "cronExpression", "expression": "30 8 15 * *"}]}}, "id": "a3a6e4f6-537c-4c26-8c28-ce21cddc888c", "name": "Monthly Addis C3S access probe", "type": "n8n-nodes-base.scheduleTrigger", "typeVersion": 1.2, "position": [220, 380]},
+    {"parameters": {"method": "POST", "url": "http://tsird-drought-runner:8090/runs/c3s-seasonal-access-probe/development-test", "options": {"timeout": 30000}}, "id": "8b47c8cd-142e-429c-a8e0-3c8c7b4562b2", "name": "Test C3S seasonal access", "type": "n8n-nodes-base.httpRequest", "typeVersion": 4.2, "position": [520, 300]},
+    {"parameters": {"amount": 60, "unit": "seconds"}, "id": "c70f3cc2-c054-4ec2-a58f-32eb35a4d95b", "name": "Wait for CDS access test", "type": "n8n-nodes-base.wait", "typeVersion": 1.1, "position": [790, 300]},
+    {"parameters": {"url": "=http://tsird-drought-runner:8090/runs/{{ $json.job_id }}", "options": {"timeout": 30000}}, "id": "27f69152-315f-4bda-9844-25d1b7b59055", "name": "Read C3S access receipt", "type": "n8n-nodes-base.httpRequest", "typeVersion": 4.2, "position": [1030, 300]},
+    {"parameters": {"assignments": {"assignments": [{"id": "a87f1c1d-d114-41c2-bb4f-7abf297b2663", "name": "operator_summary", "value": "=C3S seasonal access probe ended {{$json.status}} at {{$json.finished_at}}. It retains no forecast data and cannot publish an Outlook; hindcast, skill, and probability-method review remain required.", "type": "string"}]}, "options": {}}, "id": "cfc0a652-df07-49e5-90f4-57501834999b", "name": "Record C3S access receipt", "type": "n8n-nodes-base.set", "typeVersion": 3.4, "position": [1300, 300]}
+  ],
+  "connections": {
+    "Manual development run": {"main": [[{"node": "Test C3S seasonal access", "type": "main", "index": 0}]]},
+    "Monthly Addis C3S access probe": {"main": [[{"node": "Test C3S seasonal access", "type": "main", "index": 0}]]},
+    "Test C3S seasonal access": {"main": [[{"node": "Wait for CDS access test", "type": "main", "index": 0}]]},
+    "Wait for CDS access test": {"main": [[{"node": "Read C3S access receipt", "type": "main", "index": 0}]]},
+    "Read C3S access receipt": {"main": [[{"node": "Record C3S access receipt", "type": "main", "index": 0}]]}
+  },
+  "pinData": {},
+  "active": false,
+  "settings": {"executionOrder": "v1", "saveManualExecutions": true, "saveExecutionProgress": true},
+  "meta": {"templateCredsSetupCompleted": true},
+  "tags": []
+}

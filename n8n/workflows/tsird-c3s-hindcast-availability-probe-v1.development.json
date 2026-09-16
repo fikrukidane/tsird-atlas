@@ -1,0 +1,21 @@
+{
+  "name": "TSIRD · C3S matched hindcast availability probe v1 (development)",
+  "nodes": [
+    {"parameters": {}, "id": "01ff0f5e-a9bb-4790-a998-6a1b435b6c88", "name": "Manual development run", "type": "n8n-nodes-base.manualTrigger", "typeVersion": 1, "position": [220, 300]},
+    {"parameters": {"method": "POST", "url": "http://tsird-drought-runner:8090/runs/c3s-seasonal-hindcast-probe/development-test", "options": {"timeout": 30000}}, "id": "8b36bc16-a7a2-4ccf-99a0-57f71c48f9db", "name": "Test matched C3S hindcast", "type": "n8n-nodes-base.httpRequest", "typeVersion": 4.2, "position": [530, 300]},
+    {"parameters": {"amount": 180, "unit": "seconds"}, "id": "e7b2c2c1-0d55-4a97-92d4-a33ca08b6b2d", "name": "Wait for hindcast test", "type": "n8n-nodes-base.wait", "typeVersion": 1.1, "position": [800, 300]},
+    {"parameters": {"url": "=http://tsird-drought-runner:8090/runs/{{ $json.job_id }}", "options": {"timeout": 30000}}, "id": "a9a89ed1-1c1d-4c88-b493-27e5728f4365", "name": "Read hindcast receipt", "type": "n8n-nodes-base.httpRequest", "typeVersion": 4.2, "position": [1080, 300]},
+    {"parameters": {"assignments": {"assignments": [{"id": "aa60a0f7-cd45-4eae-91d5-d73b5c03f0dd", "name": "operator_summary", "value": "=C3S matched hindcast availability ended {{$json.status}} at {{$json.finished_at}}. It retains no values and does not calculate skill or publish an Outlook.", "type": "string"}]}, "options": {}}, "id": "4a04a8ec-4e5b-47fc-b6aa-9649f808e0ca", "name": "Record hindcast receipt", "type": "n8n-nodes-base.set", "typeVersion": 3.4, "position": [1350, 300]}
+  ],
+  "connections": {
+    "Manual development run": {"main": [[{"node": "Test matched C3S hindcast", "type": "main", "index": 0}]]},
+    "Test matched C3S hindcast": {"main": [[{"node": "Wait for hindcast test", "type": "main", "index": 0}]]},
+    "Wait for hindcast test": {"main": [[{"node": "Read hindcast receipt", "type": "main", "index": 0}]]},
+    "Read hindcast receipt": {"main": [[{"node": "Record hindcast receipt", "type": "main", "index": 0}]]}
+  },
+  "pinData": {},
+  "active": false,
+  "settings": {"executionOrder": "v1", "saveManualExecutions": true, "saveExecutionProgress": true},
+  "meta": {"templateCredsSetupCompleted": true},
+  "tags": []
+}

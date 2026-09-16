@@ -1,0 +1,41 @@
+{
+  "schema_version": "tsird-drought-production-release/v1",
+  "release_id": "2026-09-16T120000Z-example",
+  "release_state": "approved",
+  "prepared_by": "example-local-release-exporter",
+  "prepared_at": "2026-09-16T12:00:00Z",
+  "approved_by": "example-release-approver",
+  "approved_at": "2026-09-16T12:05:00Z",
+  "previous_release_id": null,
+  "public_scope": "Experimental evidence platform; not an official forecast, food-security classification, allocation recommendation, or operational decision product.",
+  "assets": [
+    {
+      "asset_id": "drought-evidence-summary",
+      "kind": "drought_evidence_summary",
+      "relative_path": "drought-evidence-summary.json",
+      "byte_size": 0,
+      "sha256": "REPLACE_WITH_LOWERCASE_SHA256",
+      "source": "TSIRD retained development evidence",
+      "source_observation_start": "2026-08-01",
+      "source_observation_end": "2026-08-31",
+      "retrieved_at": "2026-09-16T11:30:00Z",
+      "processing_version": "REPLACE_WITH_VERSION",
+      "quality_state": "validated",
+      "interpretation_boundary": "Source-specific retained evidence only; it is not a combined drought score or operational decision."
+    },
+    {
+      "asset_id": "fews-net-context",
+      "kind": "fews_net_native_context",
+      "relative_path": "fews-net-context.json",
+      "byte_size": 0,
+      "sha256": "REPLACE_WITH_LOWERCASE_SHA256",
+      "source": "FEWS NET provider-issued Ethiopia native Food Security Classification geography",
+      "source_observation_start": "2026-07-01",
+      "source_observation_end": "2026-09-30",
+      "retrieved_at": "2026-09-16T11:35:00Z",
+      "processing_version": "provider-native-retained-context-v1",
+      "quality_state": "validated",
+      "interpretation_boundary": "Provider-native external context only; no provider classification is transferred to a Tabia and it does not affect TSIRD scoring."
+    }
+  ]
+}

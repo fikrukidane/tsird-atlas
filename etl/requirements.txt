@@ -3,3 +3,8 @@ requests
 python-dotenv
 sqlalchemy
 click
+rasterio==1.4.3
+shapely==2.0.6
+fastapi==0.115.6
+uvicorn==0.34.0
+cdsapi>=0.7.7

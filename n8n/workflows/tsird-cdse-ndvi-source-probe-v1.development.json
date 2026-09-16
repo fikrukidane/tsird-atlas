@@ -1,0 +1,23 @@
+{
+  "name": "TSIRD · CDSE NDVI source probe v1 (development)",
+  "nodes": [
+    {"parameters": {}, "id": "f4a67c39-8735-4b73-98d8-e7e5168a7fd9", "name": "Manual development run", "type": "n8n-nodes-base.manualTrigger", "typeVersion": 1, "position": [220, 220]},
+    {"parameters": {"rule": {"interval": [{"field": "cronExpression", "expression": "45 6 * * *"}]}}, "id": "f074592f-63bd-4104-b864-16b96b6ab6ae", "name": "Daily Addis NDVI probe", "type": "n8n-nodes-base.scheduleTrigger", "typeVersion": 1.2, "position": [220, 380]},
+    {"parameters": {"method": "POST", "url": "http://tsird-drought-runner:8090/runs/ndvi-source-probe/development-test", "options": {"timeout": 30000}}, "id": "cbb35826-b4a5-4125-a68f-3a6588f880e1", "name": "Probe NDVI catalogue freshness", "type": "n8n-nodes-base.httpRequest", "typeVersion": 4.2, "position": [510, 300]},
+    {"parameters": {"amount": 30, "unit": "seconds"}, "id": "49d26f95-20e5-4d2d-8ece-84931f2b596d", "name": "Wait for NDVI probe", "type": "n8n-nodes-base.wait", "typeVersion": 1.1, "position": [780, 300]},
+    {"parameters": {"url": "=http://tsird-drought-runner:8090/runs/{{ $json.job_id }}", "options": {"timeout": 30000}}, "id": "a8b41c83-0103-4b8f-b15f-7a09a79c4816", "name": "Read NDVI probe receipt", "type": "n8n-nodes-base.httpRequest", "typeVersion": 4.2, "position": [1020, 300]},
+    {"parameters": {"assignments": {"assignments": [{"id": "12eedf21-bb33-4d44-b91f-ecf8d3c95d8d", "name": "operator_summary", "value": "=NDVI source probe ended {{$json.status}} at {{$json.finished_at}}. A degraded or current item never downloads imagery; only a separately reviewed ready branch may request a Tabia summary.", "type": "string"}]}, "options": {}}, "id": "d4205938-e98a-41d8-9bf8-91a17100fd30", "name": "Record NDVI probe receipt", "type": "n8n-nodes-base.set", "typeVersion": 3.4, "position": [1280, 300]}
+  ],
+  "connections": {
+    "Manual development run": {"main": [[{"node": "Probe NDVI catalogue freshness", "type": "main", "index": 0}]]},
+    "Daily Addis NDVI probe": {"main": [[{"node": "Probe NDVI catalogue freshness", "type": "main", "index": 0}]]},
+    "Probe NDVI catalogue freshness": {"main": [[{"node": "Wait for NDVI probe", "type": "main", "index": 0}]]},
+    "Wait for NDVI probe": {"main": [[{"node": "Read NDVI probe receipt", "type": "main", "index": 0}]]},
+    "Read NDVI probe receipt": {"main": [[{"node": "Record NDVI probe receipt", "type": "main", "index": 0}]]}
+  },
+  "pinData": {},
+  "active": false,
+  "settings": {"executionOrder": "v1", "saveManualExecutions": true, "saveExecutionProgress": true},
+  "meta": {"templateCredsSetupCompleted": true},
+  "tags": []
+}

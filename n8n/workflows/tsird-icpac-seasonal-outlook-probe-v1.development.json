@@ -1,0 +1,23 @@
+{
+  "name": "TSIRD · ICPAC seasonal outlook probe v1 (development)",
+  "nodes": [
+    {"parameters": {}, "id": "8ee66d77-69ed-4e98-8f5b-9d7e5bd4a9e0", "name": "Manual development run", "type": "n8n-nodes-base.manualTrigger", "typeVersion": 1, "position": [220, 220]},
+    {"parameters": {"rule": {"interval": [{"field": "cronExpression", "expression": "10 7 * * 1"}]}}, "id": "3b5c5988-c229-43f0-87fa-4e9b9bf6c4bb", "name": "Weekly Addis outlook probe", "type": "n8n-nodes-base.scheduleTrigger", "typeVersion": 1.2, "position": [220, 380]},
+    {"parameters": {"method": "POST", "url": "http://tsird-drought-runner:8090/runs/seasonal-outlook-probe/development-test", "options": {"timeout": 30000}}, "id": "40c1d0b3-ef47-49c0-b277-d4719bff36f3", "name": "Probe ICPAC outlook catalogue", "type": "n8n-nodes-base.httpRequest", "typeVersion": 4.2, "position": [510, 300]},
+    {"parameters": {"amount": 20, "unit": "seconds"}, "id": "eb5b45e4-2751-4e64-9350-8420682915ee", "name": "Wait for outlook probe", "type": "n8n-nodes-base.wait", "typeVersion": 1.1, "position": [780, 300]},
+    {"parameters": {"url": "=http://tsird-drought-runner:8090/runs/{{ $json.job_id }}", "options": {"timeout": 30000}}, "id": "d580a1d7-c9f5-4552-83f4-18de444d69d2", "name": "Read outlook probe receipt", "type": "n8n-nodes-base.httpRequest", "typeVersion": 4.2, "position": [1020, 300]},
+    {"parameters": {"assignments": {"assignments": [{"id": "8053d7cd-d10a-47fc-944d-457b21538e54", "name": "operator_summary", "value": "=ICPAC catalogue probe ended {{$json.status}} at {{$json.finished_at}}. This workflow does not scrape forecast imagery, download an asset, or publish an outlook; a reviewed machine-readable provider release is required.", "type": "string"}]}, "options": {}}, "id": "449076d0-f0c6-4a36-8c05-c5891a25b952", "name": "Record outlook probe receipt", "type": "n8n-nodes-base.set", "typeVersion": 3.4, "position": [1280, 300]}
+  ],
+  "connections": {
+    "Manual development run": {"main": [[{"node": "Probe ICPAC outlook catalogue", "type": "main", "index": 0}]]},
+    "Weekly Addis outlook probe": {"main": [[{"node": "Probe ICPAC outlook catalogue", "type": "main", "index": 0}]]},
+    "Probe ICPAC outlook catalogue": {"main": [[{"node": "Wait for outlook probe", "type": "main", "index": 0}]]},
+    "Wait for outlook probe": {"main": [[{"node": "Read outlook probe receipt", "type": "main", "index": 0}]]},
+    "Read outlook probe receipt": {"main": [[{"node": "Record outlook probe receipt", "type": "main", "index": 0}]]}
+  },
+  "pinData": {},
+  "active": false,
+  "settings": {"executionOrder": "v1", "saveManualExecutions": true, "saveExecutionProgress": true},
+  "meta": {"templateCredsSetupCompleted": true},
+  "tags": []
+}

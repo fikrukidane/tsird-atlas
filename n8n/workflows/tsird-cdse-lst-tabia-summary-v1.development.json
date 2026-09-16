@@ -1,0 +1,12 @@
+{
+  "name": "TSIRD · CDSE LST Tabia summary v1 (development)",
+  "nodes": [
+    {"parameters": {}, "id": "507ec9ed-5dc5-425a-90bb-91c5f435487a", "name": "Manual development run", "type": "n8n-nodes-base.manualTrigger", "typeVersion": 1, "position": [260, 300]},
+    {"parameters": {"method": "POST", "url": "http://tsird-drought-runner:8090/runs/lst-tabia-summary/development-test", "options": {"timeout": 30000}}, "id": "32c6e738-374f-41fb-9c01-2b75b9a5ad7f", "name": "Build LST raster and Tabia summary", "type": "n8n-nodes-base.httpRequest", "typeVersion": 4.2, "position": [520, 300]},
+    {"parameters": {"amount": 60, "unit": "seconds"}, "id": "1c39c281-66f2-4f6a-a4ae-43181d7374f6", "name": "Wait for LST processing", "type": "n8n-nodes-base.wait", "typeVersion": 1.1, "position": [790, 300]},
+    {"parameters": {"url": "=http://tsird-drought-runner:8090/runs/{{ $json.job_id }}", "options": {"timeout": 30000}}, "id": "4cd61215-dc99-4d14-b7ad-16a1ca1a395e", "name": "Read LST summary result", "type": "n8n-nodes-base.httpRequest", "typeVersion": 4.2, "position": [1050, 300]},
+    {"parameters": {"assignments": {"assignments": [{"id": "f57bc68b-3e2b-4541-86a4-eca1f339323a", "name": "operator_summary", "value": "=LST development run ended {{$json.status}} at {{$json.finished_at}}. It retains one ~5 km land-surface-temperature raster locally and derives Tabia zonal context. Review freshness, coverage, PPP, and QFLAG; it is not air temperature or a drought/food-security class.", "type": "string"}]}, "options": {}}, "id": "c1f59726-f2f4-426d-9b29-241bf909194b", "name": "Record LST result", "type": "n8n-nodes-base.set", "typeVersion": 3.4, "position": [1310, 300]}
+  ],
+  "connections": {"Manual development run": {"main": [[{"node": "Build LST raster and Tabia summary", "type": "main", "index": 0}]]}, "Build LST raster and Tabia summary": {"main": [[{"node": "Wait for LST processing", "type": "main", "index": 0}]]}, "Wait for LST processing": {"main": [[{"node": "Read LST summary result", "type": "main", "index": 0}]]}, "Read LST summary result": {"main": [[{"node": "Record LST result", "type": "main", "index": 0}]]}},
+  "pinData": {}, "active": false, "settings": {"executionOrder": "v1", "saveManualExecutions": true, "saveExecutionProgress": true}, "versionId": "0d683a21-7304-43d6-b5e4-1ff58589160e", "meta": {"templateCredsSetupCompleted": true}, "tags": []
+}

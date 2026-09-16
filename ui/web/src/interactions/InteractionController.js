@@ -1380,6 +1380,10 @@ class InteractionController {
     console.log(`[InteractionController] Layer toggled: ${layerId} = ${enabled} (user request)`);
   }
 
+  setLayerVisible(layerId, enabled) {
+    this._onLayerToggle(layerId, enabled);
+  }
+
   /**
    * Enforce basemap mutex: only one basemap visible at a time.
    * When a basemap is turned ON, all other basemaps are turned OFF.
@@ -1694,6 +1698,13 @@ class InteractionController {
    * @private
    */
   async _handleMapClick(evt) {
+    // History owns its vector snapshot clicks so one click selects a Tabia
+    // and updates the indicator table/chart, rather than opening the general
+    // Atlas GetFeatureInfo popup as a competing interaction.
+    if (['history', 'priority'].includes(document.body.dataset.tsirdDroughtMode)) {
+      this.popup.setPosition(undefined);
+      return;
+    }
     const coordinate = evt.coordinate;
     const viewResolution = this.mapController.getView().getResolution();
     const projection = this.mapController.getView().getProjection();
@@ -1750,9 +1761,29 @@ class InteractionController {
     // Display results
     if (results.length > 0) {
       this._displayFeatureInfo(results, coordinate);
+      this._emitSelectedTabia(results);
     } else {
       this.popup.setPosition(undefined);
     }
+  }
+
+  /**
+   * Announce a Tabia selected through the standard GetFeatureInfo path.
+   * Consumers receive the stable TSIRD identity, never a name-based match.
+   * @private
+   */
+  _emitSelectedTabia(results) {
+    const tabiaResult = results.find(result => result.layerId === 'tigray_tabias_ti_en_pg');
+    const props = tabiaResult && tabiaResult.features && tabiaResult.features[0] && tabiaResult.features[0].properties;
+    if (!props || !props.tsird_tabia_id) return;
+    window.dispatchEvent(new CustomEvent('tsird:boundary-selected', {
+      detail: {
+        type: 'tabia',
+        id: props.tsird_tabia_id,
+        name_en: props.TABIA || '',
+        parent_name_en: props.WEREDA || ''
+      }
+    }));
   }
 
   /**

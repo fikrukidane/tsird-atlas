@@ -1,0 +1,23 @@
+{
+  "name": "TSIRD · FEWS NET public classification discovery v1 (development)",
+  "nodes": [
+    {"parameters": {}, "id": "54630c17-0890-40e7-9f1e-489d9dfe3fc3", "name": "Manual development run", "type": "n8n-nodes-base.manualTrigger", "typeVersion": 1, "position": [220, 220]},
+    {"parameters": {"rule": {"interval": [{"field": "cronExpression", "expression": "20 7 * * 1"}]}}, "id": "8eea7c3b-20c3-42f1-bd71-f39111da4fd8", "name": "Weekly Addis FEWS NET availability check", "type": "n8n-nodes-base.scheduleTrigger", "typeVersion": 1.2, "position": [220, 380]},
+    {"parameters": {"method": "POST", "url": "http://tsird-drought-runner:8090/runs/fews-net-food-security-probe/development-test", "options": {"timeout": 30000}}, "id": "8756eb8e-b770-4ca9-96f7-34efa8ac2d60", "name": "Discover public Ethiopia classification assets", "type": "n8n-nodes-base.httpRequest", "typeVersion": 4.2, "position": [520, 220]},
+    {"parameters": {"amount": 20, "unit": "seconds"}, "id": "fb2dcce3-514b-4185-8f1e-70960dbbf82c", "name": "Wait for FEWS NET discovery", "type": "n8n-nodes-base.wait", "typeVersion": 1.1, "position": [790, 220]},
+    {"parameters": {"url": "=http://tsird-drought-runner:8090/runs/{{ $json.job_id }}", "options": {"timeout": 30000}}, "id": "48ab971f-0fe6-4da1-8133-eed45c8f1ca0", "name": "Read FEWS NET discovery receipt", "type": "n8n-nodes-base.httpRequest", "typeVersion": 4.2, "position": [1030, 220]},
+    {"parameters": {"assignments": {"assignments": [{"id": "5665fbe8-6df2-46b5-827c-8ea267ca85dd", "name": "operator_summary", "value": "=FEWS NET public classification discovery ended {{$json.status}} at {{$json.finished_at}}. It retains no provider record or geometry, creates no Tabia crosswalk, and publishes no food-security classification; a reviewer must approve one native-FSC asset before a bounded loader is built.", "type": "string"}]}, "options": {}}, "id": "445eb309-1d0b-4f7f-ad56-d2992722dece", "name": "Record FEWS NET discovery receipt", "type": "n8n-nodes-base.set", "typeVersion": 3.4, "position": [1300, 220]}
+  ],
+  "connections": {
+    "Manual development run": {"main": [[{"node": "Discover public Ethiopia classification assets", "type": "main", "index": 0}]]},
+    "Weekly Addis FEWS NET availability check": {"main": [[{"node": "Discover public Ethiopia classification assets", "type": "main", "index": 0}]]},
+    "Discover public Ethiopia classification assets": {"main": [[{"node": "Wait for FEWS NET discovery", "type": "main", "index": 0}]]},
+    "Wait for FEWS NET discovery": {"main": [[{"node": "Read FEWS NET discovery receipt", "type": "main", "index": 0}]]},
+    "Read FEWS NET discovery receipt": {"main": [[{"node": "Record FEWS NET discovery receipt", "type": "main", "index": 0}]]}
+  },
+  "pinData": {},
+  "active": true,
+  "settings": {"executionOrder": "v1", "saveManualExecutions": true, "saveExecutionProgress": true},
+  "meta": {"templateCredsSetupCompleted": true},
+  "tags": []
+}
