@@ -169,7 +169,10 @@ without changing the public `current` release.
 2. Run frontend/API checks locally, including `git diff --check` and the
    production localhost guard for served frontend changes.
 3. Build Docker images locally/CI and publish immutable version tags to a
-   registry.
+   registry. The tracked GitHub Actions
+   [image-publishing procedure](production-image-publishing.md) builds the
+   web, API and edge images only from an explicit `tsird-drought-v*` source
+   tag (or manual dispatch), rather than for every development commit.
 4. On the VPS, set the three immutable image references in an untracked
    production image environment file, run the production-image configuration
    guard, then pull the prebuilt images and use a pinned Compose release

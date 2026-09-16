@@ -125,7 +125,11 @@ layers.
   no-release state locally and will verify the activated viewer, manifest
   assets, and public replay boundary after a future promotion.
   No VPS inventory was repeated; no production credential, account, transfer,
-  n8n publisher, raw-data mount or deployment has been created.
+  n8n publisher, raw-data mount or deployment has been created. A tagged-source
+  GitHub Actions workflow publishes the three prebuilt serving images (web, API
+  and edge) to GHCR only for an explicit `tsird-drought-v*` tag or manual
+  dispatch. The intended VPS configuration pins the generated SHA image tags;
+  no image has been published or deployed by this preparation.
 - The `/map/` proxy contract remains active, including `/map/ogc` and `/map/api/gazetteer`. Public URLs in release notes are documented deployment targets, not availability checks performed here.
 
 ### Registry inventory
