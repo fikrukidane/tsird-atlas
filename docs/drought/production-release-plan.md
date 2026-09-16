@@ -185,6 +185,12 @@ without changing the public `current` release.
 **Gate:** source tag, image tag, release-data ID and deployed configuration are
 recorded together in a release note.
 
+Use the private
+[production release ledger template](templates/drought-production-release-ledger.example.md)
+to record those immutable references, the narrow preflight, the public
+acceptance result, and any rollback decision. It is a deployment record, not a
+source-controlled configuration file.
+
 ### Phase 6 — deploy the protected Expert Evidence Review portal
 
 1. Add the briefing explaining why the review exists: it tests local

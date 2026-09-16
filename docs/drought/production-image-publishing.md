@@ -29,7 +29,10 @@ manual dispatch. It does not publish images for every development commit.
    succeed for `web`, `api`, and `edge`.
 4. Record each resulting immutable `sha-<commit>` image tag in the release
    ledger. The human-readable release tag is useful for navigation; the SHA
-   tag is the VPS deployment reference.
+   tag is the VPS deployment reference. Use the private
+   [release ledger template](templates/drought-production-release-ledger.example.md)
+   to keep the source tag, image digest, approved data-release ID and rollback
+   trio together.
 5. On the VPS, place those three SHA image references in the untracked
    production image environment file based on
    [`.env.production.images.example`](../../.env.production.images.example).
