@@ -19,7 +19,7 @@ LAYER
     "gml_include_items" "ZONES,AREA,PERIMETER,ETZONES01C,ETZONES01C_1"
     "wms_include_items" "ZONES,AREA,PERIMETER,ETZONES01C,ETZONES01C_1"
   END
-  TEMPLATE "dummy.html"
+  TEMPLATE "/etc/mapserver/dummy.html"
   CLASS
     STYLE
       OUTLINECOLOR 100 100 100
@@ -46,7 +46,7 @@ LAYER
     "gml_include_items" "TABIA,WEREDA,ZONES,SQ_KM,HECTARES,DENSITY"
     "wms_include_items" "TABIA,WEREDA,ZONES,SQ_KM,HECTARES,DENSITY"
   END
-  TEMPLATE "dummy.html"
+  TEMPLATE "/etc/mapserver/dummy.html"
   CLASS
     STYLE
       OUTLINECOLOR 100 100 100
@@ -73,7 +73,7 @@ LAYER
     "gml_include_items" "NAME,TYPE,OWNER,ZONE_,LENGTH_KM,NEAR_DIST"
     "wms_include_items" "NAME,TYPE,OWNER,ZONE_,LENGTH_KM,NEAR_DIST"
   END
-  TEMPLATE "dummy.html"
+  TEMPLATE "/etc/mapserver/dummy.html"
   CLASS
     STYLE
       COLOR 150 150 150
@@ -99,7 +99,7 @@ LAYER
     "gml_include_items" "Name,Type,Zone_Name,Woreda_Nam,T_Name,X"
     "wms_include_items" "Name,Type,Zone_Name,Woreda_Nam,T_Name,X"
   END
-  TEMPLATE "dummy.html"
+  TEMPLATE "/etc/mapserver/dummy.html"
   CLASS
     STYLE
       SYMBOL "circle"
@@ -126,7 +126,7 @@ LAYER
     "gml_include_items" "TOWN_NAME,WEREDA,REGION,ZONES,POP,POPTOT"
     "wms_include_items" "TOWN_NAME,WEREDA,REGION,ZONES,POP,POPTOT"
   END
-  TEMPLATE "dummy.html"
+  TEMPLATE "/etc/mapserver/dummy.html"
   CLASS
     STYLE
       SYMBOL "circle"
@@ -153,7 +153,7 @@ LAYER
     "gml_include_items" "TOWN_NAME,WEREDA,REGION,ZONES,POP,POPTOT"
     "wms_include_items" "TOWN_NAME,WEREDA,REGION,ZONES,POP,POPTOT"
   END
-  TEMPLATE "dummy.html"
+  TEMPLATE "/etc/mapserver/dummy.html"
   CLASS
     STYLE
       SYMBOL "circle"
@@ -173,7 +173,7 @@ LAYER
   CONNECTION "/data/gold/atlas_4326/tigray/Health_Institutions.shp"
   DATA "Health_Institutions"
 
-  TEMPLATE "dummy.html"
+  TEMPLATE "/etc/mapserver/dummy.html"
 
   METADATA
     "wms_title" "Tigray Health Facilities (2006)"
