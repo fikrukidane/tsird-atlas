@@ -129,7 +129,10 @@ layers.
   GitHub Actions workflow publishes the three prebuilt serving images (web, API
   and edge) to GHCR only for an explicit `tsird-drought-v*` tag or manual
   dispatch. The intended VPS configuration pins the generated SHA image tags;
-  no image has been published or deployed by this preparation.
+  the first candidate tag, `tsird-drought-v0.1.0-rc.1` at
+  `1f88ef7f9ec7af4cdbcd5fffd56fd81e5a03df83`, completed its three-image GHCR
+  build successfully on 2026-09-16. This is a CI-only rehearsal: no VPS
+  deployment, production data release or public activation followed.
 - The `/map/` proxy contract remains active, including `/map/ogc` and `/map/api/gazetteer`. Public URLs in release notes are documented deployment targets, not availability checks performed here.
 
 ### Registry inventory
