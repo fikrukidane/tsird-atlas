@@ -118,6 +118,9 @@ layers.
   separate host-side preflight checks only the previously inventoried host's
   release-time capacity, Compose shape, running API and read-only mount; it
   does not repeat the VPS inventory or mutate the host.
+  Public replay packaging sanitizes development action/priority/rule fields
+  into neutral C1--C4 retrospective draft codes with retained evidence values;
+  the validator rejects operational planning wording or those internal fields.
   No VPS inventory was repeated; no production credential, account, transfer,
   n8n publisher, raw-data mount or deployment has been created.
 - The `/map/` proxy contract remains active, including `/map/ogc` and `/map/api/gazetteer`. Public URLs in release notes are documented deployment targets, not availability checks performed here.

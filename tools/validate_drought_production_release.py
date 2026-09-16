@@ -29,6 +29,7 @@ ALLOWED_KINDS = {
 }
 SHA256 = re.compile(r"^[a-f0-9]{64}$")
 RELEASE_ID = re.compile(r"^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{6}Z(?:-[a-z0-9][a-z0-9-]*)?$")
+PUBLIC_REPLAY_FORBIDDEN_PROPERTIES = {"planning_action", "priority_class", "priority_rank", "triggered_rules"}
 
 
 def fail(message: str) -> None:
@@ -74,6 +75,30 @@ def file_digest(path: Path) -> str:
         for block in iter(lambda: handle.read(1024 * 1024), b""):
             digest.update(block)
     return digest.hexdigest()
+
+
+def validate_public_replay_payload(path: Path) -> None:
+    """Reject internal priority/action fields from a public replay asset."""
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as error:
+        fail(f"public replay asset is not readable JSON: {error}")
+    if not isinstance(payload, dict):
+        fail("public replay asset root must be an object")
+    features = payload.get("features")
+    if isinstance(features, list):
+        for index, feature in enumerate(features):
+            properties = feature.get("properties") if isinstance(feature, dict) else None
+            if not isinstance(properties, dict):
+                fail(f"public replay feature {index} has no properties object")
+            forbidden = PUBLIC_REPLAY_FORBIDDEN_PROPERTIES.intersection(properties)
+            if forbidden:
+                fail(f"public replay feature {index} exposes internal field(s): {', '.join(sorted(forbidden))}")
+            if "retrospective_draft_code" not in properties:
+                fail(f"public replay feature {index} lacks a neutral retrospective_draft_code")
+    text = json.dumps(payload, ensure_ascii=False).lower()
+    if "immediate verification" in text or "coordinated response planning" in text:
+        fail("public replay asset contains operational planning wording")
 
 
 def validate_asset(release_dir: Path, asset: Any, index: int, names: set[str]) -> None:
@@ -122,6 +147,8 @@ def validate_asset(release_dir: Path, asset: Any, index: int, names: set[str]) -
         fail("FEWS NET interpretation boundary must explicitly retain the Tabia non-transfer rule")
     if kind == "priority_replay_summary" and "forecast" not in boundary.lower():
         fail("Priority replay interpretation boundary must explicitly state its forecast limitation")
+    if kind == "priority_replay_summary":
+        validate_public_replay_payload(file_path)
 
 
 def validate_release(release_dir: Path, allow_validated: bool) -> dict[str, Any]:

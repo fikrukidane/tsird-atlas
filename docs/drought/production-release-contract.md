@@ -60,7 +60,12 @@ by policy and must never appear in a release manifest.
 Provider-native FEWS NET content must retain its source geography and must say
 that it is not transferred into a Tabia classification. Retrospective replay
 content must say that it is not a forecast, official classification, allocation
-or operational decision.
+or operational decision. Before packaging, the builder removes development-only
+`planning_action`, priority class/rank, and rule-trigger fields from replay
+geometry. It emits neutral retrospective draft codes (`C1`--`C4`) with retained
+observation values and an explicit non-operational interpretation note. The
+validator rejects a release if the removed fields or operational planning
+phrasing are present.
 
 ## Read-only serving seam
 

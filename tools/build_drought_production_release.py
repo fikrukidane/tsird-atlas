@@ -29,6 +29,7 @@ API_PATHS = {
 REPLAY_PATH = "/map/api/drought/development/priority/historical-replays/{snapshot_id}/features"
 FEWS_PATH = "/map/api/drought/development/fews-net-context/runs/{run_id}/features"
 RELEASE_ID = re.compile(r"^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{6}Z(?:-[a-z0-9][a-z0-9-]*)?$")
+REPLAY_CODE_BY_CLASS = {"critical": "C1", "high": "C2", "moderate": "C3", "watch": "C4"}
 
 
 def utc_now() -> str:
@@ -63,6 +64,101 @@ def observation_window(run: dict[str, Any], fallback: str) -> tuple[str, str]:
     start = run.get("observation_start") or run.get("source_latest_month") or run.get("issued_at") or fallback
     end = run.get("observation_end") or run.get("source_latest_month") or run.get("issued_at") or fallback
     return str(start)[:10], str(end)[:10]
+
+
+def public_replay_geometry(payload: dict[str, Any]) -> dict[str, Any]:
+    """Remove internal decision/action wording from a public replay geometry.
+
+    The public release can retain observations and a neutral retrospective draft
+    code, but must never ship a planning action, a priority label/rank, or
+    rule text that could be read as an instruction.
+    """
+    features = payload.get("features")
+    if payload.get("type") != "FeatureCollection" or not isinstance(features, list):
+        raise RuntimeError("priority replay feature payload is not a FeatureCollection")
+    allowed = {
+        "tsird_tabia_id", "tabia_name_en", "woreda_name_en", "rainfall_mm",
+        "baseline_median_mm", "rainfall_percentile", "population_decile",
+        "cropland_decile", "accessibility_context", "evidence_state", "input_quality",
+    }
+    public_features = []
+    for feature in features:
+        if not isinstance(feature, dict) or not isinstance(feature.get("properties"), dict):
+            raise RuntimeError("priority replay feature is malformed")
+        properties = feature["properties"]
+        public_properties = {key: properties[key] for key in allowed if key in properties}
+        draft_class = properties.get("priority_class")
+        public_properties["retrospective_draft_code"] = REPLAY_CODE_BY_CLASS.get(
+            draft_class, "insufficient-evidence"
+        )
+        public_properties["interpretation_note"] = (
+            "Retrospective retained evidence only; no operational recommendation."
+        )
+        public_features.append({
+            "type": "Feature",
+            "geometry": feature.get("geometry"),
+            "properties": public_properties,
+        })
+    return {
+        "type": "FeatureCollection",
+        "schema_version": "tsird-public-retrospective-evidence-replay/v1",
+        "source_snapshot_kind": payload.get("snapshot_kind"),
+        "interpretation_boundary": (
+            "Retrospective evidence replay only; not a forecast, official classification, "
+            "allocation recommendation, or operational decision."
+        ),
+        "features": public_features,
+    }
+
+
+def public_replay_summary(payload: dict[str, Any]) -> dict[str, Any]:
+    """Publish historical counts under neutral draft codes only."""
+    replays = payload.get("replays")
+    if not isinstance(replays, list):
+        raise RuntimeError("priority replay index has no replay list")
+    public_replays = []
+    for replay in replays:
+        if not isinstance(replay, dict):
+            raise RuntimeError("priority replay index contains an invalid replay")
+        public_replays.append({
+            key: replay.get(key)
+            for key in ("snapshot_id", "configuration_id", "configuration_version", "source_latest_month", "tabias")
+        } | {
+            "C1": replay.get("critical", 0),
+            "C2": replay.get("high", 0),
+            "C3": replay.get("moderate", 0),
+            "C4": replay.get("watch", 0),
+            "insufficient_evidence": replay.get("insufficient_evidence", 0),
+        })
+    return {
+        "schema_version": "tsird-public-retrospective-evidence-replay-index/v1",
+        "interpretation_boundary": (
+            "Retrospective evidence replay only; C1-C4 are neutral stored draft codes, "
+            "not priority decisions, forecasts, or operational recommendations."
+        ),
+        "replays": public_replays,
+    }
+
+
+def public_rainfall_index(payload: dict[str, Any]) -> dict[str, Any]:
+    """Retain compact source metadata without a development raster URL."""
+    runs = payload.get("runs")
+    if not isinstance(runs, list):
+        raise RuntimeError("rainfall evidence index has no run list")
+    public_runs = []
+    for run in runs:
+        if not isinstance(run, dict):
+            raise RuntimeError("rainfall evidence index contains an invalid run")
+        provenance = run.get("provenance") if isinstance(run.get("provenance"), dict) else {}
+        public_runs.append({
+            key: run.get(key)
+            for key in ("run_id", "evidence_kind", "native_resolution", "observation_start", "observation_end", "quality_summary")
+        } | {
+            "source_product": provenance.get("source_product"),
+            "method": provenance.get("method"),
+            "interpretation_boundary": "Retained rainfall evidence only; it does not create a drought class or combined score.",
+        })
+    return {"schema_version": "tsird-public-rainfall-evidence-index/v1", "runs": public_runs}
 
 
 def asset_record(
@@ -133,6 +229,19 @@ def main() -> int:
         return 2
     payloads["priority-replay-latest.geojson"] = request_json(args.api_base, REPLAY_PATH.format(snapshot_id=replay_id))
     payloads["fews-net-context-latest.geojson"] = request_json(args.api_base, FEWS_PATH.format(run_id=fews_id))
+
+    # Build a public-facing shape before writing any release file. The compact
+    # release must not contain development API links, source-raster pointers,
+    # operational planning actions, priority labels/ranks, or trigger text.
+    payloads["drought-evidence-summary.json"] = public_rainfall_index(
+        payloads["drought-evidence-summary.json"]
+    )
+    payloads["priority-replay-summary.json"] = public_replay_summary(
+        payloads["priority-replay-summary.json"]
+    )
+    payloads["priority-replay-latest.geojson"] = public_replay_geometry(
+        payloads["priority-replay-latest.geojson"]
+    )
 
     release_dir.mkdir(parents=True)
     written = {filename: write_json(release_dir / filename, payload) for filename, payload in payloads.items()}
