@@ -207,6 +207,9 @@ retention contact and individual password-set link before use.
 
 1. Deploy first to a non-public staging hostname using the production-shaped
    Compose configuration and a compact representative data release.
+   The public-facing surface is `/map/drought/release/`; it reads only the
+   approved-release API and deliberately shows an unavailable state rather
+   than falling back to development endpoints.
 2. Verify browser rendering under the final `/map/` path, same-origin API/WMS
    routing, map capabilities, selected bilingual search results, evidence
    panels, Priority Replay neutral labels, and FEWS NET compare mode.

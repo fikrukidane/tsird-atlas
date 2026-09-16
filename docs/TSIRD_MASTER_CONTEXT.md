@@ -113,6 +113,11 @@ release and atomically advances `current.json`; it cannot build data or run the 
 repository-side release plumbing only: no VPS account, host configuration, transfer, or public
 activation has been performed. See [activation design](../infra/host-nginx/tsird-drought-release-activation.md).
 
+The public-only release viewer is `/map/drought/release/`. It calls only the
+approved-release API, displays neutral C1--C4 retrospective draft codes and
+provider-native FEWS NET outlines, and explicitly remains unavailable until an
+approved `current.json` exists. It never falls back to development evidence.
+
 ### Request routing
 
 [Edge Nginx](../infra/edge/nginx.conf) routes:
