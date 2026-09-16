@@ -23,6 +23,12 @@ It checks only:
 - that `tsird-api` is running with the release root mounted read-only at
   `/data/drought/production-releases`.
 
+By default it reads the existing untracked `.env.tsird` and the separate
+untracked `.env.production.images` file. The latter contains only the three
+immutable serving-image references, while the former remains the private base
+configuration. An operator may override either path using `TSIRD_BASE_ENV_FILE`
+or `TSIRD_IMAGE_ENV_FILE`; do not copy either completed file into Git.
+
 It does not inspect unrelated host files, create accounts, install packages,
 pull/build/restart containers, upload a release, change `current.json`, or
 contact an external source. A failure is a release stop: investigate without

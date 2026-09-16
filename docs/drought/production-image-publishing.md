@@ -34,10 +34,13 @@ manual dispatch. It does not publish images for every development commit.
    to keep the source tag, image digest, approved data-release ID and rollback
    trio together.
 5. On the VPS, place those three SHA image references in the untracked
-   production image environment file based on
+   `.env.production.images` file based on
    [`.env.production.images.example`](../../.env.production.images.example).
-6. Run `scripts/validate-production-image-config.sh`, then pull and activate
-   the pinned images through the approved production procedure.
+6. The production guards read both `.env.tsird` and
+   `.env.production.images` by default. Run
+   `scripts/validate-production-image-config.sh`, then use the same two
+   `--env-file` arguments when pulling and activating the pinned images through
+   the approved production procedure.
 
 The production Compose overlay rejects placeholder image references, removes
 `build:` for the three serving components, and excludes development ETL from
@@ -56,6 +59,21 @@ If GHCR visibility is private, the VPS needs a separately scoped,
 read-only package-pull credential held only in its untracked environment
 configuration. Prefer public read access for public, non-secret serving images
 only if that matches the project owner's release policy.
+
+## Candidate `tsird-drought-v0.1.0-rc.1`
+
+The first CI-only candidate was built from commit
+`1f88ef7f9ec7af4cdbcd5fffd56fd81e5a03df83`. Its pull references are:
+
+```text
+TSIRD_WEB_IMAGE=ghcr.io/fikrukidane/tsird-atlas-web:sha-1f88ef7
+TSIRD_API_IMAGE=ghcr.io/fikrukidane/tsird-atlas-api:sha-1f88ef7
+TSIRD_EDGE_IMAGE=ghcr.io/fikrukidane/tsird-atlas-edge:sha-1f88ef7
+```
+
+These are suitable only for a staging/pull rehearsal until the release ledger
+records the image digests and the production approval gate is complete. They
+do not activate a drought data release.
 
 ## Rollback and failure
 

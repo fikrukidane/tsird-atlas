@@ -6,13 +6,28 @@ set -euo pipefail
 APP_ROOT="${TSIRD_APP_ROOT:-.}"
 cd "$APP_ROOT"
 
+BASE_ENV_FILE="${TSIRD_BASE_ENV_FILE:-.env.tsird}"
+IMAGE_ENV_FILE="${TSIRD_IMAGE_ENV_FILE:-.env.production.images}"
+[[ -r "$BASE_ENV_FILE" ]] || { echo "FAIL: base environment file is unreadable: $BASE_ENV_FILE" >&2; exit 1; }
+[[ -r "$IMAGE_ENV_FILE" ]] || { echo "FAIL: image environment file is unreadable: $IMAGE_ENV_FILE" >&2; exit 1; }
+
+set -a
+# shellcheck disable=SC1090
+. "$BASE_ENV_FILE"
+# shellcheck disable=SC1090
+. "$IMAGE_ENV_FILE"
+set +a
+
 for variable in TSIRD_WEB_IMAGE TSIRD_API_IMAGE TSIRD_EDGE_IMAGE; do
   value="${!variable:-}"
   [[ -n "$value" ]] || { echo "FAIL: $variable is required for production" >&2; exit 1; }
   [[ "$value" != *REPLACE_ME* ]] || { echo "FAIL: $variable still has a placeholder tag" >&2; exit 1; }
 done
 
-rendered="$(docker compose -f docker-compose.yml -f docker-compose.production.yml config)"
+rendered="$(docker compose \
+  --env-file "$BASE_ENV_FILE" \
+  --env-file "$IMAGE_ENV_FILE" \
+  -f docker-compose.yml -f docker-compose.production.yml config)"
 for service in tsird-web tsird-api tsird-edge; do
   service_block="$(awk -v target="  ${service}:" '
     $0 == target { collect=1 }

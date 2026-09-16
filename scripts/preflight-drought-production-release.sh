@@ -9,7 +9,9 @@ APP_ROOT="${TSIRD_APP_ROOT:-/opt/tigrayinsights/apps/tsird}"
 INGRESS_ROOT="${TSIRD_DROUGHT_INGRESS_ROOT:-/srv/sftp/tsird-release/incoming}"
 RELEASE_ROOT="${TSIRD_DROUGHT_RELEASE_ROOT:-${APP_ROOT}/releases/drought}"
 MIN_FREE_GIB="${TSIRD_DROUGHT_MIN_FREE_GIB:-2}"
-COMPOSE_FILES=(-f docker-compose.yml -f docker-compose.production.yml)
+BASE_ENV_FILE="${TSIRD_BASE_ENV_FILE:-.env.tsird}"
+IMAGE_ENV_FILE="${TSIRD_IMAGE_ENV_FILE:-.env.production.images}"
+COMPOSE_ARGS=(--env-file "$BASE_ENV_FILE" --env-file "$IMAGE_ENV_FILE" -f docker-compose.yml -f docker-compose.production.yml)
 
 fail() {
   printf 'FAIL: %s\n' "$*" >&2
@@ -29,12 +31,14 @@ require_directory "$INGRESS_ROOT"
 require_directory "$RELEASE_ROOT"
 [[ -r docker-compose.yml ]] || fail "docker-compose.yml is absent"
 [[ -r docker-compose.production.yml ]] || fail "docker-compose.production.yml is absent"
+[[ -r "$BASE_ENV_FILE" ]] || fail "base environment file is unreadable: $BASE_ENV_FILE"
+[[ -r "$IMAGE_ENV_FILE" ]] || fail "image environment file is unreadable: $IMAGE_ENV_FILE"
 
 printf '%s\n' 'TSIRD Drought production release preflight (read-only)'
 printf 'Application root: %s\nIngress root: %s\nServing release root: %s\n' \
   "$APP_ROOT" "$INGRESS_ROOT" "$RELEASE_ROOT"
 
-docker compose "${COMPOSE_FILES[@]}" config --quiet
+docker compose "${COMPOSE_ARGS[@]}" config --quiet
 printf '%s\n' 'OK: production Compose configuration resolves.'
 
 free_kib="$(df -Pk "$RELEASE_ROOT" | awk 'NR == 2 {print $4}')"
@@ -47,9 +51,9 @@ printf 'OK: %.2f GiB free at serving release root (minimum %s GiB).\n' \
   "$((free_kib / 1024))e-3" "$MIN_FREE_GIB"
 
 printf '%s\n' 'Running production services:'
-docker compose "${COMPOSE_FILES[@]}" ps
+docker compose "${COMPOSE_ARGS[@]}" ps
 
-api_container="$(docker compose "${COMPOSE_FILES[@]}" ps -q tsird-api)"
+api_container="$(docker compose "${COMPOSE_ARGS[@]}" ps -q tsird-api)"
 [[ -n "$api_container" ]] || fail "tsird-api is not running; do not promote a release"
 mount_line="$(docker inspect "$api_container" --format '{{range .Mounts}}{{if eq .Destination "/data/drought/production-releases"}}{{.Source}}|{{.RW}}{{end}}{{end}}')"
 [[ "$mount_line" == "${RELEASE_ROOT}|false" ]] || fail "tsird-api does not have the expected read-only release mount"
