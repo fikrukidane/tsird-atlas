@@ -110,6 +110,12 @@ read-only into `tsird-api`; it does not start an n8n worker or expose raw eviden
 It also requires immutable prebuilt web/API/edge image references and excludes
 the ETL service from the default production Compose profile, so the constrained
 VPS cannot build or process drought data during `compose up`.
+The tracked GitHub Actions publisher builds those three images only from an
+explicit `tsird-drought-v*` tag or manual dispatch; a production activation
+must pin the resulting SHA image tags rather than a mutable image name. The
+private [release ledger template](drought/templates/drought-production-release-ledger.example.md)
+records the code, image, data-release, verification and rollback references
+together.
 The planned hand-off uses a restricted SFTP ingress account and a separate forced-command
 activation account. The activation utility accepts only an already-approved, checksum-verified
 release and atomically advances `current.json`; it cannot build data or run the model. This is
