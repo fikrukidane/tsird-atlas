@@ -199,6 +199,10 @@ recorded together in a release note.
 **Gate:** a test reviewer can complete the full path; an unauthenticated user
 and a second reviewer cannot see a response.
 
+The reusable participant-facing [briefing and invitation](expert-evidence-review-briefing.md)
+are maintained with this release plan. They must be adapted with the approved
+retention contact and individual password-set link before use.
+
 ### Phase 7 — deploy public experimental Atlas/Drought Intelligence
 
 1. Deploy first to a non-public staging hostname using the production-shaped
