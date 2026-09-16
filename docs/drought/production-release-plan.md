@@ -92,6 +92,10 @@ before a release, perform only a narrow delta check:
 not, reduce the first release to compact static/vector summaries instead of
 moving raw raster or database history.
 
+The tracked [release-time preflight](production-release-preflight.md) makes
+this narrow delta check repeatable. It is read-only and is not a replacement
+for the completed inventory.
+
 ### Phase 2 — turn recent development work into a release inventory
 
 For each artefact, record its owner, source, intended public use, size,

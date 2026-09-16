@@ -114,7 +114,10 @@ layers.
   future publisher writes an approved current-release pointer to a narrowly
   mounted release root. A tracked production Compose overlay specifies that
   narrow read-only release mount, and a documented two-account SFTP/forced-
-  command activation design preserves the separation from development n8n.
+  command activation design preserves the separation from development n8n. A
+  separate host-side preflight checks only the previously inventoried host's
+  release-time capacity, Compose shape, running API and read-only mount; it
+  does not repeat the VPS inventory or mutate the host.
   No VPS inventory was repeated; no production credential, account, transfer,
   n8n publisher, raw-data mount or deployment has been created.
 - The `/map/` proxy contract remains active, including `/map/ogc` and `/map/api/gazetteer`. Public URLs in release notes are documented deployment targets, not availability checks performed here.
