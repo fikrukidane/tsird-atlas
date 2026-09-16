@@ -1,0 +1,23 @@
+{
+  "name": "TSIRD · CHIRPS rapid source probe v1 (development)",
+  "nodes": [
+    {"parameters": {}, "id": "f98bb425-ec31-42de-adbe-b8349dc984bd", "name": "Manual development run", "type": "n8n-nodes-base.manualTrigger", "typeVersion": 1, "position": [220, 220]},
+    {"parameters": {"rule": {"interval": [{"field": "cronExpression", "expression": "30 6 * * *"}]}}, "id": "c289b5af-7a1a-4c36-9b33-ed270f7adc67", "name": "Daily Addis source probe", "type": "n8n-nodes-base.scheduleTrigger", "typeVersion": 1.2, "position": [220, 380]},
+    {"parameters": {"method": "POST", "url": "http://tsird-drought-runner:8090/runs/chirps-preliminary-pentad/development-test", "options": {"timeout": 30000}}, "id": "d80ae5e2-7e05-46a7-bab0-e394781c53ba", "name": "Probe CHIRPS preliminary freshness", "type": "n8n-nodes-base.httpRequest", "typeVersion": 4.2, "position": [510, 300]},
+    {"parameters": {"amount": 30, "unit": "seconds"}, "id": "5bae6865-df80-4fbe-a395-37c71c73c2dd", "name": "Wait for probe", "type": "n8n-nodes-base.wait", "typeVersion": 1.1, "position": [780, 300]},
+    {"parameters": {"url": "=http://tsird-drought-runner:8090/runs/{{ $json.job_id }}", "options": {"timeout": 30000}}, "id": "bfc81f49-2b2f-4f6d-bf56-c4d6e37c586c", "name": "Read probe receipt", "type": "n8n-nodes-base.httpRequest", "typeVersion": 4.2, "position": [1020, 300]},
+    {"parameters": {"assignments": {"assignments": [{"id": "a50d841c-e08d-4d3c-88c3-cffb8302f673", "name": "operator_summary", "value": "=CHIRPS preliminary probe ended {{$json.status}} at {{$json.finished_at}}. Review source timestamp and freshness before manually running any acquisition or summary workflow.", "type": "string"}]}, "options": {}}, "id": "05002b93-5e0b-46cd-baad-02f944f57d12", "name": "Record probe receipt", "type": "n8n-nodes-base.set", "typeVersion": 3.4, "position": [1280, 300]}
+  ],
+  "connections": {
+    "Manual development run": {"main": [[{"node": "Probe CHIRPS preliminary freshness", "type": "main", "index": 0}]]},
+    "Daily Addis source probe": {"main": [[{"node": "Probe CHIRPS preliminary freshness", "type": "main", "index": 0}]]},
+    "Probe CHIRPS preliminary freshness": {"main": [[{"node": "Wait for probe", "type": "main", "index": 0}]]},
+    "Wait for probe": {"main": [[{"node": "Read probe receipt", "type": "main", "index": 0}]]},
+    "Read probe receipt": {"main": [[{"node": "Record probe receipt", "type": "main", "index": 0}]]}
+  },
+  "pinData": {},
+  "active": false,
+  "settings": {"executionOrder": "v1", "saveManualExecutions": true, "saveExecutionProgress": true},
+  "meta": {"templateCredsSetupCompleted": true},
+  "tags": []
+}

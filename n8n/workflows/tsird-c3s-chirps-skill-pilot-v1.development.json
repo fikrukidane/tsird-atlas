@@ -1,0 +1,19 @@
+{
+  "name": "TSIRD · C3S–CHIRPS seasonal skill pilot v1 (development)",
+  "nodes": [
+    {"parameters": {}, "id": "e7e4d793-3df1-486a-9cc5-a5eff5f2dbf9", "name": "Manual development run", "type": "n8n-nodes-base.manualTrigger", "typeVersion": 1, "position": [220, 300]},
+    {"parameters": {"method": "POST", "url": "http://tsird-drought-runner:8090/runs/c3s-seasonal-skill-pilot/development-test", "options": {"timeout": 30000}}, "id": "c885a7fb-6ba2-4f7b-a3ca-7a94c30c1a76", "name": "Run fixed skill pilot", "type": "n8n-nodes-base.httpRequest", "typeVersion": 4.2, "position": [510, 300]},
+    {"parameters": {"amount": 15, "unit": "minutes"}, "id": "855d5c2f-5744-4eae-847a-c024c071d059", "name": "Wait for skill pilot", "type": "n8n-nodes-base.wait", "typeVersion": 1.1, "position": [780, 300]},
+    {"parameters": {"url": "=http://tsird-drought-runner:8090/runs/{{ $json.job_id }}", "options": {"timeout": 30000}}, "id": "4690c4eb-8f30-4407-b87b-c4f11d0fb44a", "name": "Read skill-pilot receipt", "type": "n8n-nodes-base.httpRequest", "typeVersion": 4.2, "position": [1040, 300]},
+    {"parameters": {"assignments": {"assignments": [{"id": "d14a3c42-3ec2-4c26-bca5-b6d35b7cb1fe", "name": "operator_summary", "value": "=C3S–CHIRPS pilot ended {{$json.status}} at {{$json.finished_at}}. It is a regional technical diagnostic, not a calibrated forecast or public Outlook.", "type": "string"}]}, "options": {}}, "id": "e60bb615-57ea-4b7d-b9c3-a6234596d665", "name": "Record skill-pilot receipt", "type": "n8n-nodes-base.set", "typeVersion": 3.4, "position": [1320, 300]}
+  ],
+  "connections": {
+    "Manual development run": {"main": [[{"node": "Run fixed skill pilot", "type": "main", "index": 0}]]},
+    "Run fixed skill pilot": {"main": [[{"node": "Wait for skill pilot", "type": "main", "index": 0}]]},
+    "Wait for skill pilot": {"main": [[{"node": "Read skill-pilot receipt", "type": "main", "index": 0}]]},
+    "Read skill-pilot receipt": {"main": [[{"node": "Record skill-pilot receipt", "type": "main", "index": 0}]]}
+  },
+  "pinData": {}, "active": false,
+  "settings": {"executionOrder": "v1", "saveManualExecutions": true, "saveExecutionProgress": true},
+  "meta": {"templateCredsSetupCompleted": true}, "tags": []
+}

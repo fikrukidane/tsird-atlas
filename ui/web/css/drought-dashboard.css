@@ -1,0 +1,91 @@
+#drought-dashboard {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: min(390px, calc(100% - 28px));
+  max-height: calc(100% - 28px);
+  overflow: auto;
+  z-index: 1100;
+  background: rgba(255,255,255,.97);
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  box-shadow: 0 3px 14px rgba(15,23,42,.22);
+  font-size: 12px;
+}
+#drought-dashboard.is-hidden { display: none; }
+.drought-heading, .drought-mode-title, .drought-source-meta { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.drought-heading { padding: 11px 12px 8px; border-bottom: 1px solid #e2e8f0; }
+.drought-heading strong { display: block; color: #0f3d56; font-size: 15px; }
+.drought-heading span { display: block; color: #64748b; margin-top: 2px; }
+.drought-close { border: 0; background: transparent; color: #64748b; cursor: pointer; font-size: 20px; line-height: 1; }
+.drought-notice { margin: 9px 12px; padding: 7px 8px; color: #854d0e; background: #fef9c3; border: 1px solid #fde68a; border-radius: 4px; line-height: 1.35; }
+.drought-mode-controls { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; padding: 0 12px 8px; }
+.drought-mode-controls button { border: 1px solid #cbd5e1; border-radius: 4px; background: #f8fafc; color: #334155; cursor: pointer; padding: 6px 4px; }
+.drought-mode-controls button.is-active { background: #0f3d56; border-color: #0f3d56; color: white; }
+.drought-content { padding: 0 12px 8px; }
+.drought-spatial-control { display: grid; grid-template-columns: auto 1fr; gap: 4px 8px; align-items: center; margin: 7px 0; padding: 6px 7px; border: 1px solid #bae6fd; border-radius: 4px; background: #f0f9ff; color: #0c4a6e; font-size: 11px; }
+.drought-spatial-control > div { display: flex; justify-content: flex-end; gap: 3px; }
+.drought-spatial-control button { border: 1px solid #7dd3fc; border-radius: 3px; background: white; color: #075985; cursor: pointer; padding: 3px 5px; font-size: 10px; }
+.drought-spatial-control button.is-active { border-color: #0369a1; background: #0369a1; color: white; }
+.drought-spatial-control small { grid-column: 1 / -1; color: #475569; font-size: 10px; }
+.drought-legend { margin: 0 12px 8px; padding: 8px; border: 1px solid #cbd5e1; border-radius: 4px; background: #f8fafc; color: #334155; }
+.drought-legend-heading { display: flex; justify-content: space-between; gap: 8px; color: #0f3d56; }
+.drought-legend-heading span { color: #64748b; font-size: 10px; }
+.drought-legend ul { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 5px 8px; padding: 0; margin: 7px 0; list-style: none; }
+.drought-legend li { display: flex; gap: 5px; align-items: flex-start; min-width: 0; font-size: 10px; line-height: 1.2; }
+.drought-legend li span { min-width: 0; }
+.drought-legend li strong, .drought-legend li small { display: block; }
+.drought-legend li small { margin-top: 1px; color: #64748b; }
+.drought-legend-group { margin-top: 7px; padding-top: 7px; border-top: 1px solid #cbd5e1; }
+.drought-legend-group h4 { margin: 0; color: #0f3d56; font-size: 10px; line-height: 1.2; }
+.drought-legend-group h4 small { display: block; margin-top: 1px; color: #64748b; font-size: 9px; font-weight: 400; }
+.drought-legend-group ul { margin: 5px 0 0; }
+.drought-legend-swatch, .drought-legend-outline { flex: 0 0 12px; width: 12px; height: 12px; margin-top: 1px; border: 1px solid #94a3b8; border-radius: 2px; background: var(--legend-colour); }
+.drought-legend-outline { border: 2px solid #7c2d12; background: rgba(251, 146, 60, .18); }
+.drought-legend p { margin: 0; color: #475569; font-size: 10px; line-height: 1.3; }
+.drought-history-controls { display: grid; gap: 6px; margin: 8px 0; }
+.drought-history-controls label { color: #475569; font-size: 12px; display: grid; gap: 2px; }
+.drought-history-controls select { max-width: 100%; border: 1px solid #cbd5e1; border-radius: 4px; padding: 4px; color: #1e293b; background: white; }
+.drought-history-result { min-height: 60px; color: #475569; font-size: 12px; }
+.drought-history-value-table { width: 100%; margin: 6px 0; border-collapse: collapse; border: 1px solid #cbd5e1; font-size: 11px; color: #334155; }
+.drought-history-value-table caption { padding: 4px 6px; text-align: left; font-weight: 700; color: #0f3d56; background: #e0f2fe; }
+.drought-history-value-table th, .drought-history-value-table td { padding: 4px 6px; border-top: 1px solid #e2e8f0; text-align: left; vertical-align: top; }
+.drought-history-value-table th { width: 38%; font-weight: 600; background: #f8fafc; }
+.drought-history-chart { display: block; width: 100%; height: 96px; margin: 6px 0; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 4px; }
+.drought-history-chart text { fill: #64748b; font-size: 10px; }
+.drought-mode-title { color: #0f3d56; border-top: 1px solid #e2e8f0; padding-top: 8px; }
+.drought-mode-title span, .drought-source-meta { color: #64748b; font-size: 11px; }
+.drought-source-meta { justify-content: flex-start; flex-wrap: wrap; padding: 4px 0 6px; }
+.drought-period-stamp { display: grid; gap: 2px; margin: 7px 0; padding: 7px 8px; border: 1px solid #67e8f9; border-left: 5px solid #0891b2; border-radius: 4px; background: #ecfeff; color: #164e63; line-height: 1.35; }
+.drought-period-stamp strong { font-size: 12px; }
+.drought-period-stamp span, .drought-period-stamp small { color: #155e75; }
+.drought-period-stamp small { font-size: 10px; }
+.drought-list { display: grid; gap: 4px; }
+.drought-class-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 5px; padding: 3px 0 8px; }
+.drought-class { display: flex; align-items: baseline; gap: 6px; border-left: 5px solid #94a3b8; background: #f8fafc; padding: 6px 7px; border-radius: 3px; }
+.drought-class strong { font-size: 16px; color: #0f172a; }
+.drought-class span { color: #475569; font-size: 11px; }
+.drought-class-exceptionally_dry { border-color: #9f1239; background: #fff1f2; }
+.drought-class-drier_than_typical { border-color: #ea580c; background: #fff7ed; }
+.drought-class-typical_range { border-color: #65a30d; background: #f7fee7; }
+.drought-class-wetter_than_typical { border-color: #0284c7; background: #f0f9ff; }
+.drought-class-exceptionally_wet { border-color: #1d4ed8; background: #eff6ff; }
+.drought-map-instruction { padding: 7px 8px; color: #475569; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 4px; line-height: 1.35; }
+.drought-map-selection { display: grid; gap: 2px; margin-top: 7px; padding: 7px 8px; color: #334155; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 4px; line-height: 1.35; }
+.drought-map-selection strong { color: #0f3d56; }
+.drought-map-selection span, .drought-map-selection small { display: block; }
+.drought-map-selection small { color: #64748b; }
+.drought-context-table { width: 100%; margin-top: 5px; border-collapse: collapse; font-size: 11px; text-align: left; }
+.drought-context-table th, .drought-context-table td { padding: 5px; vertical-align: top; border: 1px solid #bfdbfe; }
+.drought-context-table th { color: #0f3d56; background: #dbeafe; font-weight: 700; }
+.drought-context-table td { background: #fff; }
+.drought-context-table td > div + div { margin-top: 5px; padding-top: 5px; border-top: 1px solid #e2e8f0; }
+.drought-context-table strong, .drought-context-table span { display: block; }
+.drought-context-table span { color: #64748b; font-size: 10px; }
+.drought-row { display: grid; grid-template-columns: 1fr auto; text-align: left; gap: 2px 8px; width: 100%; border: 1px solid #e2e8f0; border-radius: 4px; background: #fff; padding: 7px 8px; cursor: pointer; color: #1e293b; }
+.drought-row:hover, .drought-row.is-selected { border-color: #1976d2; background: #eff6ff; }
+.drought-row span { font-weight: 600; }
+.drought-row small { color: #64748b; }
+.drought-row em { grid-column: 1 / -1; color: #475569; font-style: normal; font-size: 11px; }
+.drought-footer { padding: 8px 12px; border-top: 1px solid #e2e8f0; color: #64748b; font-size: 11px; }
+@media (max-width: 700px) { #drought-dashboard { top: 8px; right: 8px; width: min(350px, calc(100% - 16px)); } .drought-legend ul { grid-template-columns: 1fr; } }

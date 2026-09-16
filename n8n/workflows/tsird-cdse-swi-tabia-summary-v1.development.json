@@ -1,0 +1,12 @@
+{
+  "name": "TSIRD · CDSE SWI Tabia summary v1 (development)",
+  "nodes": [
+    {"parameters": {}, "id": "bb50db34-a24e-4e03-93c0-f75d2bb5a050", "name": "Manual development run", "type": "n8n-nodes-base.manualTrigger", "typeVersion": 1, "position": [260, 300]},
+    {"parameters": {"method": "POST", "url": "http://tsird-drought-runner:8090/runs/swi-tabia-summary/development-test", "options": {"timeout": 30000}}, "id": "f9cd2104-9810-4e70-88a4-f252b9072374", "name": "Build SWI raster and Tabia summary", "type": "n8n-nodes-base.httpRequest", "typeVersion": 4.2, "position": [520, 300]},
+    {"parameters": {"amount": 60, "unit": "seconds"}, "id": "1fe1e0b2-e24c-439c-b80b-2ee0ed2a8768", "name": "Wait for SWI processing", "type": "n8n-nodes-base.wait", "typeVersion": 1.1, "position": [790, 300]},
+    {"parameters": {"url": "=http://tsird-drought-runner:8090/runs/{{ $json.job_id }}", "options": {"timeout": 30000}}, "id": "f3cb8f9b-8f46-429b-9d41-e0103050c1f0", "name": "Read SWI summary result", "type": "n8n-nodes-base.httpRequest", "typeVersion": 4.2, "position": [1050, 300]},
+    {"parameters": {"assignments": {"assignments": [{"id": "2d228e0d-22d0-4dd2-aa04-e0a514576a15", "name": "operator_summary", "value": "=SWI development run ended {{$json.status}} at {{$json.finished_at}}. It retains one 12.5 km raster locally and derives Tabia zonal context. Review freshness, coverage, and QFLAG; no drought or food-security class is published.", "type": "string"}]}, "options": {}}, "id": "83ae4d91-6458-4198-9ab6-30c2fb75093c", "name": "Record SWI result", "type": "n8n-nodes-base.set", "typeVersion": 3.4, "position": [1310, 300]}
+  ],
+  "connections": {"Manual development run": {"main": [[{"node": "Build SWI raster and Tabia summary", "type": "main", "index": 0}]]}, "Build SWI raster and Tabia summary": {"main": [[{"node": "Wait for SWI processing", "type": "main", "index": 0}]]}, "Wait for SWI processing": {"main": [[{"node": "Read SWI summary result", "type": "main", "index": 0}]]}, "Read SWI summary result": {"main": [[{"node": "Record SWI result", "type": "main", "index": 0}]]}},
+  "pinData": {}, "active": false, "settings": {"executionOrder": "v1", "saveManualExecutions": true, "saveExecutionProgress": true}, "versionId": "9768c5d5-09f8-493e-96e4-f78e983d8454", "meta": {"templateCredsSetupCompleted": true}, "tags": []
+}

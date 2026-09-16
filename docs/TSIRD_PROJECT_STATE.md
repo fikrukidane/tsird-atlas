@@ -30,6 +30,93 @@ See [master context](TSIRD_MASTER_CONTEXT.md) for source paths and request flow.
 - Navigator overview, full zoom, distance/area tools, persistent Display Settings, temporal controls, TOC and legend behavior, scale handling, and GetFeatureInfo are present in the active scripts.
 - Cartography includes Tigray zone-based Woreda styling, bilingual Woreda/Tabia labels, Ethiopia hierarchy, Eritrea admin layers, and DEM/slope classifications.
 - Compose defines `tsird-postgis`, `tsird-mapserver`, `tsird-web`, `tsird-api`, `tsird-etl`, and `tsird-edge`. Jupyter is historical context, not a current Compose service.
+- Local-only Drought Intelligence development adds a controlled internal
+  runner and six bounded, active local n8n schedules: calendar-aware CHIRPS
+  final-month discovery/refresh, CHIRPS rapid probe, NDVI and SWI metadata
+  probes, provider-gated WaPOR refresh, and monthly capacity inventory. LST,
+  Outlook, and forecast studies remain inactive pending separate data
+  contracts. The final CHIRPS workflow first checks at most six completed
+  calendar months and only downloads a new final raster when it is both
+  available upstream and absent from the retained evidence store; the prior
+  validated current raster remains in place on an unavailable or failed run.
+  WaPOR T
+  supplies agricultural water-use / crop-activity context, not crop extent,
+  yield, drought, or food-security status. A fixed runner endpoint also
+  performs read-only local drought-storage inventories; it has no archive or
+  deletion capability. They are not production services or production schedules. The
+  local `/map/drought/control/` dashboard is likewise read-only: it exposes
+  redacted source/runner/storage status through the API but does not connect to
+  n8n's database or expose n8n workflow controls. The development UI has
+source-specific WMS evidence maps and per-Tabia retained
+observation history. Current Copernicus source items are explicitly
+`degraded` for freshness and are not published as drought or food-security
+layers.
+- Development rainfall history has a separate list and run-specific API
+  contract. `latest` is ordered by source-observation date (then established
+  seasonal scope), not local import time; selected historical snapshots are
+  explicitly archived observations rather than as-issued forecasts or model
+  backtests.
+- The local control snapshot also exposes a read-only Seasonal Agricultural
+  Stress & Response Priority evidence-readiness gate. It reports aggregate run
+  status, freshness, coverage, boundary compatibility, and static baseline
+  years; it has no scoring or publication path. A draft decision matrix remains
+  blocked while core evidence is stale, degraded, incomplete, or lacks a
+  reviewed seasonal baseline.
+- The local-only historical Priority Replay runner reads the active Model Studio
+  draft and produces January--August 2026 draft, Tabia-level plausibility
+  snapshots from retained CHIRPS and static population/cropland/accessibility
+  context. Each result retains its threshold trace and planning cue. It is not
+  scheduled, is never published automatically, and is not a forecast,
+  allocation, IPC phase, or food-security classification.
+- Model Studio includes a separate, client-side Scenario Laboratory over a
+  fixed 16-case candidate-review shortlist and retained August 2026 evidence.
+  Its controls are unsaved and require an explicit local-confounder review
+  state before showing a discussion signal; they cannot alter Priority Replay,
+  save configuration, issue a priority class, or make a forecast/allocation
+  recommendation.
+- The immediate model workflow is documented historical calibration review,
+  not an automated replay schedule. Reviewers compare January--August 2026
+  draft results, retained evidence, and optional provider-native FEWS NET
+  context before an administrator saves a revised Model Studio draft. A
+  three-month operational draft remains blocked on validated NDVI/WaPOR
+  baselines, an approved seasonal-outlook contract, versioned decision
+  snapshots, and practitioner review.
+- A fixed local, metadata-only availability preflight found that the configured
+  NDVI catalogue has 2016--2025 coverage for every calendar month, while
+  matching WaPOR T/AETI entries begin in 2018. Thus 2018--2025 is the shared
+  candidate range for expert baseline-method review. The project sponsor
+  recorded it as a provisional, reviewable eight-year candidate on 2026-09-14.
+  The manual fixed 2018--2025 candidate-history retrieval completed on
+  2026-09-14 with 96 monthly slots. It produced 8,952 quality-approved
+  Tabia-month candidate-reference rows for each of NDVI and WaPOR (24 rows per
+  indicator excluded by the quality/coverage rule). It has no schedule, does
+  not publish a layer, and cannot alter Priority Replay. The resulting
+  same-calendar-month reference remains review-required, not a valid operational
+  baseline. The first bounded candidate is a 27-file technical pilot across
+  2018/2021/2025 and February/August/November, documented with mandatory
+  review/stop criteria. The corrected strict-month pilot completed on
+  2026-09-14 and remains review-only; it did not create a baseline or change
+  Priority replay.
+- FEWS NET public acute-food-insecurity classifications are retained in local
+  development as provider-issued Ethiopia native-FSC context for January,
+  February, April, June and July 2026. The Priority workspace can select an
+  issue and show it separately or as an outline comparison with the historical
+  Tabia replay. A selected Tabia receives only its intersecting provider area
+  details; no class is transferred to the Tabia, no crosswalk exists, and the
+  provider data has no score impact. The local n8n weekly Monday availability
+  check identifies possible future releases but cannot automatically retain
+  any provider geometry.
+- Production-release preparation is local-only. The repository now has a
+  compact release manifest/validator and a builder for retained API summaries,
+  latest retrospective replay geometry and provider-native FEWS NET geometry.
+  The first local staging release is checksum-validated but deliberately not
+  approved or served. Separate API release-reader routes return 404 until a
+  future publisher writes an approved current-release pointer to a narrowly
+  mounted release root. A tracked production Compose overlay specifies that
+  narrow read-only release mount, and a documented two-account SFTP/forced-
+  command activation design preserves the separation from development n8n.
+  No VPS inventory was repeated; no production credential, account, transfer,
+  n8n publisher, raw-data mount or deployment has been created.
 - The `/map/` proxy contract remains active, including `/map/ogc` and `/map/api/gazetteer`. Public URLs in release notes are documented deployment targets, not availability checks performed here.
 
 ### Registry inventory

@@ -1,0 +1,23 @@
+{
+  "name": "TSIRD · CDSE SWI source probe v1 (development)",
+  "nodes": [
+    {"parameters": {}, "id": "5eff2606-f1d6-458b-a104-9a5a1f378cbb", "name": "Manual development run", "type": "n8n-nodes-base.manualTrigger", "typeVersion": 1, "position": [220, 220]},
+    {"parameters": {"rule": {"interval": [{"field": "cronExpression", "expression": "50 6 * * *"}]}}, "id": "d8b57a66-89a8-4f0b-964b-92885b47b5dd", "name": "Daily Addis SWI probe", "type": "n8n-nodes-base.scheduleTrigger", "typeVersion": 1.2, "position": [220, 380]},
+    {"parameters": {"method": "POST", "url": "http://tsird-drought-runner:8090/runs/swi-source-probe/development-test", "options": {"timeout": 30000}}, "id": "70d06b7b-ed98-4fd8-93f2-a9f4e0e0ce76", "name": "Probe SWI catalogue freshness", "type": "n8n-nodes-base.httpRequest", "typeVersion": 4.2, "position": [510, 300]},
+    {"parameters": {"amount": 30, "unit": "seconds"}, "id": "1ff8a9e2-a6c7-49ef-a2a9-6dc94e28def1", "name": "Wait for SWI probe", "type": "n8n-nodes-base.wait", "typeVersion": 1.1, "position": [780, 300]},
+    {"parameters": {"url": "=http://tsird-drought-runner:8090/runs/{{ $json.job_id }}", "options": {"timeout": 30000}}, "id": "5bf3d7c9-f65d-4754-95c3-8fafc865aa3b", "name": "Read SWI probe receipt", "type": "n8n-nodes-base.httpRequest", "typeVersion": 4.2, "position": [1020, 300]},
+    {"parameters": {"assignments": {"assignments": [{"id": "a95aeb4f-4f94-4f37-871e-cb5302af263f", "name": "operator_summary", "value": "=SWI source probe ended {{$json.status}} at {{$json.finished_at}}. A degraded or current item never downloads imagery; only a separately reviewed ready branch may request a Tabia summary.", "type": "string"}]}, "options": {}}, "id": "534c89fa-0195-4498-9f89-2ec7720b03a1", "name": "Record SWI probe receipt", "type": "n8n-nodes-base.set", "typeVersion": 3.4, "position": [1280, 300]}
+  ],
+  "connections": {
+    "Manual development run": {"main": [[{"node": "Probe SWI catalogue freshness", "type": "main", "index": 0}]]},
+    "Daily Addis SWI probe": {"main": [[{"node": "Probe SWI catalogue freshness", "type": "main", "index": 0}]]},
+    "Probe SWI catalogue freshness": {"main": [[{"node": "Wait for SWI probe", "type": "main", "index": 0}]]},
+    "Wait for SWI probe": {"main": [[{"node": "Read SWI probe receipt", "type": "main", "index": 0}]]},
+    "Read SWI probe receipt": {"main": [[{"node": "Record SWI probe receipt", "type": "main", "index": 0}]]}
+  },
+  "pinData": {},
+  "active": false,
+  "settings": {"executionOrder": "v1", "saveManualExecutions": true, "saveExecutionProgress": true},
+  "meta": {"templateCredsSetupCompleted": true},
+  "tags": []
+}

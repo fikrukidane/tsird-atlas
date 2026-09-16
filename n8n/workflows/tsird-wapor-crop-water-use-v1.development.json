@@ -1,0 +1,34 @@
+{
+  "id": "ZmPT6StaKMtWlpNM",
+  "name": "TSIRD · WaPOR crop water-use v1 · development",
+  "nodes": [
+    {"parameters": {}, "id": "c20b38d8-5e4e-4c7d-9c30-79c6ee05d311", "name": "Manual development run", "type": "n8n-nodes-base.manualTrigger", "typeVersion": 1, "position": [120, 300]},
+    {"parameters": {"rule": {"interval": [{"field": "cronExpression", "expression": "0 7 * * *"}]}}, "id": "4bde9736-6a7a-4b0c-b6fc-7b3537e7902f", "name": "Daily Addis WaPOR probe", "type": "n8n-nodes-base.scheduleTrigger", "typeVersion": 1.2, "position": [120, 440]},
+    {"parameters": {"method": "POST", "url": "http://tsird-drought-runner:8090/runs/wapor-probe/development-test", "options": {"timeout": 30000}}, "id": "bbd0cdfe-a6b2-4ffa-b52b-3031d27d7afd", "name": "Probe WaPOR catalogue", "type": "n8n-nodes-base.httpRequest", "typeVersion": 4.2, "position": [350, 300]},
+    {"parameters": {"amount": 10, "unit": "seconds"}, "id": "e3f420ef-0212-490f-968e-1c0492dd73a9", "name": "Wait for source probe", "type": "n8n-nodes-base.wait", "typeVersion": 1.1, "position": [580, 300]},
+    {"parameters": {"url": "=http://tsird-drought-runner:8090/runs/{{$json.job_id}}", "options": {"timeout": 30000}}, "id": "7be57387-0f8a-495d-8383-f9fbbb68aa6d", "name": "Read probe result", "type": "n8n-nodes-base.httpRequest", "typeVersion": 4.2, "position": [800, 300]},
+    {"parameters": {"conditions": {"options": {"caseSensitive": true, "leftValue": "", "typeValidation": "strict"}, "conditions": [{"leftValue": "={{$json.status}}", "rightValue": "ready", "operator": {"type": "string", "operation": "equals"}}], "combinator": "and"}, "options": {}}, "id": "913f53f8-9497-4b45-b4bf-c802fdb4b0b6", "name": "Fresh source ready?", "type": "n8n-nodes-base.if", "typeVersion": 2.2, "position": [1030, 300]},
+    {"parameters": {"method": "POST", "url": "http://tsird-drought-runner:8090/runs/wapor-tabia-summary/development-test", "options": {"timeout": 30000}}, "id": "2ebaea86-49e3-4a6a-8fcb-e0b7e241a489", "name": "Refresh WaPOR water-use artifact", "type": "n8n-nodes-base.httpRequest", "typeVersion": 4.2, "position": [1260, 220]},
+    {"parameters": {"amount": 60, "unit": "seconds"}, "id": "e0c38ec2-15bd-4204-a731-e8c5d6f84671", "name": "Wait for WaPOR processing", "type": "n8n-nodes-base.wait", "typeVersion": 1.1, "position": [1490, 220]},
+    {"parameters": {"url": "=http://tsird-drought-runner:8090/runs/{{$json.job_id}}", "options": {"timeout": 30000}}, "id": "c8b9aa2f-7a76-4b7e-9059-2936329f107d", "name": "Read WaPOR result", "type": "n8n-nodes-base.httpRequest", "typeVersion": 4.2, "position": [1710, 220]},
+    {"parameters": {"assignments": {"assignments": [{"id": "6437bebb-2438-4b45-9d39-451734751bf3", "name": "operator_summary", "value": "=WaPOR development run ended {{$json.status}} at {{$json.finished_at}}. It retains one bounded Level 2 transpiration/AETI dekad locally and publishes development-only native-grid and Tabia context. Review freshness and coverage; it is not crop extent, yield, drought, food-security, or priority.", "type": "string"}]}, "options": {}}, "id": "2037ab23-59a6-4da8-83e1-471132850a3b", "name": "Record WaPOR result", "type": "n8n-nodes-base.set", "typeVersion": 3.4, "position": [1940, 220]},
+    {"parameters": {"assignments": {"assignments": [{"id": "684955f5-ca7e-456d-accc-ed8cb5eaa246", "name": "operator_summary", "value": "=WaPOR source probe ended {{$json.status}}. No raster was downloaded because the source is already represented locally, unavailable, or degraded; review the receipt before requesting a refresh.", "type": "string"}]}, "options": {}}, "id": "8a80a3c8-d6cf-40c0-b64f-1f7dcf9d0eb6", "name": "Record current, stale, or unavailable source", "type": "n8n-nodes-base.set", "typeVersion": 3.4, "position": [1260, 410]}
+  ],
+  "connections": {
+    "Manual development run": {"main": [[{"node": "Probe WaPOR catalogue", "type": "main", "index": 0}]]},
+    "Daily Addis WaPOR probe": {"main": [[{"node": "Probe WaPOR catalogue", "type": "main", "index": 0}]]},
+    "Probe WaPOR catalogue": {"main": [[{"node": "Wait for source probe", "type": "main", "index": 0}]]},
+    "Wait for source probe": {"main": [[{"node": "Read probe result", "type": "main", "index": 0}]]},
+    "Read probe result": {"main": [[{"node": "Fresh source ready?", "type": "main", "index": 0}]]},
+    "Fresh source ready?": {"main": [[{"node": "Refresh WaPOR water-use artifact", "type": "main", "index": 0}], [{"node": "Record current, stale, or unavailable source", "type": "main", "index": 0}]]},
+    "Refresh WaPOR water-use artifact": {"main": [[{"node": "Wait for WaPOR processing", "type": "main", "index": 0}]]},
+    "Wait for WaPOR processing": {"main": [[{"node": "Read WaPOR result", "type": "main", "index": 0}]]},
+    "Read WaPOR result": {"main": [[{"node": "Record WaPOR result", "type": "main", "index": 0}]]}
+  },
+  "pinData": {},
+  "active": false,
+  "settings": {"executionOrder": "v1", "saveManualExecutions": true, "saveExecutionProgress": true},
+  "versionId": "a5d1b9af-76e2-4812-bc4a-7ddfe23a4aaf",
+  "meta": {"templateCredsSetupCompleted": true},
+  "tags": []
+}

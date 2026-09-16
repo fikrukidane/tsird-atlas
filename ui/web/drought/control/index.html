@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TSIRD Pipeline Control — Development</title>
+  <link rel="stylesheet" href="../../css/style.css?v=20260909" />
+  <link rel="stylesheet" href="control.css?v=20260912c" />
+</head>
+<body class="pipeline-control-page">
+  <header><div class="site-header-row"><h1>⚙️ TSIRD Pipeline Control</h1><nav class="site-nav" aria-label="Primary navigation"><a href="../">Drought Intelligence</a><a href="../../">Atlas</a></nav></div></header>
+  <main class="control-shell">
+    <section class="control-intro"><div><p class="eyebrow">LOCAL DEVELOPMENT</p><h2>Data pipeline status</h2><p>Read-only operational status for Drought Intelligence. Configure and execute workflows in local n8n; this page never starts, retries, schedules, archives, or deletes work.</p></div><button type="button" data-refresh>Refresh status</button></section>
+    <p class="control-banner" data-banner>Loading control status…</p>
+    <section class="control-summary" data-summary aria-live="polite"></section>
+    <section><h2>Seasonal-stress model readiness</h2><p class="control-muted">A read-only gate for the future reviewed monthly draft. It does not calculate or publish a priority score.</p><div class="control-grid" data-readiness></div></section>
+    <section><h2>Delivery plan</h2><p class="control-muted">Outcome tracking for the agreed development plan. A phase is marked done only when its stated evidence has been verified locally.</p><div class="control-grid" data-roadmap></div></section>
+    <section><h2>Provider freshness and artifact state</h2><div class="control-grid" data-providers></div></section>
+    <section><h2>Workflow policy</h2><p class="control-muted">Declared policy only. Confirm actual activation, execution history, and configuration in local n8n.</p><div class="control-grid" data-workflows></div></section>
+    <section><h2>Recent local runner jobs</h2><div class="control-jobs" data-jobs></div></section>
+    <section><h2>Scope and limitations</h2><ul class="control-limits" data-limitations></ul></section>
+  </main>
+  <script src="control.js?v=20260912f"></script>
+</body>
+</html>

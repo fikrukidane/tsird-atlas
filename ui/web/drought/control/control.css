@@ -1,0 +1,21 @@
+.pipeline-control-page { background: #f4f7fb; color: #172033; min-height: 100vh; }
+.control-shell { max-width: 1160px; margin: 0 auto; padding: 28px 22px 56px; }
+.control-intro { display: flex; align-items: start; justify-content: space-between; gap: 22px; margin-bottom: 18px; }
+.control-intro h2, .control-shell h2 { margin: 0 0 8px; color: #0f3551; }
+.control-intro p { max-width: 760px; margin: 0; line-height: 1.5; }
+.eyebrow { color: #376f94; font-size: .76rem; font-weight: 800; letter-spacing: .09em; }
+.control-intro button { background: #0d6389; border: 0; border-radius: 6px; color: white; cursor: pointer; font-weight: 700; padding: 10px 14px; white-space: nowrap; }
+.control-banner { border: 1px solid #b9d5e3; background: #eaf6fb; color: #174a67; border-radius: 7px; padding: 12px; }
+.control-banner.is-error { background: #fff2f0; border-color: #f0bab0; color: #8a2720; }
+.control-summary, .control-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin: 14px 0 28px; }
+.control-card { background: white; border: 1px solid #dce5ec; border-radius: 8px; box-shadow: 0 1px 2px #17203312; padding: 15px; }
+.control-card h3 { color: #174a67; font-size: 1rem; margin: 0 0 9px; }
+.control-card p { margin: 5px 0; font-size: .91rem; line-height: 1.35; }
+.control-value { color: #0f3551; display: block; font-size: 1.45rem; font-weight: 800; margin-bottom: 3px; }
+.control-muted { color: #5c6977; margin-top: -2px; }
+.status { border-radius: 99px; display: inline-block; font-size: .76rem; font-weight: 800; padding: 3px 8px; text-transform: uppercase; }
+.status-current, .status-ok, .status-normal, .status-usable, .status-done, .status-active { background: #d9f3e5; color: #11613b; }.status-ready, .status-warning, .status-draft_evidence_only, .status-incomplete, .status-in_progress { background: #fff0bf; color: #785500; }.status-degraded, .status-failed, .status-unreadable_receipt, .status-critical, .status-stop, .status-not_ready, .status-stale, .status-unavailable, .status-blocked { background: #fde1df; color: #8a2925; }.status-inactive, .status-not_started { background: #e7edf3; color: #425466; }
+.control-jobs { background: white; border: 1px solid #dce5ec; border-radius: 8px; overflow: auto; margin: 14px 0 28px; }
+.control-jobs table { border-collapse: collapse; font-size: .88rem; min-width: 720px; width: 100%; }.control-jobs th, .control-jobs td { border-bottom: 1px solid #e7edf2; padding: 10px; text-align: left; vertical-align: top; }.control-jobs th { background: #f4f7fb; color: #415466; }.control-jobs code { font-size: .76rem; }
+.control-limits { background: #fffaf0; border: 1px solid #efdaa6; border-radius: 7px; line-height: 1.5; padding: 14px 30px; }
+@media (max-width: 620px) { .control-shell { padding: 18px 13px 36px; }.control-intro { display: block; }.control-intro button { margin-top: 14px; } }

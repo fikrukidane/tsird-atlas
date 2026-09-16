@@ -1,0 +1,35 @@
+# Local-only development override. Never use for VPS deployment.
+services:
+  tsird-postgis:
+    volumes:
+      - tsird-local-pgdata:/var/lib/postgresql/data
+  tsird-api:
+    # Local-only, read-only mount for the catalogue-addressed historical
+    # raster endpoint.  Production Compose does not inherit this override.
+    volumes:
+      - ./data:/data:ro
+  tsird-drought-runner:
+    build: ./etl
+    container_name: tsird-drought-runner
+    env_file:
+      - .env.tsird
+      - .env.tsird.cdse
+      - .env.tsird.cds
+    command: ["uvicorn", "runner:app", "--app-dir", "/work/drought", "--host", "0.0.0.0", "--port", "8090"]
+    volumes:
+      - ./data:/data
+    networks:
+      - tsird-network
+    depends_on:
+      tsird-postgis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8090/healthz')"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  tsird-local-pgdata:
+    name: tsird-local-pgdata

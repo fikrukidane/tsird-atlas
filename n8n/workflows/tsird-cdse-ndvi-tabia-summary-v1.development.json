@@ -1,0 +1,12 @@
+{
+  "name": "TSIRD · CDSE NDVI Tabia evidence v1 (development)",
+  "nodes": [
+    {"parameters": {}, "id": "8a89fbb0-c66e-49c1-8a32-5804dc471e07", "name": "Manual development run", "type": "n8n-nodes-base.manualTrigger", "typeVersion": 1, "position": [260, 300]},
+    {"parameters": {"method": "POST", "url": "http://tsird-drought-runner:8090/runs/ndvi-tabia-summary/development-test", "options": {"timeout": 30000}}, "id": "f0b58c9f-ab86-46d9-91cd-1797d3db3c40", "name": "Build NDVI raster and Tabia summary", "type": "n8n-nodes-base.httpRequest", "typeVersion": 4.2, "position": [520, 300]},
+    {"parameters": {"amount": 60, "unit": "seconds"}, "id": "86b1910c-22d9-4c79-9802-bc4b74e60b8f", "name": "Wait for NDVI processing", "type": "n8n-nodes-base.wait", "typeVersion": 1.1, "position": [790, 300]},
+    {"parameters": {"url": "=http://tsird-drought-runner:8090/runs/{{ $json.job_id }}", "options": {"timeout": 30000}}, "id": "6de48525-0e1f-492b-9bfc-e33ab7ddafcd", "name": "Read NDVI summary result", "type": "n8n-nodes-base.httpRequest", "typeVersion": 4.2, "position": [1050, 300]},
+    {"parameters": {"assignments": {"assignments": [{"id": "a1d4c8f6-3b77-4a4f-91cb-a0ae9e730d9c", "name": "operator_summary", "value": "=NDVI development run ended {{$json.status}} at {{$json.finished_at}}. It retains one 300 m vegetation raster locally and derives Tabia zonal context. Review freshness, coverage, and QFLAG; it is not a drought or food-security class.", "type": "string"}]}, "options": {}}, "id": "cb9a5874-d33f-43a3-9c4f-3e7b96b249d3", "name": "Record NDVI result", "type": "n8n-nodes-base.set", "typeVersion": 3.4, "position": [1310, 300]}
+  ],
+  "connections": {"Manual development run": {"main": [[{"node": "Build NDVI raster and Tabia summary", "type": "main", "index": 0}]]}, "Build NDVI raster and Tabia summary": {"main": [[{"node": "Wait for NDVI processing", "type": "main", "index": 0}]]}, "Wait for NDVI processing": {"main": [[{"node": "Read NDVI summary result", "type": "main", "index": 0}]]}, "Read NDVI summary result": {"main": [[{"node": "Record NDVI result", "type": "main", "index": 0}]]}},
+  "pinData": {}, "active": false, "settings": {"executionOrder": "v1", "saveManualExecutions": true, "saveExecutionProgress": true}, "meta": {"templateCredsSetupCompleted": true}, "tags": []
+}

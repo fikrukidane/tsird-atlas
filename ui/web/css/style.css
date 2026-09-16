@@ -45,6 +45,11 @@ header h1 {
   color: var(--color-primary);
 }
 
+.site-header-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.site-nav { flex-shrink: 0; }
+.site-nav a { display: inline-block; color: #0f3d56; font-size: 14px; font-weight: 600; text-decoration: none; border: 1px solid #93c5fd; border-radius: 4px; padding: 6px 10px; }
+.site-nav a:hover, .site-nav a:focus { background: #eff6ff; }
+
 #main-container {
   display: flex;
   flex: 1;

@@ -1,0 +1,30 @@
+{
+  "name": "TSIRD · CHIRPS final monthly refresh v1 (development)",
+  "nodes": [
+    {"parameters": {}, "id": "c53e277f-00bb-4c32-bcdb-7cd21709e2bb", "name": "Manual development run", "type": "n8n-nodes-base.manualTrigger", "typeVersion": 1, "position": [120, 260]},
+    {"parameters": {"rule": {"interval": [{"field": "cronExpression", "expression": "0 8 * * *"}]}}, "id": "c04b32a3-41f4-4b30-9515-b92fc89d0ae6", "name": "Daily Addis final-month discovery", "type": "n8n-nodes-base.scheduleTrigger", "typeVersion": 1.2, "position": [120, 400]},
+    {"parameters": {"method": "POST", "url": "http://tsird-drought-runner:8090/runs/chirps-final-monthly-probe/development-test", "options": {"timeout": 30000}}, "id": "f7631a38-f753-47bc-a3d6-722303da70fa", "name": "Discover latest completed final month", "type": "n8n-nodes-base.httpRequest", "typeVersion": 4.2, "position": [390, 320]},
+    {"parameters": {"amount": 30, "unit": "seconds"}, "id": "71d86efb-81f8-4539-8e13-1fd4c1e30d2e", "name": "Wait for final-month probe", "type": "n8n-nodes-base.wait", "typeVersion": 1.1, "position": [620, 320]},
+    {"parameters": {"url": "=http://tsird-drought-runner:8090/runs/{{$json.job_id}}", "options": {"timeout": 30000}}, "id": "a24c0da0-5e57-4ab7-9d0e-f09b76938d93", "name": "Read final-month probe", "type": "n8n-nodes-base.httpRequest", "typeVersion": 4.2, "position": [850, 320]},
+    {"parameters": {"conditions": {"options": {"caseSensitive": true, "leftValue": "", "typeValidation": "strict"}, "conditions": [{"leftValue": "={{$json.status}}", "rightValue": "ready", "operator": {"type": "string", "operation": "equals"}}], "combinator": "and"}, "options": {}}, "id": "3446c815-31d2-4d1c-b332-b938465e901f", "name": "New final month ready?", "type": "n8n-nodes-base.if", "typeVersion": 2.2, "position": [1080, 320]},
+    {"parameters": {"method": "POST", "url": "http://tsird-drought-runner:8090/runs/chirps-final-monthly-refresh/development-test", "options": {"timeout": 30000}}, "id": "e616df90-3b98-416d-8a9f-3cf847eef721", "name": "Refresh validated final rainfall", "type": "n8n-nodes-base.httpRequest", "typeVersion": 4.2, "position": [1320, 230]},
+    {"parameters": {"amount": 2, "unit": "minutes"}, "id": "d2f5a985-024c-423f-91c4-f4597870b434", "name": "Wait for final rainfall processing", "type": "n8n-nodes-base.wait", "typeVersion": 1.1, "position": [1550, 230]},
+    {"parameters": {"url": "=http://tsird-drought-runner:8090/runs/{{$json.job_id}}", "options": {"timeout": 30000}}, "id": "d2f8f2fe-254e-4c16-880d-50e8ebff805d", "name": "Read final rainfall result", "type": "n8n-nodes-base.httpRequest", "typeVersion": 4.2, "position": [1780, 230]},
+    {"parameters": {"conditions": {"options": {"caseSensitive": true, "leftValue": "", "typeValidation": "strict"}, "conditions": [{"leftValue": "={{$json.status}}", "rightValue": "running", "operator": {"type": "string", "operation": "notEquals"}}, {"leftValue": "={{$json.status}}", "rightValue": "queued", "operator": {"type": "string", "operation": "notEquals"}}], "combinator": "and"}, "options": {}}, "id": "f99a3a39-04cb-48df-97bf-64d80de26f1d", "name": "Final rainfall complete?", "type": "n8n-nodes-base.if", "typeVersion": 2.2, "position": [2010, 230]},
+    {"parameters": {"assignments": {"assignments": [{"id": "98b6e261-aa8c-45c5-baf7-e2bf9f2fdb10", "name": "operator_summary", "value": "=CHIRPS final-month discovery ended {{$json.status}} at {{$json.finished_at}}. No raster was refreshed unless the runner found a new completed final month; the previous valid map remains in place on any unavailable or failed result.", "type": "string"}]}, "options": {}}, "id": "6c52419a-3e93-4366-a25c-347d5cac3906", "name": "Record final source state", "type": "n8n-nodes-base.set", "typeVersion": 3.4, "position": [1320, 410]},
+    {"parameters": {"assignments": {"assignments": [{"id": "ca578a17-57f0-4fe1-a7e7-b910fca5e4cb", "name": "operator_summary", "value": "=CHIRPS final monthly refresh ended {{$json.status}} at {{$json.finished_at}}. A new raster is promoted only after source validation and database load both succeed; review the retained run ID, source period, coverage, and provenance.", "type": "string"}]}, "options": {}}, "id": "5fd912fa-9132-4e96-aa1a-aaf3df4b8c11", "name": "Record final rainfall result", "type": "n8n-nodes-base.set", "typeVersion": 3.4, "position": [2240, 160]}
+  ],
+  "connections": {
+    "Manual development run": {"main": [[{"node": "Discover latest completed final month", "type": "main", "index": 0}]]},
+    "Daily Addis final-month discovery": {"main": [[{"node": "Discover latest completed final month", "type": "main", "index": 0}]]},
+    "Discover latest completed final month": {"main": [[{"node": "Wait for final-month probe", "type": "main", "index": 0}]]},
+    "Wait for final-month probe": {"main": [[{"node": "Read final-month probe", "type": "main", "index": 0}]]},
+    "Read final-month probe": {"main": [[{"node": "New final month ready?", "type": "main", "index": 0}]]},
+    "New final month ready?": {"main": [[{"node": "Refresh validated final rainfall", "type": "main", "index": 0}], [{"node": "Record final source state", "type": "main", "index": 0}]]},
+    "Refresh validated final rainfall": {"main": [[{"node": "Wait for final rainfall processing", "type": "main", "index": 0}]]},
+    "Wait for final rainfall processing": {"main": [[{"node": "Read final rainfall result", "type": "main", "index": 0}]]},
+    "Read final rainfall result": {"main": [[{"node": "Final rainfall complete?", "type": "main", "index": 0}]]},
+    "Final rainfall complete?": {"main": [[{"node": "Record final rainfall result", "type": "main", "index": 0}], [{"node": "Wait for final rainfall processing", "type": "main", "index": 0}]]}
+  },
+  "pinData": {}, "active": false, "settings": {"executionOrder": "v1", "saveManualExecutions": true, "saveExecutionProgress": true}, "meta": {"templateCredsSetupCompleted": true}, "tags": []
+}

@@ -155,6 +155,21 @@
           "id": "grp_rainfall",
           "label": "Rainfall Data",
           "layers": [
+            "tigray_drought_chirps_dev",
+            "tigray_drought_chirps_raw_dev",
+            "tigray_drought_chirps_rapid_raw_dev",
+            "tigray_drought_chirps_rapid_tabia_dev",
+            "tigray_drought_ndvi_dev",
+            "tigray_drought_ndvi_raw_dev",
+            "tigray_drought_swi_dev",
+            "tigray_drought_swi_raw_dev",
+            "tigray_drought_lst_dev",
+            "tigray_drought_lst_raw_dev",
+            "tigray_drought_wapor_dev",
+            "tigray_drought_wapor_raw_dev",
+            "tigray_drought_road_accessibility_dev",
+            "tigray_drought_population_dev",
+            "tigray_drought_cropland_dev",
             "ethiopia_rainfall_pattern",
             "ethiopia_rainfall_stations"
           ]
@@ -163,7 +178,7 @@
     },
     {
       "id": "cat_nature",
-      "label": "Nature",
+      "label": "Natural Resources",
       "closed": true,
       "groups": [
         {
@@ -1028,7 +1043,7 @@
     },
     "ethiopia_dem": {
       "wms_name": "ethiopia_dem",
-      "label": "Ethiopia - DEM",
+      "label": "Ethiopia - DEM (2001 reference)",
       "type": "raster",
       "published": true,
       "default_visible": false,
@@ -1051,7 +1066,7 @@
     },
     "ethiopia_slope": {
       "wms_name": "ethiopia_slope",
-      "label": "Ethiopia - Slope (Grayscale)",
+      "label": "Ethiopia - Slope Classes (2001)",
       "type": "raster",
       "published": true,
       "default_visible": false,
@@ -1063,7 +1078,7 @@
     },
     "ethiopia_slope_rgb": {
       "wms_name": "ethiopia_slope_rgb",
-      "label": "Ethiopia - Slope (RGB)",
+      "label": "Ethiopia - Slope Classes (2001, colour)",
       "type": "raster",
       "published": true,
       "default_visible": false,
@@ -1231,7 +1246,7 @@
     },
     "ethiopia_soils": {
       "wms_name": "ethiopia_soils",
-      "label": "Ethiopia - Soils",
+      "label": "Ethiopia - Soil Types (historical reference)",
       "type": "vector",
       "geometry_type": "polygon",
       "published": true,
@@ -1313,6 +1328,62 @@
         "DENSITY"
       ],
       "attribution": "Source: PostGIS (tsird) bilingual labels"
+    },
+    "tigray_drought_chirps_dev": {
+      "label": "Latest Rainfall Condition (CHIRPS v3 · development)",
+      "type": "vector",
+      "geometry_type": "polygon",
+      "published": true,
+      "default_visible": false,
+      "opacity": 0.72,
+      "min_scale": 5000000,
+      "max_scale": 50000,
+      "queryable": true,
+      "wms_name": "tigray_drought_chirps_dev",
+      "identify_fields": ["TABIA", "WEREDA", "percentile", "condition_class", "rainfall_mm", "baseline_median_mm", "grid_cell_count", "coverage_pct", "quality_status"],
+      "attribution": "CHIRPS v3 monthly · June–July 2026 compared with 1991–2020 · development only"
+    },
+    "tigray_drought_chirps_raw_dev": {
+      "label": "Latest Rainfall Total (CHIRPS native grid · development)", "type": "raster", "published": true, "default_visible": false, "opacity": 0.76, "min_scale": 10000000, "max_scale": 50000, "queryable": false, "wms_name": "tigray_drought_chirps_raw_dev", "attribution": "CHIRPS v3 monthly · native 0.05° grid · development only"
+    },
+    "tigray_drought_chirps_rapid_raw_dev": {
+      "label": "Rapid Rainfall Total (CHIRPS preliminary native grid · development)", "type": "raster", "published": true, "default_visible": false, "opacity": 0.76, "min_scale": 10000000, "max_scale": 50000, "queryable": false, "wms_name": "tigray_drought_chirps_rapid_raw_dev", "attribution": "CHIRPS v3 preliminary pentads · native 0.05° grid · development only"
+    },
+    "tigray_drought_chirps_rapid_tabia_dev": {
+      "label": "Rapid Rainfall Total (CHIRPS preliminary Tabia mean · development)", "type": "vector", "geometry_type": "polygon", "published": true, "default_visible": false, "opacity": 0.72, "min_scale": 5000000, "max_scale": 50000, "queryable": true, "wms_name": "tigray_drought_chirps_rapid_tabia_dev", "identify_fields": ["TABIA", "WEREDA", "rainfall_mm", "coverage_pct", "quality_status"], "attribution": "CHIRPS v3 preliminary pentads · Tabia zonal mean total · development only"
+    },
+    "tigray_drought_ndvi_dev": {
+      "label": "Vegetation Condition (NDVI · development)", "type": "vector", "geometry_type": "polygon", "published": true, "default_visible": false, "opacity": 0.72, "min_scale": 5000000, "max_scale": 50000, "queryable": true, "wms_name": "tigray_drought_ndvi_dev", "identify_fields": ["TABIA", "WEREDA", "ndvi_mean", "coverage_pct", "quality_status"], "attribution": "Copernicus CLMS NDVI v3 · zonal context, development only"
+    },
+    "tigray_drought_ndvi_raw_dev": {
+      "label": "Vegetation Condition (NDVI native grid · development)", "type": "raster", "published": true, "default_visible": false, "opacity": 0.76, "min_scale": 10000000, "max_scale": 50000, "queryable": false, "wms_name": "tigray_drought_ndvi_raw_dev", "attribution": "Copernicus CLMS NDVI v3 · native ~300 m grid · development only"
+    },
+    "tigray_drought_swi_dev": {
+      "label": "Soil-water Context (SWI-040 · development)", "type": "vector", "geometry_type": "polygon", "published": true, "default_visible": false, "opacity": 0.72, "min_scale": 5000000, "max_scale": 50000, "queryable": true, "wms_name": "tigray_drought_swi_dev", "identify_fields": ["TABIA", "WEREDA", "swi040_mean", "coverage_pct", "quality_status"], "attribution": "Copernicus CLMS SWI v4 · 12.5 km zonal context, development only"
+    },
+    "tigray_drought_swi_raw_dev": {
+      "label": "Soil-water Context (SWI-040 native grid · development)", "type": "raster", "published": true, "default_visible": false, "opacity": 0.76, "min_scale": 10000000, "max_scale": 50000, "queryable": false, "wms_name": "tigray_drought_swi_raw_dev", "attribution": "Copernicus CLMS SWI v4 · native 0.1° grid · development only"
+    },
+    "tigray_drought_lst_dev": {
+      "label": "Thermal Context (LST · development)", "type": "vector", "geometry_type": "polygon", "published": true, "default_visible": false, "opacity": 0.72, "min_scale": 5000000, "max_scale": 50000, "queryable": true, "wms_name": "tigray_drought_lst_dev", "identify_fields": ["TABIA", "WEREDA", "lst_c_mean", "errorbar_c_mean", "coverage_pct", "quality_status"], "attribution": "Copernicus CLMS LST v2 · 5 km zonal context, development only"
+    },
+    "tigray_drought_lst_raw_dev": {
+      "label": "Thermal Context (LST native grid · development)", "type": "raster", "published": true, "default_visible": false, "opacity": 0.76, "min_scale": 10000000, "max_scale": 50000, "queryable": false, "wms_name": "tigray_drought_lst_raw_dev", "attribution": "Copernicus CLMS LST v2 · native ~5 km grid · development only"
+    },
+    "tigray_drought_wapor_dev": {
+      "label": "Agricultural Water Use (WaPOR Transpiration Tabia mean · development)", "type": "vector", "geometry_type": "polygon", "published": true, "default_visible": false, "opacity": 0.72, "min_scale": 5000000, "max_scale": 50000, "queryable": true, "wms_name": "tigray_drought_wapor_dev", "identify_fields": ["TABIA", "WEREDA", "transpiration_mm", "aeti_mm", "coverage_pct", "quality_status"], "attribution": "FAO WaPOR v3 L2 · dekadal transpiration zonal context · development only"
+    },
+    "tigray_drought_wapor_raw_dev": {
+      "label": "Agricultural Water Use (WaPOR Transpiration native grid · development)", "type": "raster", "published": true, "default_visible": false, "opacity": 0.76, "min_scale": 10000000, "max_scale": 50000, "queryable": false, "wms_name": "tigray_drought_wapor_raw_dev", "attribution": "FAO WaPOR v3 L2 · native ~100 m dekadal grid · development only"
+    },
+    "tigray_drought_road_accessibility_dev": {
+      "label": "Federal and Regional Road Proximity (ERA + TRRA · development)", "type": "vector", "geometry_type": "polygon", "published": true, "default_visible": false, "opacity": 0.72, "min_scale": 5000000, "max_scale": 50000, "queryable": true, "wms_name": "tigray_drought_road_accessibility_dev", "identify_fields": ["TABIA", "WEREDA", "nearest_road_m", "tigray_roads_2006_intersects", "quality_status"], "attribution": "Tigray Roads 2006 · ERA + TRRA features only · straight-line point-on-surface network proximity · development only"
+    },
+    "tigray_drought_population_dev": {
+      "label": "WorldPop Population Baseline (Tabia · development)", "type": "vector", "geometry_type": "polygon", "published": true, "default_visible": false, "opacity": 0.72, "min_scale": 5000000, "max_scale": 50000, "queryable": true, "wms_name": "tigray_drought_population_dev", "identify_fields": ["TABIA", "WEREDA", "population_total", "people_per_sq_km", "coverage_pct", "quality_status"], "attribution": "WorldPop Ethiopia 2025 constrained population estimate · ~100 m · R2025A v1 alpha · CC BY 4.0 · development only"
+    },
+    "tigray_drought_cropland_dev": {
+      "label": "ESA WorldCover Cropland Share (Tabia · development)", "type": "vector", "geometry_type": "polygon", "published": true, "default_visible": false, "opacity": 0.72, "min_scale": 5000000, "max_scale": 50000, "queryable": true, "wms_name": "tigray_drought_cropland_dev", "identify_fields": ["TABIA", "WEREDA", "cropland_pct", "cropland_area_ha", "coverage_pct", "quality_status"], "attribution": "ESA WorldCover 2021 v200 · cropland class 40 · 10 m · CC BY 4.0 · development only"
     },
     "tigray_woredas_ti_en_pg": {
       "label": "Woredas",

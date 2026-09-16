@@ -1,0 +1,12 @@
+{
+  "name": "TSIRD · CHIRPS final rainfall verification v1 (development)",
+  "nodes": [
+    {"parameters": {}, "id": "c53e277f-00bb-4c32-bcdb-7cd21709e2bb", "name": "Manual development run", "type": "n8n-nodes-base.manualTrigger", "typeVersion": 1, "position": [260, 300]},
+    {"parameters": {"method": "POST", "url": "http://tsird-drought-runner:8090/runs/observed-rainfall/development-test", "options": {"timeout": 30000}}, "id": "f7631a38-f753-47bc-a3d6-722303da70fa", "name": "Build final rainfall evidence", "type": "n8n-nodes-base.httpRequest", "typeVersion": 4.2, "position": [520, 300]},
+    {"parameters": {"amount": 60, "unit": "seconds"}, "id": "71d86efb-81f8-4539-8e13-1fd4c1e30d2e", "name": "Wait for rainfall processing", "type": "n8n-nodes-base.wait", "typeVersion": 1.1, "position": [790, 300]},
+    {"parameters": {"url": "=http://tsird-drought-runner:8090/runs/{{ $json.job_id }}", "options": {"timeout": 30000}}, "id": "a24c0da0-5e57-4ab7-9d0e-f09b76938d93", "name": "Read final rainfall result", "type": "n8n-nodes-base.httpRequest", "typeVersion": 4.2, "position": [1050, 300]},
+    {"parameters": {"assignments": {"assignments": [{"id": "98b6e261-aa8c-45c5-baf7-e2bf9f2fdb10", "name": "operator_summary", "value": "=Final CHIRPS development run ended {{$json.status}} at {{$json.finished_at}}. It validates the fixed final-rainfall evidence chain only; review source period, baseline, coverage, and provenance before any schedule decision.", "type": "string"}]}, "options": {}}, "id": "6c52419a-3e93-4366-a25c-347d5cac3906", "name": "Record final rainfall result", "type": "n8n-nodes-base.set", "typeVersion": 3.4, "position": [1310, 300]}
+  ],
+  "connections": {"Manual development run": {"main": [[{"node": "Build final rainfall evidence", "type": "main", "index": 0}]]}, "Build final rainfall evidence": {"main": [[{"node": "Wait for rainfall processing", "type": "main", "index": 0}]]}, "Wait for rainfall processing": {"main": [[{"node": "Read final rainfall result", "type": "main", "index": 0}]]}, "Read final rainfall result": {"main": [[{"node": "Record final rainfall result", "type": "main", "index": 0}]]}},
+  "pinData": {}, "active": false, "settings": {"executionOrder": "v1", "saveManualExecutions": true, "saveExecutionProgress": true}, "meta": {"templateCredsSetupCompleted": true}, "tags": []
+}

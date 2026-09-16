@@ -1,0 +1,15 @@
+# Production-only TSIRD overlay.
+#
+# Use on the existing Ubuntu VPS at /opt/tigrayinsights/apps/tsird together
+# with docker-compose.yml. It mounts only compact, publisher-approved drought
+# releases into the API; it does not mount n8n state, raw source artifacts or
+# the development drought runner.
+services:
+  tsird-api:
+    environment:
+      DROUGHT_PUBLIC_RELEASE_ROOT: /data/drought/production-releases
+    volumes:
+      - type: bind
+        source: /opt/tigrayinsights/apps/tsird/releases/drought
+        target: /data/drought/production-releases
+        read_only: true
