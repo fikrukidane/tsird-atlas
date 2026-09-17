@@ -1,6 +1,6 @@
 /* Production uses the same Atlas and DroughtDashboard components as development.
  * Only its data URLs are switched to the approved-release adapter. */
-document.addEventListener('DOMContentLoaded', function () {
+function bootPublicDroughtWorkspace() {
   initializeApplication('../data/atlas-registry.json?v=20260909b', {
     droughtWorkspace: true,
     droughtPublicMode: true,
@@ -25,4 +25,13 @@ document.addEventListener('DOMContentLoaded', function () {
     droughtPublicGeometryUrl: '../api/drought/public/dashboard/geometry',
     droughtBoundaryUrl: '../api/boundaries'
   });
-});
+}
+
+// The overlay is host-mounted in production. Depending on cache/network timing,
+// this small bootstrap can load after DOMContentLoaded. Start immediately in
+// that case instead of leaving the shared Atlas shell without its dashboard.
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', bootPublicDroughtWorkspace, { once: true });
+} else {
+  bootPublicDroughtWorkspace();
+}
