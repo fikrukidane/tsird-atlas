@@ -1,0 +1,99 @@
+# Public counterparts of the retained native-grid evidence layers.  They read
+# only a fixed, checksum-validated automatic indicator package mounted at
+# /data/drought/production-indicators; no development raster path is exposed.
+
+LAYER
+  NAME "tigray_drought_chirps_raw_public" TYPE RASTER STATUS OFF
+  DATA "/data/drought/production-indicators/current/chirps-current-rainfall.tif"
+  METADATA "wms_title" "Tigray Latest Rainfall Total (CHIRPS native grid, retained evidence)" "wms_srs" "EPSG:3857 EPSG:4326" "wms_enable_request" "*" END
+  CLASS NAME "Below 50 mm" EXPRESSION ([pixel] < 50) STYLE COLOR 255 247 188 END END
+  CLASS NAME "50–100 mm" EXPRESSION (([pixel] >= 50) AND ([pixel] < 100)) STYLE COLOR 254 227 145 END END
+  CLASS NAME "100–150 mm" EXPRESSION (([pixel] >= 100) AND ([pixel] < 150)) STYLE COLOR 254 196 79 END END
+  CLASS NAME "150–200 mm" EXPRESSION (([pixel] >= 150) AND ([pixel] < 200)) STYLE COLOR 254 153 41 END END
+  CLASS NAME "200–250 mm" EXPRESSION (([pixel] >= 200) AND ([pixel] < 250)) STYLE COLOR 236 112 20 END END
+  CLASS NAME "250–300 mm" EXPRESSION (([pixel] >= 250) AND ([pixel] < 300)) STYLE COLOR 204 76 2 END END
+  CLASS NAME "300–350 mm" EXPRESSION (([pixel] >= 300) AND ([pixel] < 350)) STYLE COLOR 153 52 4 END END
+  CLASS NAME "350–400 mm" EXPRESSION (([pixel] >= 350) AND ([pixel] < 400)) STYLE COLOR 102 37 6 END END
+  CLASS NAME "400–450 mm" EXPRESSION (([pixel] >= 400) AND ([pixel] < 450)) STYLE COLOR 71 25 8 END END
+  CLASS NAME "At least 450 mm" EXPRESSION ([pixel] >= 450) STYLE COLOR 45 18 8 END END
+END
+
+LAYER
+  NAME "tigray_drought_chirps_rapid_raw_public" TYPE RASTER STATUS OFF
+  DATA "/data/drought/production-indicators/current/chirps-rapid-rainfall.tif"
+  METADATA "wms_title" "Tigray Rapid Rainfall Total (CHIRPS preliminary native grid, retained evidence)" "wms_srs" "EPSG:3857 EPSG:4326" "wms_enable_request" "*" END
+  CLASS NAME "Below 50 mm" EXPRESSION ([pixel] < 50) STYLE COLOR 255 247 188 END END
+  CLASS NAME "50–100 mm" EXPRESSION (([pixel] >= 50) AND ([pixel] < 100)) STYLE COLOR 254 227 145 END END
+  CLASS NAME "100–150 mm" EXPRESSION (([pixel] >= 100) AND ([pixel] < 150)) STYLE COLOR 254 196 79 END END
+  CLASS NAME "150–200 mm" EXPRESSION (([pixel] >= 150) AND ([pixel] < 200)) STYLE COLOR 254 153 41 END END
+  CLASS NAME "200–250 mm" EXPRESSION (([pixel] >= 200) AND ([pixel] < 250)) STYLE COLOR 236 112 20 END END
+  CLASS NAME "250–300 mm" EXPRESSION (([pixel] >= 250) AND ([pixel] < 300)) STYLE COLOR 204 76 2 END END
+  CLASS NAME "300–350 mm" EXPRESSION (([pixel] >= 300) AND ([pixel] < 350)) STYLE COLOR 153 52 4 END END
+  CLASS NAME "350–400 mm" EXPRESSION (([pixel] >= 350) AND ([pixel] < 400)) STYLE COLOR 102 37 6 END END
+  CLASS NAME "400–450 mm" EXPRESSION (([pixel] >= 400) AND ([pixel] < 450)) STYLE COLOR 71 25 8 END END
+  CLASS NAME "At least 450 mm" EXPRESSION ([pixel] >= 450) STYLE COLOR 45 18 8 END END
+END
+
+LAYER
+  NAME "tigray_drought_ndvi_raw_public" TYPE RASTER STATUS OFF
+  DATA "/data/drought/production-indicators/current/ndvi-current.tif"
+  METADATA "wms_title" "Tigray Vegetation Condition (Copernicus NDVI native grid, retained evidence)" "wms_srs" "EPSG:3857 EPSG:4326" "wms_enable_request" "*" END
+  CLASS NAME "NDVI below 0.10" EXPRESSION ([pixel] < 0.10) STYLE COLOR 165 0 38 END END
+  CLASS NAME "NDVI 0.10–0.20" EXPRESSION (([pixel] >= 0.10) AND ([pixel] < 0.20)) STYLE COLOR 215 48 39 END END
+  CLASS NAME "NDVI 0.20–0.30" EXPRESSION (([pixel] >= 0.20) AND ([pixel] < 0.30)) STYLE COLOR 244 109 67 END END
+  CLASS NAME "NDVI 0.30–0.40" EXPRESSION (([pixel] >= 0.30) AND ([pixel] < 0.40)) STYLE COLOR 253 174 97 END END
+  CLASS NAME "NDVI 0.40–0.50" EXPRESSION (([pixel] >= 0.40) AND ([pixel] < 0.50)) STYLE COLOR 254 224 139 END END
+  CLASS NAME "NDVI 0.50–0.60" EXPRESSION (([pixel] >= 0.50) AND ([pixel] < 0.60)) STYLE COLOR 217 239 139 END END
+  CLASS NAME "NDVI 0.60–0.70" EXPRESSION (([pixel] >= 0.60) AND ([pixel] < 0.70)) STYLE COLOR 166 217 106 END END
+  CLASS NAME "NDVI 0.70–0.80" EXPRESSION (([pixel] >= 0.70) AND ([pixel] < 0.80)) STYLE COLOR 102 189 99 END END
+  CLASS NAME "NDVI 0.80–0.90" EXPRESSION (([pixel] >= 0.80) AND ([pixel] < 0.90)) STYLE COLOR 26 152 80 END END
+  CLASS NAME "NDVI at least 0.90" EXPRESSION ([pixel] >= 0.90) STYLE COLOR 0 104 55 END END
+END
+
+LAYER
+  NAME "tigray_drought_swi_raw_public" TYPE RASTER STATUS OFF
+  DATA "/data/drought/production-indicators/current/swi040-current.tif"
+  METADATA "wms_title" "Tigray Soil-water Context (Copernicus SWI-040 native grid, retained evidence)" "wms_srs" "EPSG:3857 EPSG:4326" "wms_enable_request" "*" END
+  CLASS NAME "SWI-040 below 10%" EXPRESSION ([pixel] < 10) STYLE COLOR 178 24 43 END END
+  CLASS NAME "SWI-040 10–20%" EXPRESSION (([pixel] >= 10) AND ([pixel] < 20)) STYLE COLOR 214 96 77 END END
+  CLASS NAME "SWI-040 20–30%" EXPRESSION (([pixel] >= 20) AND ([pixel] < 30)) STYLE COLOR 244 165 130 END END
+  CLASS NAME "SWI-040 30–40%" EXPRESSION (([pixel] >= 30) AND ([pixel] < 40)) STYLE COLOR 253 219 199 END END
+  CLASS NAME "SWI-040 40–50%" EXPRESSION (([pixel] >= 40) AND ([pixel] < 50)) STYLE COLOR 247 247 247 END END
+  CLASS NAME "SWI-040 50–60%" EXPRESSION (([pixel] >= 50) AND ([pixel] < 60)) STYLE COLOR 209 229 240 END END
+  CLASS NAME "SWI-040 60–70%" EXPRESSION (([pixel] >= 60) AND ([pixel] < 70)) STYLE COLOR 146 197 222 END END
+  CLASS NAME "SWI-040 70–80%" EXPRESSION (([pixel] >= 70) AND ([pixel] < 80)) STYLE COLOR 67 147 195 END END
+  CLASS NAME "SWI-040 80–90%" EXPRESSION (([pixel] >= 80) AND ([pixel] < 90)) STYLE COLOR 33 102 172 END END
+  CLASS NAME "SWI-040 at least 90%" EXPRESSION ([pixel] >= 90) STYLE COLOR 5 48 97 END END
+END
+
+LAYER
+  NAME "tigray_drought_lst_raw_public" TYPE RASTER STATUS OFF
+  DATA "/data/drought/production-indicators/current/lst-current.tif"
+  METADATA "wms_title" "Tigray Thermal Context (Copernicus LST native grid, retained evidence)" "wms_srs" "EPSG:3857 EPSG:4326" "wms_enable_request" "*" END
+  CLASS NAME "LST below 15 °C" EXPRESSION ([pixel] < 15) STYLE COLOR 5 48 97 END END
+  CLASS NAME "LST 15–20 °C" EXPRESSION (([pixel] >= 15) AND ([pixel] < 20)) STYLE COLOR 33 102 172 END END
+  CLASS NAME "LST 20–25 °C" EXPRESSION (([pixel] >= 20) AND ([pixel] < 25)) STYLE COLOR 67 147 195 END END
+  CLASS NAME "LST 25–30 °C" EXPRESSION (([pixel] >= 25) AND ([pixel] < 30)) STYLE COLOR 146 197 222 END END
+  CLASS NAME "LST 30–35 °C" EXPRESSION (([pixel] >= 30) AND ([pixel] < 35)) STYLE COLOR 209 229 240 END END
+  CLASS NAME "LST 35–40 °C" EXPRESSION (([pixel] >= 35) AND ([pixel] < 40)) STYLE COLOR 254 224 139 END END
+  CLASS NAME "LST 40–45 °C" EXPRESSION (([pixel] >= 40) AND ([pixel] < 45)) STYLE COLOR 253 174 97 END END
+  CLASS NAME "LST 45–50 °C" EXPRESSION (([pixel] >= 45) AND ([pixel] < 50)) STYLE COLOR 244 109 67 END END
+  CLASS NAME "LST 50–55 °C" EXPRESSION (([pixel] >= 50) AND ([pixel] < 55)) STYLE COLOR 214 48 43 END END
+  CLASS NAME "LST at least 55 °C" EXPRESSION ([pixel] >= 55) STYLE COLOR 165 0 38 END END
+END
+
+LAYER
+  NAME "tigray_drought_wapor_raw_public" TYPE RASTER STATUS OFF
+  DATA "/data/drought/production-indicators/current/wapor-transpiration-current.tif"
+  METADATA "wms_title" "Tigray Agricultural Water Use (FAO WaPOR transpiration native grid, retained evidence)" "wms_srs" "EPSG:3857 EPSG:4326" "wms_enable_request" "*" END
+  CLASS NAME "Transpiration below 0.5 mm/day" EXPRESSION ([pixel] < 0.5) STYLE COLOR 255 247 188 END END
+  CLASS NAME "0.5–1.0 mm/day" EXPRESSION (([pixel] >= 0.5) AND ([pixel] < 1.0)) STYLE COLOR 254 227 145 END END
+  CLASS NAME "1.0–1.5 mm/day" EXPRESSION (([pixel] >= 1.0) AND ([pixel] < 1.5)) STYLE COLOR 254 196 79 END END
+  CLASS NAME "1.5–2.0 mm/day" EXPRESSION (([pixel] >= 1.5) AND ([pixel] < 2.0)) STYLE COLOR 254 153 41 END END
+  CLASS NAME "2.0–2.5 mm/day" EXPRESSION (([pixel] >= 2.0) AND ([pixel] < 2.5)) STYLE COLOR 236 112 20 END END
+  CLASS NAME "2.5–3.0 mm/day" EXPRESSION (([pixel] >= 2.5) AND ([pixel] < 3.0)) STYLE COLOR 204 76 2 END END
+  CLASS NAME "3.0–3.5 mm/day" EXPRESSION (([pixel] >= 3.0) AND ([pixel] < 3.5)) STYLE COLOR 153 52 4 END END
+  CLASS NAME "3.5–4.0 mm/day" EXPRESSION (([pixel] >= 3.5) AND ([pixel] < 4.0)) STYLE COLOR 102 37 6 END END
+  CLASS NAME "4.0–5.0 mm/day" EXPRESSION (([pixel] >= 4.0) AND ([pixel] < 5.0)) STYLE COLOR 71 25 8 END END
+  CLASS NAME "At least 5.0 mm/day" EXPRESSION ([pixel] >= 5.0) STYLE COLOR 45 18 8 END END
+END

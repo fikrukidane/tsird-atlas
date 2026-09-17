@@ -134,8 +134,9 @@ layers.
   when staged from a Windows checkout.
   The repository now also defines an automatic indicator-evidence package and
   a separate nested production pointer. Only source-derived Tabia evidence
-  summaries that pass technical checks can use it; Priority Replay, FEWS NET,
-  model configuration and raw rasters cannot. Its n8n schedule and VPS wrapper
+  summaries and fixed display-ready native-grid TIFF derivatives that pass
+  technical checks can use it; Priority Replay, FEWS NET, model configuration
+  and source archives cannot. Its n8n schedule and VPS wrapper
   deployment remain an operational step, not evidence of automatic production
   publication already occurring.
   A tagged-source

@@ -12,8 +12,10 @@ pointer used by Priority Review.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import re
+import shutil
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -32,6 +34,14 @@ from build_drought_production_release import (
 
 RELEASE_ID = re.compile(r"^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{6}Z-indicators$")
 REQUIRED_INDICATORS = tuple(WORKSPACE_PATHS)
+NATIVE_RASTERS = (
+    ("native-raster-chirps", "chirps-current-rainfall.tif", "TSIRD display-ready CHIRPS final rainfall native grid", "observed"),
+    ("native-raster-rapid", "chirps-rapid-rainfall.tif", "TSIRD display-ready CHIRPS preliminary rainfall native grid", "rapid"),
+    ("native-raster-ndvi", "ndvi-current.tif", "TSIRD display-ready Copernicus NDVI native grid", "vegetation"),
+    ("native-raster-swi", "swi040-current.tif", "TSIRD display-ready Copernicus SWI-040 native grid", "soil_water"),
+    ("native-raster-lst", "lst-current.tif", "TSIRD display-ready Copernicus LST native grid", "thermal"),
+    ("native-raster-wapor", "wapor-transpiration-current.tif", "TSIRD display-ready FAO WaPOR transpiration native grid", "water_use"),
+)
 
 
 def utc_now() -> str:
@@ -48,6 +58,36 @@ def observation_window(run: dict[str, Any]) -> tuple[str, str]:
     if not isinstance(start, str) or not isinstance(end, str):
         raise RuntimeError("indicator run lacks a source-observation window")
     return start[:10], end[:10]
+
+
+def copy_native_rasters(source_root: Path, release_dir: Path, payloads: dict[str, dict[str, Any]], boundary: str) -> list[dict[str, Any]]:
+    """Copy only display-ready physical-value rasters into the immutable package.
+
+    Provider archives and credentials never cross this boundary.  The six fixed
+    filenames are the same derivatives already rendered in development; each
+    copy is checksummed in the manifest before the automatic pointer can move.
+    """
+    records: list[dict[str, Any]] = []
+    for asset_id, filename, source, indicator in NATIVE_RASTERS:
+        source_path = source_root / filename
+        if not source_path.is_file() or source_path.is_symlink():
+            raise RuntimeError(f"native display raster is missing or unsafe: {source_path}")
+        target = release_dir / filename
+        shutil.copyfile(source_path, target)
+        digest = hashlib.sha256()
+        with target.open("rb") as handle:
+            for block in iter(lambda: handle.read(1024 * 1024), b""):
+                digest.update(block)
+        run = payloads[indicator].get("run")
+        if not isinstance(run, dict):
+            raise RuntimeError(f"{indicator} has no run metadata for native raster")
+        start, end = observation_window(run)
+        records.append(asset_record(
+            asset_id, "native_evidence_raster", filename,
+            (target.stat().st_size, digest.hexdigest()), source, start, end,
+            str(run.get("schema_version") or run.get("run_id") or "unknown"), boundary,
+        ))
+    return records
 
 
 def validate_workspace_inputs(payloads: dict[str, dict[str, Any]]) -> None:
@@ -82,6 +122,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--api-base", default="http://127.0.0.1:18080", help="development API origin")
     parser.add_argument("--output-root", type=Path, required=True, help="ignored local indicator-release root")
+    parser.add_argument("--native-raster-root", type=Path, default=Path("/data/drought/published"), help="fixed display-ready native-raster directory")
     parser.add_argument("--prepared-by", default="TSIRD automated indicator validation", help="release preparer identity")
     parser.add_argument("--release-id", default=None, help="optional UTC indicator release ID")
     args = parser.parse_args()
@@ -143,6 +184,12 @@ def main() -> int:
         asset_record("drought-workspace-latest", "vector_display_summary", "drought-workspace-latest.json", written["drought-workspace-latest.json"], "TSIRD retained Tabia indicator summaries", start, end, workspace.get("schema_version", "unknown"), boundary),
         asset_record("release-status", "public_status", "status.json", written["status.json"], "TSIRD automated indicator validator", start, end, status["schema_version"], "Publication provenance only; it is not a scientific certification or operational decision."),
     ]
+    try:
+        assets.extend(copy_native_rasters(args.native_raster_root, release_dir, workspace_payloads, boundary))
+    except RuntimeError as error:
+        shutil.rmtree(release_dir, ignore_errors=True)
+        print(f"ERROR: {error}", file=sys.stderr)
+        return 2
     manifest = {
         "schema_version": "tsird-drought-production-release/v1",
         "release_id": release_id,

@@ -68,6 +68,7 @@ MAP
   END
 
   INCLUDE "/etc/mapserver/includes/vectors_gold.map"
+  INCLUDE "/etc/mapserver/includes/drought_public_rasters.map"
 
   # PostGIS Gold Layers (main mapfile)
   LAYER

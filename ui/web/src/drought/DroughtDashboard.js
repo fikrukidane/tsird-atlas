@@ -762,13 +762,6 @@ class DroughtDashboard {
   _renderSpatialControl() {
     if (!this.spatialViews[this.mode]) return;
     const modeNames = { observed: 'Latest rainfall', rapid: 'Rapid rainfall', vegetation: 'Vegetation', soilWater: 'Soil water', thermal: 'Thermal context', waterUse: 'Agricultural water use' };
-    if (this.publicMode) {
-      const control = document.createElement('div');
-      control.className = 'drought-spatial-control';
-      control.innerHTML = `<span>${modeNames[this.mode]} display</span><div><button type="button" class="is-active" disabled>Approved Tabia summary</button></div><small>This approved release retains one zonal statistic or class per Tabia boundary. Source-native grids remain in the development workspace.</small>`;
-      this.content.prepend(control);
-      return;
-    }
     const labels = this.mode === 'observed' ? { tabia: 'Tabia average', raw: 'Native rainfall grid' } : { tabia: 'Tabia average', raw: 'Native raster' };
     const control = document.createElement('div');
     control.className = 'drought-spatial-control';
@@ -1578,8 +1571,11 @@ class DroughtDashboard {
 
   _setEvidenceLayer(activeLayerId) {
     if (this.publicMode) {
-      if (this.onSetEvidenceLayer) this.onSetEvidenceLayer(null);
-      this._setPublicEvidenceLayer(activeLayerId);
+      const publicRaster = activeLayerId && activeLayerId.endsWith('_raw_dev')
+        ? activeLayerId.replace(/_dev$/, '_public')
+        : null;
+      if (this.onSetEvidenceLayer) this.onSetEvidenceLayer(publicRaster);
+      this._setPublicEvidenceLayer(publicRaster ? null : activeLayerId);
       return;
     }
     const ids = ['tigray_drought_chirps_dev', 'tigray_drought_chirps_raw_dev', 'tigray_drought_chirps_rapid_raw_dev', 'tigray_drought_chirps_rapid_tabia_dev', 'tigray_drought_ndvi_dev', 'tigray_drought_ndvi_raw_dev', 'tigray_drought_swi_dev', 'tigray_drought_swi_raw_dev', 'tigray_drought_lst_dev', 'tigray_drought_lst_raw_dev', 'tigray_drought_wapor_dev', 'tigray_drought_wapor_raw_dev', 'tigray_drought_road_accessibility_dev', 'tigray_drought_population_dev', 'tigray_drought_cropland_dev'];
