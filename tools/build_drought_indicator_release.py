@@ -23,11 +23,23 @@ from typing import Any
 
 from build_drought_production_release import (
     API_PATHS,
+    EVIDENCE_RUNS_PATH,
+    EVIDENCE_SUMMARY_PATH,
+    HISTORY_SOURCES,
+    OBSERVED_FEATURE_PATH,
+    OBSERVED_RUN_PATH,
+    OBSERVED_RUNS_PATH,
     WORKSPACE_PATHS,
     asset_record,
+    public_history_run_index,
+    public_history_snapshot,
+    public_observed_run_index,
+    public_observed_snapshot,
     public_rainfall_index,
+    public_tabia_geometry,
     public_workspace_summary,
     request_json,
+    safe_asset_suffix,
     write_json,
 )
 
@@ -140,12 +152,49 @@ def main() -> int:
         workspace_payloads = {name: request_json(args.api_base, path) for name, path in WORKSPACE_PATHS.items()}
         validate_workspace_inputs(workspace_payloads)
         rainfall_payload = request_json(args.api_base, API_PATHS["drought-evidence-summary.json"])
+        observed_runs_payload = request_json(args.api_base, OBSERVED_RUNS_PATH)
     except RuntimeError as error:
         print(f"ERROR: {error}", file=sys.stderr)
         return 2
     rainfall_runs = rainfall_payload.get("runs")
     if not isinstance(rainfall_runs, list) or not rainfall_runs or not isinstance(rainfall_runs[0], dict):
         print("ERROR: final rainfall evidence index is incomplete", file=sys.stderr)
+        return 2
+    observed_runs = observed_runs_payload.get("runs")
+    if not isinstance(observed_runs, list) or not observed_runs:
+        print("ERROR: observed rainfall snapshot index is incomplete", file=sys.stderr)
+        return 2
+    observed_asset_ids: dict[str, str] = {}
+    history_payloads: dict[str, dict[str, Any]] = {}
+    history_asset_ids: dict[str, dict[str, str]] = {}
+    try:
+        for index, run in enumerate(observed_runs):
+            run_id = run.get("run_id") if isinstance(run, dict) else None
+            if not isinstance(run_id, str):
+                raise RuntimeError("observed rainfall snapshot is missing its run ID")
+            asset_id = f"observed-rainfall-run-{safe_asset_suffix(run_id)}"
+            observed_asset_ids[run_id] = asset_id
+            history_payloads[f"{asset_id}.json"] = public_observed_snapshot(request_json(args.api_base, OBSERVED_RUN_PATH.format(run_id=run_id)))
+            if index == 0:
+                history_payloads["tabia-geometry.json"] = public_tabia_geometry(request_json(args.api_base, OBSERVED_FEATURE_PATH.format(run_id=run_id)))
+        history_payloads["observed-rainfall-runs.json"] = public_observed_run_index(observed_runs_payload)
+        for source in HISTORY_SOURCES:
+            index_payload = request_json(args.api_base, EVIDENCE_RUNS_PATH.format(source=source))
+            index = public_history_run_index(source, index_payload)
+            runs = index.get("runs")
+            if not isinstance(runs, list) or not runs:
+                raise RuntimeError(f"{source} evidence index is incomplete")
+            history_payloads[f"evidence-{source}-runs.json"] = index
+            history_asset_ids[source] = {}
+            for run in runs:
+                run_id = run.get("run_id") if isinstance(run, dict) else None
+                if not isinstance(run_id, str):
+                    raise RuntimeError(f"{source} evidence run is missing its run ID")
+                asset_id = f"evidence-{source}-run-{safe_asset_suffix(run_id)}"
+                history_asset_ids[source][run_id] = asset_id
+                history_payloads[f"{asset_id}.json"] = public_history_snapshot(source, run, request_json(args.api_base, EVIDENCE_SUMMARY_PATH.format(source=source, run_id=run_id)))
+    except RuntimeError as error:
+        print(f"ERROR: {error}", file=sys.stderr)
         return 2
 
     workspace = public_workspace_summary(workspace_payloads)
@@ -169,6 +218,7 @@ def main() -> int:
         "drought-evidence-summary.json": write_json(release_dir / "drought-evidence-summary.json", rainfall),
         "drought-workspace-latest.json": write_json(release_dir / "drought-workspace-latest.json", workspace),
     }
+    written.update({filename: write_json(release_dir / filename, payload) for filename, payload in history_payloads.items()})
     status = {
         "schema_version": "tsird-drought-automatic-indicator-release-status/v1",
         "environment": "development-to-production",
@@ -182,8 +232,28 @@ def main() -> int:
     assets = [
         asset_record("drought-evidence-summary", "drought_evidence_summary", "drought-evidence-summary.json", written["drought-evidence-summary.json"], "TSIRD retained CHIRPS rainfall evidence index", start, end, rainfall.get("schema_version", "unknown"), boundary),
         asset_record("drought-workspace-latest", "vector_display_summary", "drought-workspace-latest.json", written["drought-workspace-latest.json"], "TSIRD retained Tabia indicator summaries", start, end, workspace.get("schema_version", "unknown"), boundary),
+        asset_record("tabia-geometry", "vector_display_summary", "tabia-geometry.json", written["tabia-geometry.json"], "TSIRD Tabia boundary geometry for retained evidence display", start, end, history_payloads["tabia-geometry.json"].get("schema_version", "unknown"), f"{boundary} Boundary geometry joins only to released Tabia evidence summaries."),
+        asset_record("observed-rainfall-runs", "drought_evidence_summary", "observed-rainfall-runs.json", written["observed-rainfall-runs.json"], "TSIRD retained observed rainfall snapshot index", start, end, history_payloads["observed-rainfall-runs.json"].get("schema_version", "unknown"), f"{boundary} Historical selections remain archived observations."),
         asset_record("release-status", "public_status", "status.json", written["status.json"], "TSIRD automated indicator validator", start, end, status["schema_version"], "Publication provenance only; it is not a scientific certification or operational decision."),
     ]
+    for run in observed_runs:
+        run_id = run["run_id"]
+        asset_id = observed_asset_ids[run_id]
+        filename = f"{asset_id}.json"
+        run_start, run_end = observation_window(run)
+        assets.append(asset_record(asset_id, "vector_display_summary", filename, written[filename], "TSIRD retained observed rainfall Tabia snapshot", run_start, run_end, history_payloads[filename].get("schema_version", "unknown"), f"{boundary} Historical snapshot is an archived observation, not a forecast or a past decision product."))
+    for source in HISTORY_SOURCES:
+        index_filename = f"evidence-{source}-runs.json"
+        index = history_payloads[index_filename]
+        runs = index["runs"]
+        index_start, index_end = observation_window(runs[0])
+        assets.append(asset_record(f"evidence-{source}-runs", "drought_evidence_summary", index_filename, written[index_filename], f"TSIRD retained {source} evidence index", index_start, index_end, index.get("schema_version", "unknown"), f"{boundary} Retained source observations remain separate."))
+        for run in runs:
+            run_id = run["run_id"]
+            asset_id = history_asset_ids[source][run_id]
+            filename = f"{asset_id}.json"
+            run_start, run_end = observation_window(run)
+            assets.append(asset_record(asset_id, "vector_display_summary", filename, written[filename], f"TSIRD retained {source} Tabia snapshot", run_start, run_end, history_payloads[filename].get("schema_version", "unknown"), f"{boundary} Retained source observation only; it does not create a class, forecast, or priority result."))
     try:
         assets.extend(copy_native_rasters(args.native_raster_root, release_dir, workspace_payloads, boundary))
     except RuntimeError as error:

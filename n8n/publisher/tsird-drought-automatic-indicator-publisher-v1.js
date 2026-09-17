@@ -42,6 +42,8 @@ const SUMMARY_FIELDS = {
   thermal: ["tsird_tabia_id", "tabia_name_en", "woreda_name_en", "lst_c_mean", "errorbar_c_mean", "coverage_pct", "quality_status"],
   water_use: ["tsird_tabia_id", "tabia_name_en", "woreda_name_en", "transpiration_mm", "aeti_mm", "coverage_pct", "quality_status"],
 };
+const HISTORY_SOURCES = ["rapid", "ndvi", "swi", "lst", "wapor"];
+const HISTORY_FIELDS = ["tsird_tabia_id", "value", "baseline_median_mm", "percentile", "comparison_status", "coverage_pct", "quality_status", "reference_median", "reference_deviation_pct", "reference_year_count", "reference_status"];
 
 const now = () => new Date().toISOString().replace(/\.\d{3}Z$/, "Z");
 // Match the VPS forced-command contract: ISO date separators remain while
@@ -91,6 +93,35 @@ function publicWorkspace(payloads) {
   return { schema_version:"tsird-public-drought-workspace/v1",
     interpretation_boundary:"Approved retained indicator summaries only. They are separate evidence views, not a combined drought class, food-security classification, forecast, allocation recommendation, or operational decision.", indicators };
 }
+const safeSuffix = (value) => String(value).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+function observedIndex(payload) {
+  if (!Array.isArray(payload.runs)) fail("observed rainfall snapshot index is invalid");
+  const fields = ["run_id", "source_product", "source_version", "analysis_year", "season_months", "baseline_year_start", "baseline_year_end", "source_latest_month", "record_count", "usable_count"];
+  return {schema_version:"tsird-public-observed-rainfall-runs/v1", selection_note:"Historical selections are retained observations, not forecasts or model backtests.", runs:payload.runs.filter((run) => run && typeof run === "object").map((run) => { const safe={}; for (const field of fields) if (run[field] != null) safe[field]=run[field]; return safe; })};
+}
+function observedSnapshot(payload) {
+  if (!payload.run || !Array.isArray(payload.conditions)) fail("observed rainfall snapshot is invalid");
+  const run = {}; for (const field of ["run_id", "source_product", "source_version", "status", "analysis_year", "season_months", "baseline_year_start", "baseline_year_end", "source_latest_month", "observation_start", "observation_end", "native_resolution"]) if (payload.run[field] != null) run[field]=payload.run[field];
+  return {schema_version:"tsird-public-observed-rainfall/v1", snapshot_kind:"archived_observation", run, artifact:{native_resolution:run.native_resolution || "Tabia summary"}, conditions:payload.conditions.filter((row) => row && typeof row === "object").map((row) => { const safe={}; for (const field of SUMMARY_FIELDS.observed) if (Object.hasOwn(row,field)) safe[field]=row[field]; return safe; })};
+}
+function historyIndex(source, payload) {
+  if (!Array.isArray(payload.runs)) fail(`${source} evidence index is invalid`);
+  const fields = ["run_id", "evidence_kind", "observation_start", "observation_end", "native_resolution", "status", "quality_summary"];
+  return {schema_version:"tsird-public-evidence-runs/v1", indicator:source, selection_note:"Retained source observations only; a selected date does not create a forecast, class, or priority result.", runs:payload.runs.filter((run) => run && typeof run === "object").map((run) => { const safe={}; for (const field of fields) if (run[field] != null) safe[field]=run[field]; return safe; })};
+}
+function historySnapshot(source, run, payload) {
+  if (!Array.isArray(payload.rows)) fail(`${source} summary is invalid`);
+  const publicRun={}; for (const field of ["run_id", "observation_start", "observation_end", "native_resolution", "status"]) if (run[field] != null) publicRun[field]=run[field];
+  return {schema_version:"tsird-public-evidence-snapshot/v1", indicator:source, run:publicRun, rows:payload.rows.filter((row) => row && typeof row === "object").map((row) => { const safe={}; for (const field of HISTORY_FIELDS) if (Object.hasOwn(row,field)) safe[field]=row[field]; return safe; })};
+}
+function tabiaGeometry(payload) {
+  if (!payload || payload.type !== "FeatureCollection" || !Array.isArray(payload.features)) fail("Tabia geometry is invalid");
+  return {type:"FeatureCollection", schema_version:"tsird-public-tabia-geometry/v1", features:payload.features.map((feature) => {
+    if (!feature || !feature.geometry || !feature.properties || typeof feature.properties.tsird_tabia_id !== "string") fail("Tabia geometry feature is invalid");
+    const properties={}; for (const field of ["tsird_tabia_id", "tabia_name_en", "woreda_name_en"]) if (Object.hasOwn(feature.properties,field)) properties[field]=feature.properties[field];
+    return {type:"Feature",geometry:feature.geometry,properties};
+  })};
+}
 async function main() {
   const host = process.argv[2] || "";
   if (!/^[A-Za-z0-9.-]+$/.test(host)) fail("production host is invalid");
@@ -104,12 +135,33 @@ async function main() {
   if (!Array.isArray(rainfall.runs) || !rainfall.runs.length || !rainfall.runs[0] || typeof rainfall.runs[0] !== "object") fail("final rainfall evidence index is incomplete");
   const boundary = "Automatically published retained indicator evidence only. Each source is shown separately; it is not a combined drought class, food-security classification, forecast, allocation recommendation, or operational decision.";
   const workspace = publicWorkspace(payloads);
+  const observedRunsRaw = await getJson("/map/api/drought/development/observed-rainfall/runs?limit=60");
+  const observedRuns = observedIndex(observedRunsRaw);
+  if (!observedRuns.runs.length) fail("observed rainfall snapshot index is empty");
+  const observedSnapshots = {};
+  let geometry = null;
+  for (const run of observedRuns.runs) {
+    const runId = run.run_id; if (typeof runId !== "string" || !safeSuffix(runId)) fail("observed rainfall run ID is invalid");
+    observedSnapshots[runId] = observedSnapshot(await getJson(`/map/api/drought/development/observed-rainfall/runs/${encodeURIComponent(runId)}?limit=748`));
+    if (!geometry) geometry = tabiaGeometry(await getJson(`/map/api/drought/development/observed-rainfall/runs/${encodeURIComponent(runId)}/features`));
+  }
+  const histories = {};
+  for (const source of HISTORY_SOURCES) {
+    const index = historyIndex(source, await getJson(`/map/api/drought/development/evidence/${source}/runs`));
+    if (!index.runs.length) fail(`${source} evidence index is empty`);
+    const snapshots = {};
+    for (const run of index.runs) {
+      const runId = run.run_id; if (typeof runId !== "string" || !safeSuffix(runId)) fail(`${source} run ID is invalid`);
+      snapshots[runId] = historySnapshot(source, run, await getJson(`/map/api/drought/development/evidence/${source}/runs/${encodeURIComponent(runId)}/summary`));
+    }
+    histories[source] = {index, snapshots};
+  }
   const publicRainfall = { schema_version:"tsird-public-rainfall-evidence-index/v1", runs: rainfall.runs.map((run) => ({
     run_id:run.run_id, evidence_kind:run.evidence_kind, native_resolution:run.native_resolution,
     observation_start:run.observation_start, observation_end:run.observation_end, quality_summary:run.quality_summary,
     source_product:run.provenance && run.provenance.source_product, method:run.provenance && run.provenance.method,
     interpretation_boundary:"Retained rainfall evidence only; it does not create a drought class or combined score." })) };
-  const fingerprint = crypto.createHash("sha256").update(JSON.stringify({workspace, publicRainfall, rasters:RASTERS.map((entry) => [entry[1], sha256(path.join(NATIVE_ROOT, entry[1]))])})).digest("hex");
+  const fingerprint = crypto.createHash("sha256").update(JSON.stringify({workspace, publicRainfall, observedRuns, observedSnapshots, histories, rasters:RASTERS.map((entry) => [entry[1], sha256(path.join(NATIVE_ROOT, entry[1]))])})).digest("hex");
   fs.mkdirSync(STAGING_ROOT, {recursive:true, mode:0o700});
   const receiptFile = path.join(STAGING_ROOT, "last-successful-fingerprint.json");
   if (fs.existsSync(receiptFile)) { try { if (JSON.parse(fs.readFileSync(receiptFile, "utf8")).fingerprint === fingerprint) { console.log(JSON.stringify({status:"current", note:"No retained indicator or native raster change; public pointer was not moved."})); return; } } catch {} }
@@ -118,14 +170,32 @@ async function main() {
     const written = {};
     written["drought-evidence-summary.json"] = writeJson(path.join(releaseDir, "drought-evidence-summary.json"), publicRainfall);
     written["drought-workspace-latest.json"] = writeJson(path.join(releaseDir, "drought-workspace-latest.json"), workspace);
+    written["tabia-geometry.json"] = writeJson(path.join(releaseDir, "tabia-geometry.json"), geometry);
+    written["observed-rainfall-runs.json"] = writeJson(path.join(releaseDir, "observed-rainfall-runs.json"), observedRuns);
+    for (const [runId, snapshot] of Object.entries(observedSnapshots)) written[`observed-rainfall-run-${safeSuffix(runId)}.json`] = writeJson(path.join(releaseDir, `observed-rainfall-run-${safeSuffix(runId)}.json`), snapshot);
+    for (const [source, history] of Object.entries(histories)) {
+      written[`evidence-${source}-runs.json`] = writeJson(path.join(releaseDir, `evidence-${source}-runs.json`), history.index);
+      for (const [runId, snapshot] of Object.entries(history.snapshots)) written[`evidence-${source}-run-${safeSuffix(runId)}.json`] = writeJson(path.join(releaseDir, `evidence-${source}-run-${safeSuffix(runId)}.json`), snapshot);
+    }
     const status = {schema_version:"tsird-drought-automatic-indicator-release-status/v1", environment:"development-to-production", release_id:releaseId, release_state:"auto-validated", release_channel:"indicator-evidence", generated_at:now(), note:"Published automatically only after complete source-specific Tabia quality and coverage checks. The existing public indicator release remains current when checks fail."};
     written["status.json"] = writeJson(path.join(releaseDir, "status.json"), status);
     const [start, end] = windowFor(payloads.observed.run);
     const assets = [
       asset("drought-evidence-summary", "drought_evidence_summary", "drought-evidence-summary.json", ...written["drought-evidence-summary.json"], "TSIRD retained CHIRPS rainfall evidence index", start, end, publicRainfall.schema_version, boundary),
       asset("drought-workspace-latest", "vector_display_summary", "drought-workspace-latest.json", ...written["drought-workspace-latest.json"], "TSIRD retained Tabia indicator summaries", start, end, workspace.schema_version, boundary),
+      asset("tabia-geometry", "vector_display_summary", "tabia-geometry.json", ...written["tabia-geometry.json"], "TSIRD Tabia boundary geometry for retained evidence display", start, end, geometry.schema_version, `${boundary} Boundary geometry joins only to released Tabia evidence summaries.`),
+      asset("observed-rainfall-runs", "drought_evidence_summary", "observed-rainfall-runs.json", ...written["observed-rainfall-runs.json"], "TSIRD retained observed rainfall snapshot index", start, end, observedRuns.schema_version, `${boundary} Historical selections remain archived observations.`),
       asset("release-status", "public_status", "status.json", ...written["status.json"], "TSIRD automated indicator validator", start, end, status.schema_version, "Publication provenance only; it is not a scientific certification or operational decision."),
     ];
+    for (const run of observedRuns.runs) {
+      const filename=`observed-rainfall-run-${safeSuffix(run.run_id)}.json`; const [runStart,runEnd]=windowFor(run);
+      assets.push(asset(`observed-rainfall-run-${safeSuffix(run.run_id)}`, "vector_display_summary", filename, ...written[filename], "TSIRD retained observed rainfall Tabia snapshot", runStart, runEnd, observedSnapshots[run.run_id].schema_version, `${boundary} Historical snapshot is an archived observation, not a forecast or a past decision product.`));
+    }
+    for (const [source, history] of Object.entries(histories)) {
+      const indexFilename=`evidence-${source}-runs.json`; const [historyStart,historyEnd]=windowFor(history.index.runs[0]);
+      assets.push(asset(`evidence-${source}-runs`, "drought_evidence_summary", indexFilename, ...written[indexFilename], `TSIRD retained ${source} evidence index`, historyStart, historyEnd, history.index.schema_version, `${boundary} Retained source observations remain separate.`));
+      for (const run of history.index.runs) { const filename=`evidence-${source}-run-${safeSuffix(run.run_id)}.json`; const [runStart,runEnd]=windowFor(run); assets.push(asset(`evidence-${source}-run-${safeSuffix(run.run_id)}`, "vector_display_summary", filename, ...written[filename], `TSIRD retained ${source} Tabia snapshot`, runStart, runEnd, history.snapshots[run.run_id].schema_version, `${boundary} Retained source observation only; it does not create a class, forecast, or priority result.`)); }
+    }
     for (const [id, filename, source, indicator] of RASTERS) {
       const sourcePath = path.join(NATIVE_ROOT, filename); const st = fs.lstatSync(sourcePath);
       if (!st.isFile() || st.isSymbolicLink()) fail(`native display raster is missing or unsafe: ${filename}`);

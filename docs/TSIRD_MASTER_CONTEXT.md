@@ -132,13 +132,14 @@ The release did not perform data processing or expose development services. See 
 and [n8n publisher setup](drought/n8n-production-publisher-setup.md).
 
 A separate automatic indicator-evidence channel now has its own nested
-`indicators/current.json` pointer. It can carry only technically validated
-Tabia indicator summaries and the six fixed display-ready native-grid raster
-derivatives. It cannot advance Priority Replay, FEWS NET context, model
-configuration or any source archive. See
+`indicators/current.json` pointer. It can carry technically validated current
+Tabia summaries, fixed display-ready native-grid raster derivatives, and
+compact retained Tabia source-run history joined to one boundary asset. It
+cannot advance Priority Replay, FEWS NET context, model configuration or any
+source archive. See
 [automatic indicator publication](drought/automatic-indicator-publication.md).
 Its tracked, inactive n8n coalescing publisher checks the six fixed evidence
-streams daily and transfers only a changed, checksum-validated nine-asset
+streams daily and transfers only a changed, checksum-validated indicator
 package through the existing pinned-host restricted accounts. It must still
 pass a manual end-to-end rehearsal before its schedule is activated; it is not
 evidence that automatic production publication is already occurring.

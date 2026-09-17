@@ -46,11 +46,12 @@ additionally names the independent release approver and approval time.
 
 Source-derived indicator evidence has a separate channel from the reviewed
 release. Its manifest uses `release_channel: indicator-evidence` and
-`release_state: auto-validated`. The package may contain **only** the current
-rainfall evidence index, the current Tabia indicator-summary payload, and its
-public status record. It cannot contain a priority replay, model configuration,
-FEWS NET geometry, reviewer record, raw raster, source archive, or a browser
-link to development storage.
+`release_state: auto-validated`. The package may contain current Tabia
+indicator summaries, fixed display-ready native rasters, a shared Tabia
+boundary copy, retained source-run indexes, and compact per-Tabia historical
+values. It cannot contain a priority replay, model configuration, FEWS NET
+geometry, reviewer record, raw raster archive, or a browser link to
+development storage.
 
 The automatic builder refuses an empty source, failed/unavailable run, or a
 stream with no quality-approved Tabia summaries. A freshness marker such as
@@ -61,9 +62,9 @@ leaves the prior indicator pointer untouched.
 Automatic indicator packages are activated only below the separate
 `releases/drought/indicators/current.json` pointer. The normal reviewed
 `current.json` pointer remains reserved for named-approved Priority Replay and
-provider-context packages. The public Drought Intelligence page joins the
-automatic indicator summaries to the latest reviewed Tabia geometry; Priority
-Review never reads the automatic channel.
+provider-context packages. The public Drought Intelligence page joins current
+and historical indicator values to the automatic package's shared Tabia
+geometry; Priority Review never reads the automatic channel.
 
 ## Required evidence boundary
 
@@ -137,11 +138,12 @@ snapshot plus small historical indexes, not raw rasters or a full historical
 geometry archive. It must be checked against the completed VPS capacity
 baseline before production release.
 
-The next package shape additionally permits one `drought-workspace-latest.json`
-asset: retained per-Tabia summaries for final rainfall, preliminary rainfall,
-NDVI, SWI, LST and WaPOR. The browser joins them to the already-sanitised
-replay geometry. It contains no raster, raw download URL, retrieval receipt,
-workflow state, development control data, history archive or scoring trace.
+The automatic indicator package includes `drought-workspace-latest.json` for
+the six current views, plus compact retained-run assets for historical rainfall,
+rapid rainfall, NDVI, SWI, LST and WaPOR selectors. The browser joins these
+value-only snapshots to one package-owned Tabia geometry asset. It contains no
+raw download URL, retrieval receipt, workflow state, development control data,
+or scoring trace.
 
 To preserve the public Priority Review controls, a later approved package may
 also include one sanitised GeoJSON per retained historical replay and one per

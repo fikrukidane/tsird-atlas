@@ -226,6 +226,19 @@ EVIDENCE_FEATURE_SQL = {
       ) reference ON true WHERE w.run_id=$1""",
 }
 
+# The automatic production publisher needs historical values, but it must not
+# make PostgreSQL serialise the same Tabia boundaries hundreds of times.  These
+# fixed source queries produce exactly the properties used by History; the
+# publisher packages geometry once and joins it by ``tsird_tabia_id``.
+EVIDENCE_SUMMARY_SQL = {
+    "rainfall": """SELECT json_build_object('rows',coalesce(json_agg(json_build_object('tsird_tabia_id',c.tsird_tabia_id,'value',c.rainfall_mm,'baseline_median_mm',c.baseline_median_mm,'percentile',c.percentile,'coverage_pct',c.coverage_pct,'quality_status',c.quality_status)),'[]'::json)) AS payload FROM tsird.drought_tabia_rainfall_condition c WHERE c.run_id=$1""",
+    "rapid": """SELECT json_build_object('rows',coalesce(json_agg(json_build_object('tsird_tabia_id',p.tsird_tabia_id,'value',p.rainfall_mm,'baseline_median_mm',p.baseline_median_mm,'percentile',p.provisional_percentile,'comparison_status',p.comparison_status,'coverage_pct',p.coverage_pct,'quality_status',p.quality_status)),'[]'::json)) AS payload FROM tsird.drought_tabia_preliminary_rainfall p WHERE p.run_id=$1""",
+    "ndvi": """SELECT json_build_object('rows',coalesce(json_agg(json_build_object('tsird_tabia_id',n.tsird_tabia_id,'value',n.ndvi_mean,'coverage_pct',n.coverage_pct,'quality_status',n.quality_status,'reference_median',reference.median_value,'reference_deviation_pct',CASE WHEN reference.median_value > 0 THEN 100*(n.ndvi_mean-reference.median_value)/reference.median_value END,'reference_year_count',reference.valid_year_count,'reference_status',CASE WHEN reference.valid_year_count IS NULL THEN 'unavailable' ELSE 'candidate_review_required' END)),'[]'::json)) AS payload FROM tsird.drought_tabia_ndvi n JOIN tsird.drought_ndvi_run r USING(run_id) LEFT JOIN LATERAL (SELECT count(*)::int AS valid_year_count,percentile_cont(0.5) WITHIN GROUP (ORDER BY n2.ndvi_mean) AS median_value FROM tsird.drought_tabia_ndvi n2 JOIN tsird.drought_ndvi_run r2 USING(run_id) WHERE n2.tsird_tabia_id=n.tsird_tabia_id AND EXTRACT(YEAR FROM r2.observation_end) BETWEEN 2018 AND 2025 AND EXTRACT(MONTH FROM r2.observation_end)=EXTRACT(MONTH FROM r.observation_end) AND r2.status IN ('development','degraded','validated') AND (r2.seasonal_reference_candidate_only OR r2.notes LIKE 'Baseline pilot only%%') AND n2.quality_status='ok' AND n2.coverage_pct>=90 AND n2.ndvi_mean IS NOT NULL AND (EXTRACT(YEAR FROM r.observation_end) NOT BETWEEN 2018 AND 2025 OR EXTRACT(YEAR FROM r2.observation_end)<>EXTRACT(YEAR FROM r.observation_end)) HAVING count(*)>=6) reference ON true WHERE n.run_id=$1""",
+    "swi": """SELECT json_build_object('rows',coalesce(json_agg(json_build_object('tsird_tabia_id',s.tsird_tabia_id,'value',s.swi040_mean,'coverage_pct',s.coverage_pct,'quality_status',s.quality_status)),'[]'::json)) AS payload FROM tsird.drought_tabia_swi s WHERE s.run_id=$1""",
+    "lst": """SELECT json_build_object('rows',coalesce(json_agg(json_build_object('tsird_tabia_id',l.tsird_tabia_id,'value',l.lst_c_mean,'coverage_pct',l.coverage_pct,'quality_status',l.quality_status)),'[]'::json)) AS payload FROM tsird.drought_tabia_lst l WHERE l.run_id=$1""",
+    "wapor": """SELECT json_build_object('rows',coalesce(json_agg(json_build_object('tsird_tabia_id',w.tsird_tabia_id,'value',w.transpiration_mm,'coverage_pct',w.coverage_pct,'quality_status',w.quality_status,'reference_median',reference.median_value,'reference_deviation_pct',CASE WHEN reference.median_value > 0 THEN 100*(w.transpiration_mm-reference.median_value)/reference.median_value END,'reference_year_count',reference.valid_year_count,'reference_status',CASE WHEN reference.valid_year_count IS NULL THEN 'unavailable' ELSE 'candidate_review_required' END)),'[]'::json)) AS payload FROM tsird.drought_tabia_wapor w JOIN tsird.drought_wapor_run r USING(run_id) LEFT JOIN LATERAL (SELECT count(*)::int AS valid_year_count,percentile_cont(0.5) WITHIN GROUP (ORDER BY w2.transpiration_mm) AS median_value FROM tsird.drought_tabia_wapor w2 JOIN tsird.drought_wapor_run r2 USING(run_id) WHERE w2.tsird_tabia_id=w.tsird_tabia_id AND EXTRACT(YEAR FROM r2.source_period_end) BETWEEN 2018 AND 2025 AND EXTRACT(MONTH FROM r2.source_period_end)=EXTRACT(MONTH FROM r.source_period_end) AND r2.status IN ('development','degraded','validated') AND (r2.seasonal_reference_candidate_only OR r2.notes LIKE 'Baseline pilot only%%') AND w2.quality_status='ok' AND w2.coverage_pct>=90 AND w2.transpiration_mm IS NOT NULL AND (EXTRACT(YEAR FROM r.source_period_end) NOT BETWEEN 2018 AND 2025 OR EXTRACT(YEAR FROM r2.source_period_end)<>EXTRACT(YEAR FROM r.source_period_end)) HAVING count(*)>=6) reference ON true WHERE w.run_id=$1""",
+}
+
 # Seasonal outlooks are provider-issued climate probabilities.  These queries
 # intentionally contain no Tabia join: the platform may retain a native grid
 # and an explicitly derived Woreda context, but never a fabricated Tabia
@@ -821,6 +834,54 @@ def _public_indicator_release_json(asset_id: str):
         raise HTTPException(status_code=503, detail="Automatic public indicator asset is unreadable")
 
 
+def _public_indicator_asset_id(prefix: str, run_id: str) -> str:
+    """Turn an opaque retained-run ID into the matching fixed manifest ID."""
+    suffix = re.sub(r"[^a-z0-9]+", "-", run_id.lower()).strip("-")
+    if not suffix:
+        raise HTTPException(status_code=404, detail="Public retained evidence snapshot is unavailable")
+    return f"{prefix}-{suffix}"
+
+
+def _public_indicator_geometry() -> dict:
+    """Prefer the indicator channel's boundary copy, with a safe legacy fallback."""
+    try:
+        return _public_indicator_release_json("tabia-geometry")
+    except HTTPException as error:
+        if error.status_code != 404:
+            raise
+    index = _public_release_json("priority-replay-summary")
+    replay = next((item for item in index.get("replays", []) if isinstance(item, dict) and isinstance(item.get("asset_id"), str)), None)
+    if not replay:
+        raise HTTPException(status_code=404, detail="Approved public Tabia geometry is unavailable")
+    collection = _public_release_json(replay["asset_id"])
+    features = collection.get("features") if isinstance(collection, dict) else None
+    if not isinstance(features, list):
+        raise HTTPException(status_code=404, detail="Approved public Tabia geometry is unavailable")
+    return {"type": "FeatureCollection", "features": [
+        {"type": "Feature", "geometry": feature.get("geometry"), "properties": {
+            key: feature.get("properties", {}).get(key)
+            for key in ("tsird_tabia_id", "tabia_name_en", "woreda_name_en")
+            if isinstance(feature, dict) and isinstance(feature.get("properties"), dict) and key in feature["properties"]
+        }} for feature in features if isinstance(feature, dict)
+    ]}
+
+
+def _public_history_features(rows: list[dict]) -> dict:
+    geometry = _public_indicator_geometry()
+    features = geometry.get("features") if isinstance(geometry, dict) else None
+    if not isinstance(features, list):
+        raise HTTPException(status_code=404, detail="Approved public Tabia geometry is unavailable")
+    values = {row.get("tsird_tabia_id"): row for row in rows if isinstance(row, dict) and isinstance(row.get("tsird_tabia_id"), str)}
+    return {"type": "FeatureCollection", "features": [
+        {
+            "type": "Feature", "geometry": feature.get("geometry"),
+            "properties": {**(feature.get("properties") or {}), **values.get((feature.get("properties") or {}).get("tsird_tabia_id"), {})},
+        }
+        for feature in features if isinstance(feature, dict) and isinstance(feature.get("properties"), dict)
+        and (feature["properties"].get("tsird_tabia_id") in values)
+    ]}
+
+
 def _public_workspace_indicator(indicator: str):
     workspace = _public_indicator_release_json("drought-workspace-latest")
     indicators = workspace.get("indicators") if isinstance(workspace, dict) else None
@@ -875,7 +936,21 @@ async def public_drought_dashboard_indicator(indicator: str):
 
 @app.get("/drought/public/dashboard/observed-rainfall/runs")
 async def public_drought_dashboard_observed_runs():
-    return {"schema_version": "tsird-public-observed-runs/v1", "runs": []}
+    return _public_indicator_release_json("observed-rainfall-runs")
+
+
+@app.get("/drought/public/dashboard/observed-rainfall/runs/{run_id}")
+async def public_drought_dashboard_observed_run(run_id: str):
+    return _public_indicator_release_json(_public_indicator_asset_id("observed-rainfall-run", run_id))
+
+
+@app.get("/drought/public/dashboard/observed-rainfall/runs/{run_id}/features")
+async def public_drought_dashboard_observed_features(run_id: str):
+    snapshot = _public_indicator_release_json(_public_indicator_asset_id("observed-rainfall-run", run_id))
+    conditions = snapshot.get("conditions") if isinstance(snapshot, dict) else None
+    if not isinstance(conditions, list):
+        raise HTTPException(status_code=404, detail="Approved public observed-rainfall snapshot is unavailable")
+    return _public_history_features(conditions)
 
 
 @app.get("/drought/public/dashboard/evidence/{indicator}/runs")
@@ -884,8 +959,22 @@ async def public_drought_dashboard_evidence_runs(indicator: str):
     release_indicator = aliases.get(indicator)
     if not release_indicator:
         raise HTTPException(status_code=404, detail="Unknown public evidence indicator")
-    payload = _public_workspace_indicator(release_indicator)
-    return {"schema_version": "tsird-public-evidence-runs/v1", "runs": [_public_dashboard_run(payload["run"], release_indicator)]}
+    if indicator == "rainfall":
+        return _public_indicator_release_json("observed-rainfall-runs")
+    return _public_indicator_release_json(f"evidence-{indicator}-runs")
+
+
+@app.get("/drought/public/dashboard/evidence/{indicator}/runs/{run_id}/features")
+async def public_drought_dashboard_evidence_features(indicator: str, run_id: str):
+    if indicator == "rainfall":
+        return await public_drought_dashboard_observed_features(run_id)
+    if indicator not in {"rapid", "ndvi", "swi", "lst", "wapor"}:
+        raise HTTPException(status_code=404, detail="Unknown public evidence indicator")
+    snapshot = _public_indicator_release_json(_public_indicator_asset_id(f"evidence-{indicator}-run", run_id))
+    rows = snapshot.get("rows") if isinstance(snapshot, dict) else None
+    if not isinstance(rows, list):
+        raise HTTPException(status_code=404, detail="Approved public evidence snapshot is unavailable")
+    return _public_history_features(rows)
 
 
 @app.get("/drought/public/dashboard/history/{indicator}/{tabia_id}")
@@ -902,14 +991,34 @@ async def public_drought_dashboard_history(indicator: str, tabia_id: str):
     if not detail:
         raise HTTPException(status_code=404, detail="Unknown public evidence indicator")
     release_indicator, value_field, label, unit = detail
-    payload = _public_workspace_indicator(release_indicator)
-    row = next((item for item in payload["summaries"] if isinstance(item, dict) and item.get("tsird_tabia_id") == tabia_id), None)
-    if not row:
+    run_index = await public_drought_dashboard_evidence_runs(indicator)
+    runs = run_index.get("runs") if isinstance(run_index, dict) else None
+    if not isinstance(runs, list):
+        raise HTTPException(status_code=404, detail="Approved public evidence history is unavailable")
+    points = []
+    for run in runs:
+        run_id = run.get("run_id") if isinstance(run, dict) else None
+        if not isinstance(run_id, str):
+            continue
+        if indicator == "rainfall":
+            snapshot = _public_indicator_release_json(_public_indicator_asset_id("observed-rainfall-run", run_id))
+            rows = snapshot.get("conditions") if isinstance(snapshot, dict) else None
+        else:
+            snapshot = _public_indicator_release_json(_public_indicator_asset_id(f"evidence-{indicator}-run", run_id))
+            rows = snapshot.get("rows") if isinstance(snapshot, dict) else None
+        row = next((item for item in (rows or []) if isinstance(item, dict) and item.get("tsird_tabia_id") == tabia_id), None)
+        if not row:
+            continue
+        baseline = row.get("baseline_median_mm") if indicator == "rainfall" else row.get("reference_median")
+        baseline_status = "available" if baseline is not None else "unavailable"
+        baseline_label = "CHIRPS 1991–2020 reference" if indicator == "rainfall" and baseline is not None else ("2018–2025 same-calendar-month candidate reference" if indicator in {"ndvi", "wapor"} and baseline is not None else "Not included in this release")
+        points.append({"run_id": run_id, "observation_at": run.get("observation_end") or run.get("source_period_end") or run.get("period_end") or run.get("source_latest_month") or "not recorded", "value": row.get(value_field) if indicator == "rainfall" else row.get("value"), "expected_median": baseline, "percentile": row.get("percentile"), "baseline_status": baseline_status, "baseline_label": baseline_label, "quality_status": row.get("quality_status") or "unavailable", "native_resolution": run.get("native_resolution") or "Tabia summary", "status": run.get("status") or "approved retained evidence"})
+    if not points:
         raise HTTPException(status_code=404, detail="Tabia is not included in the approved release")
-    run = _public_dashboard_run(payload["run"], release_indicator)
-    baseline = row.get("baseline_median_mm") if indicator == "rainfall" else None
-    point = {"run_id": run["run_id"], "observation_at": run.get("observation_end") or run.get("source_period_end") or run.get("period_end") or "not recorded", "value": row.get(value_field), "expected_median": baseline, "percentile": row.get("percentile"), "baseline_status": "available" if baseline is not None else "unavailable", "baseline_label": "CHIRPS 1991–2020 reference" if baseline is not None else "Not included in this release", "quality_status": row.get("quality_status") or "unavailable", "native_resolution": run["native_resolution"], "status": run["status"]}
-    return {"schema_version": "tsird-public-evidence-history/v1", "environment": "approved_release", "indicator": indicator, "metadata": {"label": label, "unit": unit}, "tabia": {"tabia_name_en": row.get("tabia_name_en") or "Tabia", "woreda_name_en": row.get("woreda_name_en") or "Tigray"}, "points": [point]}
+    geometry = _public_indicator_geometry()
+    meta = next((feature.get("properties", {}) for feature in geometry.get("features", []) if isinstance(feature, dict) and isinstance(feature.get("properties"), dict) and feature["properties"].get("tsird_tabia_id") == tabia_id), {})
+    points.sort(key=lambda point: str(point["observation_at"]))
+    return {"schema_version": "tsird-public-evidence-history/v1", "environment": "approved_release", "indicator": indicator, "metadata": {"label": label, "unit": unit}, "tabia": {"tabia_name_en": meta.get("tabia_name_en") or "Tabia", "woreda_name_en": meta.get("woreda_name_en") or "Tigray"}, "points": points}
 
 
 @app.get("/drought/public/dashboard/priority/replays")
@@ -925,11 +1034,7 @@ async def public_drought_dashboard_priority_previews():
 
 @app.get("/drought/public/dashboard/geometry")
 async def public_drought_dashboard_geometry():
-    index = _public_release_json("priority-replay-summary")
-    replay = next((item for item in index.get("replays", []) if isinstance(item, dict) and isinstance(item.get("asset_id"), str)), None)
-    if not replay:
-        raise HTTPException(status_code=404, detail="Approved public Tabia geometry is unavailable")
-    return _public_release_json(replay["asset_id"])
+    return _public_indicator_geometry()
 
 
 @app.get("/drought/public/dashboard/priority/replays/{snapshot_id}/features")
@@ -1458,6 +1563,43 @@ async def development_evidence_features(source_key: str, run_id: str):
     if not decoded or not decoded.get("features"):
         raise HTTPException(status_code=404, detail="Development evidence snapshot is unavailable")
     return decoded
+
+
+@app.get("/drought/development/evidence/{source_key}/runs/{run_id}/summary")
+async def development_evidence_summary(source_key: str, run_id: str):
+    """Return the retained Tabia values without repeating boundary geometry.
+
+    The automatic public indicator publisher uses this bounded, source-derived
+    representation for its historical selectors.  Geometry is packaged once
+    per release and joined by stable ``tsird_tabia_id`` in the public adapter.
+    No raster, source path, or development URL crosses this endpoint.
+    """
+    query = EVIDENCE_SUMMARY_SQL.get(source_key)
+    if not query:
+        raise HTTPException(status_code=404, detail="Unknown development evidence source")
+    historical_rows = await _historical_tabia_rows(source_key, run_id)
+    catalogue_rows = historical_rows if historical_rows is not None else await _evidence_rows(source_key, run_id)
+    if not catalogue_rows:
+        raise HTTPException(status_code=404, detail="Development evidence snapshot is unavailable")
+    try:
+        conn = await asyncpg.connect(DB_DSN)
+        try:
+            payload = await conn.fetchval(query, run_id)
+        finally:
+            await conn.close()
+    except Exception:
+        logging.exception("Development evidence summary query error")
+        raise HTTPException(status_code=503, detail="Development evidence snapshot is unavailable")
+    decoded = json.loads(payload) if isinstance(payload, str) else payload
+    rows = decoded.get("rows") if isinstance(decoded, dict) else None
+    if not isinstance(rows, list):
+        raise HTTPException(status_code=404, detail="Development evidence snapshot is unavailable")
+    return {
+        "schema_version": "tsird-drought-evidence-summary/v1",
+        "source_key": source_key,
+        "run_id": run_id,
+        "rows": rows,
+    }
 
 
 def _decode_json_value(value):

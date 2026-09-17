@@ -34,6 +34,16 @@ WORKSPACE_PATHS = {
     "thermal": "/map/api/drought/development/lst/latest?limit=748",
     "water_use": "/map/api/drought/development/wapor/latest?limit=748",
 }
+OBSERVED_RUNS_PATH = "/map/api/drought/development/observed-rainfall/runs?limit=60"
+OBSERVED_RUN_PATH = "/map/api/drought/development/observed-rainfall/runs/{run_id}?limit=748"
+OBSERVED_FEATURE_PATH = "/map/api/drought/development/observed-rainfall/runs/{run_id}/features"
+# These are retained, Tabia-level observations.  They are deliberately
+# separate from the six current-workspace payloads above: the public History
+# controls need a compact record for every retained source run, not a copy of
+# a raw raster or a development URL.
+HISTORY_SOURCES = ("rapid", "ndvi", "swi", "lst", "wapor")
+EVIDENCE_RUNS_PATH = "/map/api/drought/development/evidence/{source}/runs"
+EVIDENCE_SUMMARY_PATH = "/map/api/drought/development/evidence/{source}/runs/{run_id}/summary"
 REPLAY_PATH = "/map/api/drought/development/priority/historical-replays/{snapshot_id}/features"
 FEWS_PATH = "/map/api/drought/development/fews-net-context/runs/{run_id}/features"
 RELEASE_ID = re.compile(r"^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{6}Z(?:-[a-z0-9][a-z0-9-]*)?$")
@@ -178,6 +188,112 @@ WORKSPACE_SUMMARY_FIELDS = {
     "water_use": ("summaries", ("tsird_tabia_id", "tabia_name_en", "woreda_name_en", "transpiration_mm", "aeti_mm", "coverage_pct", "quality_status")),
 }
 
+HISTORY_ROW_FIELDS = (
+    "tsird_tabia_id", "value", "baseline_median_mm", "percentile",
+    "comparison_status", "coverage_pct", "quality_status",
+    "reference_median", "reference_deviation_pct", "reference_year_count",
+    "reference_status",
+)
+
+
+def public_observed_run_index(payload: dict[str, Any]) -> dict[str, Any]:
+    runs = payload.get("runs")
+    if not isinstance(runs, list):
+        raise RuntimeError("observed rainfall run index has no run list")
+    allowed = (
+        "run_id", "source_product", "source_version", "analysis_year",
+        "season_months", "baseline_year_start", "baseline_year_end",
+        "source_latest_month", "record_count", "usable_count",
+    )
+    return {
+        "schema_version": "tsird-public-observed-rainfall-runs/v1",
+        "selection_note": "Historical selections are retained observations, not forecasts or model backtests.",
+        "runs": [{key: run.get(key) for key in allowed if run.get(key) is not None}
+                 for run in runs if isinstance(run, dict)],
+    }
+
+
+def public_observed_snapshot(payload: dict[str, Any]) -> dict[str, Any]:
+    run = payload.get("run")
+    conditions = payload.get("conditions")
+    if not isinstance(run, dict) or not isinstance(conditions, list):
+        raise RuntimeError("observed rainfall snapshot is incomplete")
+    allowed_run = (
+        "run_id", "source_product", "source_version", "status", "analysis_year",
+        "season_months", "baseline_year_start", "baseline_year_end",
+        "source_latest_month", "observation_start", "observation_end",
+        "native_resolution",
+    )
+    allowed_condition = WORKSPACE_SUMMARY_FIELDS["observed"][1]
+    return {
+        "schema_version": "tsird-public-observed-rainfall/v1",
+        "snapshot_kind": "archived_observation",
+        "run": {key: run.get(key) for key in allowed_run if run.get(key) is not None},
+        "artifact": {"native_resolution": run.get("native_resolution") or "Tabia summary"},
+        "conditions": [
+            {key: condition.get(key) for key in allowed_condition if key in condition}
+            for condition in conditions if isinstance(condition, dict)
+        ],
+    }
+
+
+def public_history_run_index(source: str, payload: dict[str, Any]) -> dict[str, Any]:
+    runs = payload.get("runs")
+    if not isinstance(runs, list):
+        raise RuntimeError(f"{source} evidence index has no run list")
+    allowed = (
+        "run_id", "evidence_kind", "observation_start", "observation_end",
+        "native_resolution", "status", "quality_summary",
+    )
+    return {
+        "schema_version": "tsird-public-evidence-runs/v1",
+        "indicator": source,
+        "selection_note": "Retained source observations only; a selected date does not create a forecast, class, or priority result.",
+        "runs": [{key: run.get(key) for key in allowed if run.get(key) is not None}
+                 for run in runs if isinstance(run, dict)],
+    }
+
+
+def public_history_snapshot(source: str, run: dict[str, Any], payload: dict[str, Any]) -> dict[str, Any]:
+    rows = payload.get("rows")
+    if not isinstance(rows, list):
+        raise RuntimeError(f"{source} retained summary has no rows")
+    return {
+        "schema_version": "tsird-public-evidence-snapshot/v1",
+        "indicator": source,
+        "run": {
+            key: run.get(key) for key in (
+                "run_id", "observation_start", "observation_end", "native_resolution", "status"
+            ) if run.get(key) is not None
+        },
+        "rows": [
+            {key: row.get(key) for key in HISTORY_ROW_FIELDS if key in row}
+            for row in rows if isinstance(row, dict)
+        ],
+    }
+
+
+def public_tabia_geometry(payload: dict[str, Any]) -> dict[str, Any]:
+    features = payload.get("features")
+    if payload.get("type") != "FeatureCollection" or not isinstance(features, list):
+        raise RuntimeError("Tabia geometry payload is not a FeatureCollection")
+    public_features = []
+    for feature in features:
+        properties = feature.get("properties") if isinstance(feature, dict) else None
+        geometry = feature.get("geometry") if isinstance(feature, dict) else None
+        tabia_id = properties.get("tsird_tabia_id") if isinstance(properties, dict) else None
+        if not isinstance(tabia_id, str) or not isinstance(geometry, dict):
+            raise RuntimeError("Tabia geometry feature is incomplete")
+        public_features.append({
+            "type": "Feature",
+            "geometry": geometry,
+            "properties": {
+                key: properties[key] for key in ("tsird_tabia_id", "tabia_name_en", "woreda_name_en")
+                if key in properties
+            },
+        })
+    return {"type": "FeatureCollection", "schema_version": "tsird-public-tabia-geometry/v1", "features": public_features}
+
 
 def public_workspace_summary(payloads: dict[str, dict[str, Any]]) -> dict[str, Any]:
     """Retain only per-Tabia display summaries for the public workspace.
@@ -299,6 +415,56 @@ def main() -> int:
 
     payloads = {filename: request_json(args.api_base, path) for filename, path in API_PATHS.items()}
     workspace_payloads = {name: request_json(args.api_base, path) for name, path in WORKSPACE_PATHS.items()}
+    observed_runs_payload = request_json(args.api_base, OBSERVED_RUNS_PATH)
+    observed_runs = observed_runs_payload.get("runs")
+    if not isinstance(observed_runs, list) or not observed_runs:
+        print("ERROR: observed rainfall snapshot index has no retained run", file=sys.stderr)
+        return 2
+    observed_asset_ids: dict[str, str] = {}
+    for index, observed_run in enumerate(observed_runs):
+        run_id = observed_run.get("run_id") if isinstance(observed_run, dict) else None
+        if not isinstance(run_id, str):
+            print("ERROR: observed rainfall snapshot is missing its run ID", file=sys.stderr)
+            return 2
+        asset_id = f"observed-rainfall-run-{safe_asset_suffix(run_id)}"
+        observed_asset_ids[run_id] = asset_id
+        payloads[f"{asset_id}.json"] = public_observed_snapshot(
+            request_json(args.api_base, OBSERVED_RUN_PATH.format(run_id=run_id))
+        )
+        if index == 0:
+            payloads["tabia-geometry.json"] = public_tabia_geometry(
+                request_json(args.api_base, OBSERVED_FEATURE_PATH.format(run_id=run_id))
+            )
+    payloads["observed-rainfall-runs.json"] = public_observed_run_index(observed_runs_payload)
+
+    history_asset_ids: dict[str, dict[str, str]] = {}
+    history_indexes: dict[str, dict[str, Any]] = {}
+    history_runs: dict[str, list[dict[str, Any]]] = {}
+    for source in HISTORY_SOURCES:
+        index_payload = request_json(args.api_base, EVIDENCE_RUNS_PATH.format(source=source))
+        runs = index_payload.get("runs")
+        if not isinstance(runs, list) or not runs:
+            print(f"ERROR: {source} evidence index has no retained run", file=sys.stderr)
+            return 2
+        history_runs[source] = [run for run in runs if isinstance(run, dict)]
+        if not history_runs[source]:
+            print(f"ERROR: {source} evidence index is malformed", file=sys.stderr)
+            return 2
+        history_indexes[source] = public_history_run_index(source, index_payload)
+        history_asset_ids[source] = {}
+        for run in history_runs[source]:
+            run_id = run.get("run_id")
+            if not isinstance(run_id, str):
+                print(f"ERROR: {source} retained run is missing its run ID", file=sys.stderr)
+                return 2
+            asset_id = f"evidence-{source}-run-{safe_asset_suffix(run_id)}"
+            history_asset_ids[source][run_id] = asset_id
+            payloads[f"{asset_id}.json"] = public_history_snapshot(
+                source,
+                run,
+                request_json(args.api_base, EVIDENCE_SUMMARY_PATH.format(source=source, run_id=run_id)),
+            )
+        payloads[f"evidence-{source}-runs.json"] = history_indexes[source]
     replays = payloads["priority-replay-summary.json"].get("replays")
     fews_runs = payloads["fews-net-context.json"].get("runs")
     rainfall_runs = payloads["drought-evidence-summary.json"].get("runs")
@@ -365,11 +531,29 @@ def main() -> int:
     assets = [
         asset_record("drought-evidence-summary", "drought_evidence_summary", "drought-evidence-summary.json", written["drought-evidence-summary.json"], "TSIRD retained CHIRPS rainfall evidence index", rainfall_start, rainfall_end, payloads["drought-evidence-summary.json"].get("schema_version", "unknown"), f"{common_boundary} It does not create a drought class or combined score."),
         asset_record("drought-workspace-latest", "vector_display_summary", "drought-workspace-latest.json", written["drought-workspace-latest.json"], "TSIRD approved Tabia evidence summaries", rainfall_start, rainfall_end, payloads["drought-workspace-latest.json"].get("schema_version", "unknown"), f"{common_boundary} Indicators remain separate, and this compact summary excludes raw rasters, source archives, workflow state, and development controls."),
+        asset_record("tabia-geometry", "vector_display_summary", "tabia-geometry.json", written["tabia-geometry.json"], "TSIRD Tabia boundary geometry for retained evidence display", rainfall_start, rainfall_end, payloads["tabia-geometry.json"].get("schema_version", "unknown"), f"{common_boundary} Boundary geometry joins only to released Tabia evidence summaries."),
+        asset_record("observed-rainfall-runs", "drought_evidence_summary", "observed-rainfall-runs.json", written["observed-rainfall-runs.json"], "TSIRD retained observed rainfall snapshot index", rainfall_start, rainfall_end, payloads["observed-rainfall-runs.json"].get("schema_version", "unknown"), f"{common_boundary} Historical selections remain archived observations."),
         asset_record("priority-replay-summary", "priority_replay_summary", "priority-replay-summary.json", written["priority-replay-summary.json"], "TSIRD retained historical replay index", replay_start, replay_end, payloads["priority-replay-summary.json"].get("schema_version", "unknown"), "Historical replay from retained evidence; not an as-issued forecast, official classification, allocation recommendation, or operational decision."),
         asset_record("priority-replay-latest", "priority_replay_summary", "priority-replay-latest.geojson", written["priority-replay-latest.geojson"], "TSIRD retained historical replay GeoJSON", replay_start, replay_end, payloads["priority-replay-latest.geojson"].get("schema_version", "unknown"), "Historical replay geometry and stored draft evidence trace; not an as-issued forecast, official classification, allocation recommendation, or operational decision."),
         asset_record("fews-net-context-index", "fews_net_native_context", "fews-net-context.json", written["fews-net-context.json"], "FEWS NET retained Ethiopia provider issue index", fews_start, fews_end, payloads["fews-net-context.json"].get("schema_version", "unknown"), "Provider-native external context only; no provider classification is transferred to a Tabia and it does not affect TSIRD scoring."),
         asset_record("fews-net-context-latest", "fews_net_native_context", "fews-net-context-latest.geojson", written["fews-net-context-latest.geojson"], "FEWS NET retained Ethiopia provider-native FSC geometry", fews_start, fews_end, payloads["fews-net-context-latest.geojson"].get("schema_version", "unknown"), "Provider-native external context only; no provider classification is transferred to a Tabia and it does not affect TSIRD scoring."),
     ]
+    for run in observed_runs:
+        run_id = run["run_id"]
+        asset_id = observed_asset_ids[run_id]
+        filename = f"{asset_id}.json"
+        start, end = observation_window(run, rainfall_start)
+        assets.append(asset_record(asset_id, "vector_display_summary", filename, written[filename], "TSIRD retained observed rainfall Tabia snapshot", start, end, payloads[filename].get("schema_version", "unknown"), f"{common_boundary} Historical snapshot is an archived observation, not a forecast or a past decision product."))
+    for source, runs in history_runs.items():
+        index_filename = f"evidence-{source}-runs.json"
+        newest_start, newest_end = observation_window(runs[0], rainfall_start)
+        assets.append(asset_record(f"evidence-{source}-runs", "drought_evidence_summary", index_filename, written[index_filename], f"TSIRD retained {source} evidence index", newest_start, newest_end, payloads[index_filename].get("schema_version", "unknown"), f"{common_boundary} Retained source observations remain separate."))
+        for run in runs:
+            run_id = run["run_id"]
+            asset_id = history_asset_ids[source][run_id]
+            filename = f"{asset_id}.json"
+            start, end = observation_window(run, newest_start)
+            assets.append(asset_record(asset_id, "vector_display_summary", filename, written[filename], f"TSIRD retained {source} Tabia snapshot", start, end, payloads[filename].get("schema_version", "unknown"), f"{common_boundary} Retained source observation only; it does not create a class, forecast, or priority result."))
     for replay in replays[1:]:
         snapshot_id = replay["snapshot_id"]
         asset_id = replay_asset_ids[snapshot_id]

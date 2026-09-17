@@ -19,15 +19,19 @@ named-approval release path.
 
 ## Technical gate
 
-`tools/build_drought_indicator_release.py` reads only the fixed development
-API summary endpoints and writes an immutable `-indicators` package. It
+`tools/build_drought_indicator_release.py` reads only fixed development API
+summary endpoints and writes an immutable `-indicators` package. It
 requires all six source streams to have retained Tabia rows with at least one
 quality-approved observation. It rejects failed/unavailable sources and
 records a visible degraded freshness state without silently relabelling it.
 It also requires exactly six safe, regular TIFF files from the local
 display-ready `data/drought/published` directory. The package validator checks
 their fixed names, checksums and observation windows before the indicator
-pointer can advance.
+pointer can advance. It also carries the retained source-run indexes and
+compact per-Tabia values needed by the rainfall snapshot selector and History
+map/date comparisons. Tabia boundary geometry is copied once and joined to
+each compact run by its stable ID; raw rasters and provider archives are never
+duplicated for history.
 
 The companion validator accepts an `auto-validated` package only when invoked
 with `--allow-auto-validated-indicators`; the standard publisher and normal
@@ -47,9 +51,12 @@ archive, n8n state, or credentials on the VPS.
 ## Automatic n8n publication
 
 The tracked automatic publisher is intentionally a separate inactive n8n
-workflow. It coalesces the current retained evidence into one nine-asset
-package and publishes it only when the six summary streams pass the technical
-gate and its fingerprint differs from the last successful automatic package.
+workflow. It coalesces the current retained evidence, its retained
+observation-history assets, and the six display rasters into one package. It
+publishes only when the six summary streams pass the technical gate and its
+fingerprint differs from the last successful automatic package. This keeps
+ordinary source-derived evidence dynamic in production while the reviewed
+Priority Replay remains on its separate approval path.
 The fixed workflow, restricted keys, pinned server key, and narrow read-only
 native-raster mount are documented in
 [n8n automatic indicator publisher setup](n8n-automatic-indicator-publisher-setup.md).
