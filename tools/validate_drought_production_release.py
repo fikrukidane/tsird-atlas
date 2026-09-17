@@ -227,8 +227,12 @@ def validate_release(
             fail("auto-validated indicator release contains a non-indicator asset")
     if state == "auto-validated":
         required = {"drought-evidence-summary", "drought-workspace-latest", "release-status", *AUTO_INDICATOR_RASTERS}
-        if names != required:
-            fail("auto-validated indicator release must contain exactly the required indicator summaries and fixed native rasters")
+        if not required.issubset(names):
+            fail("auto-validated indicator release lacks a required current indicator summary or fixed native raster")
+        allowed_history = re.compile(r"^(tabia-geometry|observed-rainfall-runs|observed-rainfall-run-[a-z0-9-]+|evidence-(rapid|ndvi|swi|lst|wapor)-runs|evidence-(rapid|ndvi|swi|lst|wapor)-run-[a-z0-9-]+)$")
+        unexpected = names - required
+        if any(not allowed_history.fullmatch(name) for name in unexpected):
+            fail("auto-validated indicator release contains an unapproved asset")
     return manifest
 
 
