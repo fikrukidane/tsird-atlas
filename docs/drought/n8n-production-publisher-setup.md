@@ -1,6 +1,8 @@
 # TSIRD manual Drought Production Publisher — local n8n setup
 
-**Status:** tracked import template; inactive and not yet imported/configured.
+**Status:** tracked manual-only template. Import and local key staging are
+environment-specific operational setup and are not represented by this
+repository.
 
 This is the controlled transfer seam between the development environment and
 the production VPS. It does not retrieve data, run the drought model, build an
