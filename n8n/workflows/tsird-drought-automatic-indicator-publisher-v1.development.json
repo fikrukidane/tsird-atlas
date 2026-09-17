@@ -1,0 +1,19 @@
+{
+  "name": "TSIRD · Automatic retained indicator publisher v1 (development)",
+  "nodes": [
+    {"parameters": {}, "id": "a9505607-20ad-433d-a684-9292b0776001", "name": "Manual controlled run", "type": "n8n-nodes-base.manualTrigger", "typeVersion": 1, "position": [240, 280]},
+    {"parameters": {"rule": {"interval": [{"field": "cronExpression", "expression": "30 10 * * *"}]}}, "id": "a9505607-20ad-433d-a684-9292b0776002", "name": "Daily Addis retained-evidence check", "type": "n8n-nodes-base.scheduleTrigger", "typeVersion": 1.2, "position": [240, 420]},
+    {"parameters": {"assignments": {"assignments": [{"id": "a9505607-20ad-433d-a684-9292b0776003", "name": "production_host", "value": "replace-with-verified-production-vps-host", "type": "string"}]}, "options": {}}, "id": "a9505607-20ad-433d-a684-9292b0776004", "name": "Set verified production host before activation", "type": "n8n-nodes-base.set", "typeVersion": 3.4, "position": [500, 350]},
+    {"parameters": {"mode": "runOnceForAllItems", "language": "javaScript", "jsCode": "const host = $input.first().json.production_host;\nif (typeof host !== 'string' || !/^[A-Za-z0-9.-]+$/.test(host)) throw new Error('Set production_host to the verified production VPS host before activation.');\nreturn [{ json: { production_host: host } }];"}, "id": "a9505607-20ad-433d-a684-9292b0776005", "name": "Validate fixed production host", "type": "n8n-nodes-base.code", "typeVersion": 2, "position": [760, 350]},
+    {"parameters": {"executeOnce": true, "command": "=sh /workflows/tsird-drought-automatic-indicator-publisher-v1.sh --host {{ $json.production_host }}"}, "id": "a9505607-20ad-433d-a684-9292b0776006", "name": "Build validate and publish changed indicator package", "type": "n8n-nodes-base.executeCommand", "typeVersion": 1, "position": [1040, 350]},
+    {"parameters": {"assignments": {"assignments": [{"id": "a9505607-20ad-433d-a684-9292b0776007", "name": "operator_summary", "value": "=Automatic retained-evidence publisher finished. It publishes only when its fixed six-stream quality gate and the checksums of all six display-ready rasters changed; otherwise it records current and preserves the existing public pointer.", "type": "string"}]}, "options": {}}, "id": "a9505607-20ad-433d-a684-9292b0776008", "name": "Record automatic publication receipt", "type": "n8n-nodes-base.set", "typeVersion": 3.4, "position": [1320, 350]}
+  ],
+  "connections": {
+    "Manual controlled run": {"main": [[{"node": "Set verified production host before activation", "type": "main", "index": 0}]]},
+    "Daily Addis retained-evidence check": {"main": [[{"node": "Set verified production host before activation", "type": "main", "index": 0}]]},
+    "Set verified production host before activation": {"main": [[{"node": "Validate fixed production host", "type": "main", "index": 0}]]},
+    "Validate fixed production host": {"main": [[{"node": "Build validate and publish changed indicator package", "type": "main", "index": 0}]]},
+    "Build validate and publish changed indicator package": {"main": [[{"node": "Record automatic publication receipt", "type": "main", "index": 0}]]}
+  },
+  "pinData": {}, "active": false, "settings": {"executionOrder": "v1", "saveManualExecutions": true, "saveExecutionProgress": true}, "meta": {"templateCredsSetupCompleted": false}, "tags": []
+}

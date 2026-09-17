@@ -139,6 +139,12 @@ layers.
   and source archives cannot. Its n8n schedule and VPS wrapper
   deployment remain an operational step, not evidence of automatic production
   publication already occurring.
+  The tracked automatic-publisher template now provides the missing narrow
+  n8n path: it checks all six fixed retained-evidence streams and six
+  display-ready raster checksums, skips unchanged evidence using a persistent
+  fingerprint, and can invoke only the existing `activate-indicators` forced
+  command. It remains inactive pending the documented local end-to-end
+  rehearsal and one read-only raster-folder mount into n8n.
   A tagged-source
   GitHub Actions workflow publishes the three prebuilt serving images (web, API
   and edge) to GHCR only for an explicit `tsird-drought-v*` tag or manual
