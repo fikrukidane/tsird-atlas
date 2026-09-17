@@ -9,8 +9,8 @@ named human approves a compact release package.
 
 ## What the publisher is allowed to do
 
-The template accepts one UTC release ID, reads exactly these eight files from a
-fixed local staging folder, uploads them through the SFTP-only account, and
+The template accepts one UTC release ID, reads the required compact files plus
+only allow-listed historical replay/provider geometry from a fixed local staging folder, uploads them through the SFTP-only account, and
 then requests the forced `activate <release-id>` command through the separate
 activation account:
 
@@ -24,6 +24,11 @@ fews-net-context.json
 priority-replay-latest.geojson
 fews-net-context-latest.geojson
 ```
+
+When present in an approved manifest, `priority-replay-snapshot-*.geojson` and
+`fews-net-context-issue-*.geojson` are also uploaded. These fixed patterns are
+the only variable filenames the publisher accepts; arbitrary manifest files
+are refused before any remote connection.
 
 The VPS activation utility performs the final approval/checksum verification
 and changes `current.json` atomically. A rejected, incomplete, altered, or

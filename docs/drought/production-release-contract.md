@@ -120,6 +120,13 @@ NDVI, SWI, LST and WaPOR. The browser joins them to the already-sanitised
 replay geometry. It contains no raster, raw download URL, retrieval receipt,
 workflow state, development control data, history archive or scoring trace.
 
+To preserve the public Priority Review controls, a later approved package may
+also include one sanitised GeoJSON per retained historical replay and one per
+retained FEWS NET issue. These are fetched only when a reviewer selects that
+month or issue. Replay assets retain neutral C1--C4 codes; FEWS NET assets keep
+provider-native geography. The package still excludes all raw rasters, model
+rules, actions, scores, reviewer records and workflow state.
+
 ## Local validation
 
 From the repository root:

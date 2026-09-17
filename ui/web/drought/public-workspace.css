@@ -21,6 +21,10 @@
 .public-drought-detail { background: #1b2631; border: 1px solid #4b6276; padding: 10px; margin-top: 12px; }
 .public-drought-detail strong { color: #ffffff; }
 .public-drought-detail dl { display: grid; grid-template-columns: auto 1fr; margin: 8px 0 0; gap: 4px 8px; }
+.public-drought-select { margin: 9px 0; display: grid; gap: 5px; }
+.public-drought-select label, .public-drought-select > span { color: #cfe5f6; font-weight: bold; }
+.public-drought-select select { width: 100%; margin-top: 4px; background: #17232d; color: #ffffff; border: 1px solid #52728b; padding: 6px; border-radius: 3px; }
+.public-drought-select small { color: #a7bac9; }
 .public-drought-detail dt { color: #a9c1d4; }
 .public-drought-detail dd { margin: 0; color: #fff; }
 .public-drought-legend { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; list-style: none; padding: 0; margin: 7px 0; }

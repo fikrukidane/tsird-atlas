@@ -221,6 +221,37 @@ def public_workspace_summary(payloads: dict[str, dict[str, Any]]) -> dict[str, A
     }
 
 
+def public_fews_index(payload: dict[str, Any], asset_ids: dict[str, str]) -> dict[str, Any]:
+    """Publish retained provider-issue metadata and its approved asset link only."""
+    runs = payload.get("runs")
+    if not isinstance(runs, list):
+        raise RuntimeError("FEWS NET context index has no run list")
+    public_runs = []
+    for run in runs:
+        if not isinstance(run, dict):
+            raise RuntimeError("FEWS NET context index contains an invalid run")
+        run_id = run.get("run_id")
+        if not isinstance(run_id, str) or run_id not in asset_ids:
+            raise RuntimeError("FEWS NET context issue has no public geometry asset")
+        public_runs.append({
+            key: run.get(key)
+            for key in ("run_id", "issued_at", "feature_count", "source_product", "source_version")
+            if run.get(key) is not None
+        } | {"asset_id": asset_ids[run_id]})
+    return {
+        "schema_version": "tsird-public-fews-net-context-index/v1",
+        "selection_note": "Provider-native Food Security Classification context only; no provider classification is transferred to a Tabia.",
+        "runs": public_runs,
+    }
+
+
+def safe_asset_suffix(value: str) -> str:
+    suffix = re.sub(r"[^a-z0-9]+", "-", value.lower()).strip("-")
+    if not suffix:
+        raise RuntimeError("release asset identifier cannot be made safe")
+    return suffix
+
+
 def asset_record(
     asset_id: str,
     kind: str,
@@ -288,8 +319,26 @@ def main() -> int:
     if not isinstance(replay_id, str) or not isinstance(fews_id, str):
         print("ERROR: retained replay or FEWS NET issue is missing its ID", file=sys.stderr)
         return 2
-    payloads["priority-replay-latest.geojson"] = request_json(args.api_base, REPLAY_PATH.format(snapshot_id=replay_id))
-    payloads["fews-net-context-latest.geojson"] = request_json(args.api_base, FEWS_PATH.format(run_id=fews_id))
+    replay_asset_ids: dict[str, str] = {}
+    fews_asset_ids: dict[str, str] = {}
+    for index, replay in enumerate(replays):
+        snapshot_id = replay.get("snapshot_id") if isinstance(replay, dict) else None
+        if not isinstance(snapshot_id, str):
+            print("ERROR: retained replay is missing its snapshot ID", file=sys.stderr)
+            return 2
+        asset_id = "priority-replay-latest" if index == 0 else f"priority-replay-snapshot-{safe_asset_suffix(snapshot_id)}"
+        filename = "priority-replay-latest.geojson" if index == 0 else f"{asset_id}.geojson"
+        replay_asset_ids[snapshot_id] = asset_id
+        payloads[filename] = request_json(args.api_base, REPLAY_PATH.format(snapshot_id=snapshot_id))
+    for index, fews_run in enumerate(fews_runs):
+        run_id = fews_run.get("run_id") if isinstance(fews_run, dict) else None
+        if not isinstance(run_id, str):
+            print("ERROR: retained FEWS NET issue is missing its ID", file=sys.stderr)
+            return 2
+        asset_id = "fews-net-context-latest" if index == 0 else f"fews-net-context-issue-{safe_asset_suffix(run_id)}"
+        filename = "fews-net-context-latest.geojson" if index == 0 else f"{asset_id}.geojson"
+        fews_asset_ids[run_id] = asset_id
+        payloads[filename] = request_json(args.api_base, FEWS_PATH.format(run_id=run_id))
 
     # Build a public-facing shape before writing any release file. The compact
     # release must not contain development API links, source-raster pointers,
@@ -297,12 +346,13 @@ def main() -> int:
     payloads["drought-evidence-summary.json"] = public_rainfall_index(
         payloads["drought-evidence-summary.json"]
     )
-    payloads["priority-replay-summary.json"] = public_replay_summary(
-        payloads["priority-replay-summary.json"]
-    )
-    payloads["priority-replay-latest.geojson"] = public_replay_geometry(
-        payloads["priority-replay-latest.geojson"]
-    )
+    replay_summary = public_replay_summary(payloads["priority-replay-summary.json"])
+    for replay in replay_summary["replays"]:
+        replay["asset_id"] = replay_asset_ids[replay["snapshot_id"]]
+    payloads["priority-replay-summary.json"] = replay_summary
+    payloads["fews-net-context.json"] = public_fews_index(payloads["fews-net-context.json"], fews_asset_ids)
+    for filename in [name for name in payloads if name.startswith("priority-replay-") and name.endswith(".geojson")]:
+        payloads[filename] = public_replay_geometry(payloads[filename])
     payloads["drought-workspace-latest.json"] = public_workspace_summary(workspace_payloads)
 
     release_dir.mkdir(parents=True)
@@ -320,6 +370,18 @@ def main() -> int:
         asset_record("fews-net-context-index", "fews_net_native_context", "fews-net-context.json", written["fews-net-context.json"], "FEWS NET retained Ethiopia provider issue index", fews_start, fews_end, payloads["fews-net-context.json"].get("schema_version", "unknown"), "Provider-native external context only; no provider classification is transferred to a Tabia and it does not affect TSIRD scoring."),
         asset_record("fews-net-context-latest", "fews_net_native_context", "fews-net-context-latest.geojson", written["fews-net-context-latest.geojson"], "FEWS NET retained Ethiopia provider-native FSC geometry", fews_start, fews_end, payloads["fews-net-context-latest.geojson"].get("schema_version", "unknown"), "Provider-native external context only; no provider classification is transferred to a Tabia and it does not affect TSIRD scoring."),
     ]
+    for replay in replays[1:]:
+        snapshot_id = replay["snapshot_id"]
+        asset_id = replay_asset_ids[snapshot_id]
+        filename = f"{asset_id}.geojson"
+        start, end = observation_window(replay, replay_start)
+        assets.append(asset_record(asset_id, "priority_replay_summary", filename, written[filename], "TSIRD retained historical replay GeoJSON", start, end, payloads[filename].get("schema_version", "unknown"), "Historical replay geometry and stored draft evidence trace; not an as-issued forecast, official classification, allocation recommendation, or operational decision."))
+    for fews_run in fews_runs[1:]:
+        run_id = fews_run["run_id"]
+        asset_id = fews_asset_ids[run_id]
+        filename = f"{asset_id}.geojson"
+        start, end = observation_window(fews_run, fews_start)
+        assets.append(asset_record(asset_id, "fews_net_native_context", filename, written[filename], "FEWS NET retained Ethiopia provider-native FSC geometry", start, end, payloads[filename].get("schema_version", "unknown"), "Provider-native external context only; no provider classification is transferred to a Tabia and it does not affect TSIRD scoring."))
     status = {
         "schema_version": "tsird-drought-production-release-status/v1",
         "environment": "local-staging",

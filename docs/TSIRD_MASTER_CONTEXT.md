@@ -135,7 +135,8 @@ approved `current.json` exists. It never falls back to development evidence.
 
 The production-only web overlay preserves the familiar public route hierarchy:
 `/map/drought/` reads approved, compact Tabia evidence summaries; `/priority/`
-reads the separate retrospective replay; and `/scenario/` and `/model/` explain
+retains approved review-month, FEWS NET issue and map-display controls over
+sanitised historical assets; and `/scenario/` and `/model/` explain
 the bounded public candidate-review and model context. The shared local web
 image retains the full development workspace. Production never mounts its
 development runner, raw grids, workflow state, or scoring controls; its
