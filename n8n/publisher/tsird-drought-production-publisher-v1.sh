@@ -72,6 +72,7 @@ const [manifestPath, expectedId] = process.argv.slice(1);
 const allowed = [
   "status.json",
   "drought-evidence-summary.json",
+  "drought-workspace-latest.json",
   "priority-replay-summary.json",
   "fews-net-context.json",
   "priority-replay-latest.geojson",
@@ -116,7 +117,7 @@ chmod 600 "$RUNTIME_DIR/upload_key" "$RUNTIME_DIR/activate_key" "$RUNTIME_DIR/kn
 BATCH_FILE="$RUNTIME_DIR/upload.batch"
 {
   printf 'mkdir /incoming/%s\n' "$RELEASE_ID"
-  for filename in manifest.json status.json drought-evidence-summary.json priority-replay-summary.json fews-net-context.json priority-replay-latest.geojson fews-net-context-latest.geojson; do
+  for filename in manifest.json status.json drought-evidence-summary.json drought-workspace-latest.json priority-replay-summary.json fews-net-context.json priority-replay-latest.geojson fews-net-context-latest.geojson; do
     printf 'put %s /incoming/%s/%s\n' "$RELEASE_DIR/$filename" "$RELEASE_ID" "$filename"
   done
 } > "$BATCH_FILE"

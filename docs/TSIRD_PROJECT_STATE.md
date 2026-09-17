@@ -140,6 +140,15 @@ layers.
   build successfully on 2026-09-16. This is a CI-only rehearsal: no VPS
   deployment, production data release or public activation followed.
 - The `/map/` proxy contract remains active, including `/map/ogc` and `/map/api/gazetteer`. Public URLs in release notes are documented deployment targets, not availability checks performed here.
+- The production public-drought route design adds a compact per-Tabia workspace
+  summary to a future approved release package and production-only static
+  entry-document overlays. This lets production retain the public
+  `/map/drought/`, `/priority/`, `/scenario/`, and `/model/` route structure
+  without exposing development APIs, raw rasters, n8n state, pipeline controls,
+  or model configuration. The first already-activated compact release predates
+  that optional workspace payload; a separately reviewed and approved follow-up
+  release is required before the public conditions workspace can show its six
+  retained indicator summaries.
 
 ### Registry inventory
 

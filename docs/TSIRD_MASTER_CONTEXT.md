@@ -133,6 +133,14 @@ approved-release API, displays neutral C1--C4 retrospective draft codes and
 provider-native FEWS NET outlines, and explicitly remains unavailable until an
 approved `current.json` exists. It never falls back to development evidence.
 
+The production-only web overlay preserves the familiar public route hierarchy:
+`/map/drought/` reads approved, compact Tabia evidence summaries; `/priority/`
+reads the separate retrospective replay; and `/scenario/` and `/model/` explain
+the bounded public candidate-review and model context. The shared local web
+image retains the full development workspace. Production never mounts its
+development runner, raw grids, workflow state, or scoring controls; its
+`/map/drought/control/` route is an explicit development-only notice.
+
 ### Request routing
 
 [Edge Nginx](../infra/edge/nginx.conf) routes:

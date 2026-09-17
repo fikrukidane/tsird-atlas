@@ -9,7 +9,7 @@ named human approves a compact release package.
 
 ## What the publisher is allowed to do
 
-The template accepts one UTC release ID, reads exactly these seven files from a
+The template accepts one UTC release ID, reads exactly these eight files from a
 fixed local staging folder, uploads them through the SFTP-only account, and
 then requests the forced `activate <release-id>` command through the separate
 activation account:
@@ -18,6 +18,7 @@ activation account:
 manifest.json
 status.json
 drought-evidence-summary.json
+drought-workspace-latest.json
 priority-replay-summary.json
 fews-net-context.json
 priority-replay-latest.geojson

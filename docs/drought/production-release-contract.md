@@ -18,6 +18,7 @@ permitted to use it.
 <release-id>/
   manifest.json
   drought-evidence-summary.json
+  drought-workspace-latest.json
   priority-replay-summary.json
   fews-net-context.json
   status.json
@@ -52,7 +53,7 @@ Every asset must declare:
 - a SHA-256 checksum and byte size.
 
 Allowed asset kinds are intentionally narrow: compact drought-evidence
-summaries, retrospective replay summaries, provider-native FEWS NET context,
+summaries, Tabia display summaries, retrospective replay summaries, provider-native FEWS NET context,
 public status/provenance and static documentation. Raw rasters, raw downloads,
 n8n execution history, credentials and arbitrary database exports are rejected
 by policy and must never appear in a release manifest.
@@ -87,6 +88,13 @@ API should receive a read-only mount of only the release root, for example:
 <host release root>:/data/drought/production-releases:ro
 ```
 
+The shared web image keeps its development pages for the local stack. The
+production Compose overlay replaces only the public route entry documents with
+small static pages that call these approved-release routes. This preserves the
+same `/map/drought/`, `/priority/`, `/scenario/` and `/model/` route hierarchy
+without exposing development endpoints. `/map/drought/control/` is explicitly
+replaced with a development-only explanation on production.
+
 `current.json` is a small publisher-owned pointer containing the selected
 release ID, activation time and prior release ID. It is written only after
 remote verification; it must never point at a `validated` or `rejected`
@@ -105,6 +113,12 @@ This is an intentionally bounded first-release shape: one latest display
 snapshot plus small historical indexes, not raw rasters or a full historical
 geometry archive. It must be checked against the completed VPS capacity
 baseline before production release.
+
+The next package shape additionally permits one `drought-workspace-latest.json`
+asset: retained per-Tabia summaries for final rainfall, preliminary rainfall,
+NDVI, SWI, LST and WaPOR. The browser joins them to the already-sanitised
+replay geometry. It contains no raster, raw download URL, retrieval receipt,
+workflow state, development control data, history archive or scoring trace.
 
 ## Local validation
 

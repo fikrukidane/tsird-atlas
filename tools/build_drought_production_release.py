@@ -26,6 +26,14 @@ API_PATHS = {
     "priority-replay-summary.json": "/map/api/drought/development/priority/historical-replays",
     "fews-net-context.json": "/map/api/drought/development/fews-net-context/runs",
 }
+WORKSPACE_PATHS = {
+    "observed": "/map/api/drought/development/observed-rainfall/latest?limit=748",
+    "rapid": "/map/api/drought/development/preliminary-rainfall/latest?limit=748",
+    "vegetation": "/map/api/drought/development/ndvi/latest?limit=748",
+    "soil_water": "/map/api/drought/development/swi/latest?limit=748",
+    "thermal": "/map/api/drought/development/lst/latest?limit=748",
+    "water_use": "/map/api/drought/development/wapor/latest?limit=748",
+}
 REPLAY_PATH = "/map/api/drought/development/priority/historical-replays/{snapshot_id}/features"
 FEWS_PATH = "/map/api/drought/development/fews-net-context/runs/{run_id}/features"
 RELEASE_ID = re.compile(r"^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{6}Z(?:-[a-z0-9][a-z0-9-]*)?$")
@@ -161,6 +169,58 @@ def public_rainfall_index(payload: dict[str, Any]) -> dict[str, Any]:
     return {"schema_version": "tsird-public-rainfall-evidence-index/v1", "runs": public_runs}
 
 
+WORKSPACE_SUMMARY_FIELDS = {
+    "observed": ("conditions", ("tsird_tabia_id", "tabia_name_en", "woreda_name_en", "rainfall_mm", "baseline_median_mm", "percentile", "condition_class", "coverage_pct", "quality_status")),
+    "rapid": ("summaries", ("tsird_tabia_id", "tabia_name_en", "woreda_name_en", "rainfall_mm", "baseline_median_mm", "provisional_percentile", "comparison_status", "coverage_pct", "quality_status")),
+    "vegetation": ("summaries", ("tsird_tabia_id", "tabia_name_en", "woreda_name_en", "ndvi_mean", "ndvi_median", "coverage_pct", "quality_status")),
+    "soil_water": ("summaries", ("tsird_tabia_id", "tabia_name_en", "woreda_name_en", "swi010_mean", "swi040_mean", "swi100_mean", "coverage_pct", "quality_status")),
+    "thermal": ("summaries", ("tsird_tabia_id", "tabia_name_en", "woreda_name_en", "lst_c_mean", "errorbar_c_mean", "coverage_pct", "quality_status")),
+    "water_use": ("summaries", ("tsird_tabia_id", "tabia_name_en", "woreda_name_en", "transpiration_mm", "aeti_mm", "coverage_pct", "quality_status")),
+}
+
+
+def public_workspace_summary(payloads: dict[str, dict[str, Any]]) -> dict[str, Any]:
+    """Retain only per-Tabia display summaries for the public workspace.
+
+    This deliberately strips development environment markers, raw-raster URLs,
+    source-download receipts, grid-cell detail and unbounded provenance.  Map
+    geometry remains in the separately sanitised replay GeoJSON, allowing the
+    browser to join these compact summaries by stable Tabia ID.
+    """
+    indicators = {}
+    for indicator, payload in payloads.items():
+        list_key, fields = WORKSPACE_SUMMARY_FIELDS[indicator]
+        rows = payload.get(list_key)
+        run = payload.get("run")
+        if not isinstance(rows, list) or not isinstance(run, dict):
+            raise RuntimeError(f"{indicator} workspace payload is incomplete")
+        indicators[indicator] = {
+            "run": {
+                key: run.get(key)
+                for key in (
+                    "run_id", "source_product", "source_version", "status",
+                    "analysis_year", "season_months", "period_start", "period_end",
+                    "observation_start", "observation_end", "source_period_start",
+                    "source_period_end", "native_resolution",
+                )
+                if run.get(key) is not None
+            },
+            "summaries": [
+                {field: row.get(field) for field in fields if field in row}
+                for row in rows if isinstance(row, dict)
+            ],
+        }
+    return {
+        "schema_version": "tsird-public-drought-workspace/v1",
+        "interpretation_boundary": (
+            "Approved retained indicator summaries only. They are separate evidence views, "
+            "not a combined drought class, food-security classification, forecast, allocation "
+            "recommendation, or operational decision."
+        ),
+        "indicators": indicators,
+    }
+
+
 def asset_record(
     asset_id: str,
     kind: str,
@@ -207,6 +267,7 @@ def main() -> int:
         return 2
 
     payloads = {filename: request_json(args.api_base, path) for filename, path in API_PATHS.items()}
+    workspace_payloads = {name: request_json(args.api_base, path) for name, path in WORKSPACE_PATHS.items()}
     replays = payloads["priority-replay-summary.json"].get("replays")
     fews_runs = payloads["fews-net-context.json"].get("runs")
     rainfall_runs = payloads["drought-evidence-summary.json"].get("runs")
@@ -242,6 +303,7 @@ def main() -> int:
     payloads["priority-replay-latest.geojson"] = public_replay_geometry(
         payloads["priority-replay-latest.geojson"]
     )
+    payloads["drought-workspace-latest.json"] = public_workspace_summary(workspace_payloads)
 
     release_dir.mkdir(parents=True)
     written = {filename: write_json(release_dir / filename, payload) for filename, payload in payloads.items()}
@@ -252,6 +314,7 @@ def main() -> int:
     common_boundary = "Experimental retained evidence only; not an official forecast, food-security classification, allocation recommendation, or operational decision product."
     assets = [
         asset_record("drought-evidence-summary", "drought_evidence_summary", "drought-evidence-summary.json", written["drought-evidence-summary.json"], "TSIRD retained CHIRPS rainfall evidence index", rainfall_start, rainfall_end, payloads["drought-evidence-summary.json"].get("schema_version", "unknown"), f"{common_boundary} It does not create a drought class or combined score."),
+        asset_record("drought-workspace-latest", "vector_display_summary", "drought-workspace-latest.json", written["drought-workspace-latest.json"], "TSIRD approved Tabia evidence summaries", rainfall_start, rainfall_end, payloads["drought-workspace-latest.json"].get("schema_version", "unknown"), f"{common_boundary} Indicators remain separate, and this compact summary excludes raw rasters, source archives, workflow state, and development controls."),
         asset_record("priority-replay-summary", "priority_replay_summary", "priority-replay-summary.json", written["priority-replay-summary.json"], "TSIRD retained historical replay index", replay_start, replay_end, payloads["priority-replay-summary.json"].get("schema_version", "unknown"), "Historical replay from retained evidence; not an as-issued forecast, official classification, allocation recommendation, or operational decision."),
         asset_record("priority-replay-latest", "priority_replay_summary", "priority-replay-latest.geojson", written["priority-replay-latest.geojson"], "TSIRD retained historical replay GeoJSON", replay_start, replay_end, payloads["priority-replay-latest.geojson"].get("schema_version", "unknown"), "Historical replay geometry and stored draft evidence trace; not an as-issued forecast, official classification, allocation recommendation, or operational decision."),
         asset_record("fews-net-context-index", "fews_net_native_context", "fews-net-context.json", written["fews-net-context.json"], "FEWS NET retained Ethiopia provider issue index", fews_start, fews_end, payloads["fews-net-context.json"].get("schema_version", "unknown"), "Provider-native external context only; no provider classification is transferred to a Tabia and it does not affect TSIRD scoring."),
