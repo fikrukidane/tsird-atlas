@@ -44,7 +44,9 @@ const SUMMARY_FIELDS = {
 };
 
 const now = () => new Date().toISOString().replace(/\.\d{3}Z$/, "Z");
-const compactId = () => now().replace(/[-:]/g, "").replace("Z", "Z-indicators");
+// Match the VPS forced-command contract: ISO date separators remain while
+// time colons are removed for a filesystem-safe identifier.
+const compactId = () => now().replace(/:/g, "").replace("Z", "Z-indicators");
 const sha256 = (filename) => crypto.createHash("sha256").update(fs.readFileSync(filename)).digest("hex");
 const jsonBytes = (data) => Buffer.from(`${JSON.stringify(data)}\n`, "utf8");
 const writeJson = (filename, data) => { const bytes = jsonBytes(data); fs.writeFileSync(filename, bytes); return [bytes.length, sha256(filename)]; };
@@ -127,7 +129,10 @@ async function main() {
     for (const [id, filename, source, indicator] of RASTERS) {
       const sourcePath = path.join(NATIVE_ROOT, filename); const st = fs.lstatSync(sourcePath);
       if (!st.isFile() || st.isSymbolicLink()) fail(`native display raster is missing or unsafe: ${filename}`);
-      const target = path.join(releaseDir, filename); fs.copyFileSync(sourcePath, target); fs.chmodSync(target, 0o600);
+      // The production ingress is setgid to the activation-only group. Keep
+      // staged files group-readable so that account can verify and atomically
+      // activate them, while neither account receives general shell access.
+      const target = path.join(releaseDir, filename); fs.copyFileSync(sourcePath, target); fs.chmodSync(target, 0o640);
       const [rasterStart, rasterEnd] = windowFor(payloads[indicator].run);
       assets.push(asset(id, "native_evidence_raster", filename, fs.statSync(target).size, sha256(target), source, rasterStart, rasterEnd, String(payloads[indicator].run.schema_version || payloads[indicator].run.run_id || "unknown"), boundary));
     }
