@@ -103,7 +103,10 @@ ensure_user "$UPLOAD_USER" "/usr/sbin/nologin" "/var/lib/$UPLOAD_USER"
 ensure_user "$ACTIVATE_USER" "/bin/bash" "/var/lib/$ACTIVATE_USER"
 
 install -d -o root -g root -m 0755 /srv /srv/sftp "$SFTP_ROOT"
-install -d -o "$UPLOAD_USER" -g "$UPLOAD_USER" -m 0700 "$INGRESS_ROOT"
+# The SFTP account writes only into this ingress.  The setgid group grants the
+# separate forced-command activation account read/traverse access to completed
+# packages, without granting it upload or general application access.
+install -d -o "$UPLOAD_USER" -g "$ACTIVATE_USER" -m 2750 "$INGRESS_ROOT"
 install -d -o root -g root -m 0755 "${APP_ROOT}/releases"
 install -d -o "$ACTIVATE_USER" -g "$ACTIVATE_USER" -m 0750 "$PUBLIC_ROOT"
 
