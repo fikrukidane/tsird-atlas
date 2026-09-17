@@ -802,8 +802,27 @@ def _public_release_json(asset_id: str):
         raise HTTPException(status_code=503, detail="Approved public drought asset is unreadable")
 
 
+def _public_indicator_release_json(asset_id: str):
+    """Read a JSON asset only from the automatic retained-indicator pointer."""
+    _, _, asset_map = _read_approved_public_drought_release(
+        PUBLIC_DROUGHT_INDICATOR_RELEASE_ROOT,
+        {"auto-validated"},
+    )
+    record = asset_map.get(asset_id)
+    if not record:
+        raise HTTPException(status_code=404, detail="Automatic public indicator asset is unavailable")
+    _, path = record
+    if path.suffix.lower() != ".json":
+        raise HTTPException(status_code=404, detail="Automatic public indicator asset is not JSON")
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        logging.exception("Automatic public drought indicator JSON asset read error")
+        raise HTTPException(status_code=503, detail="Automatic public indicator asset is unreadable")
+
+
 def _public_workspace_indicator(indicator: str):
-    workspace = _public_release_json("drought-workspace-latest")
+    workspace = _public_indicator_release_json("drought-workspace-latest")
     indicators = workspace.get("indicators") if isinstance(workspace, dict) else None
     payload = indicators.get(indicator) if isinstance(indicators, dict) else None
     if not isinstance(payload, dict) or not isinstance(payload.get("run"), dict) or not isinstance(payload.get("summaries"), list):

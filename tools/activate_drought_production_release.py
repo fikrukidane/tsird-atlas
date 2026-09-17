@@ -70,12 +70,16 @@ def main() -> int:
     if target.exists():
         parser.error("target release ID already exists; releases are immutable")
     shutil.copytree(incoming_release, target, copy_function=shutil.copy2)
+    current_link: Path | None = None
+    previous_link_target: str | None = None
     try:
         validate_release(
             target,
             allow_validated=False,
             allow_auto_validated_indicators=args.allow_auto_validated_indicators,
         )
+        for path in target.rglob("*"):
+            path.chmod(0o755 if path.is_dir() else 0o644)
         pointer_path = public_root / "current.json"
         pointer = {
             "schema_version": "tsird-drought-production-current-pointer/v1",
@@ -87,8 +91,31 @@ def main() -> int:
         with tempfile.NamedTemporaryFile(dir=public_root, prefix=".current-", suffix=".tmp", delete=False) as handle:
             handle.write(encoded)
             temporary_pointer = Path(handle.name)
+        if args.allow_auto_validated_indicators:
+            # MapServer reads the parent directory through a read-only bind mount.
+            # Replacing this relative symlink switches all six raster files as one
+            # immutable package without exposing the development raster tree.
+            current_link = public_root / "current"
+            if current_link.exists() and not current_link.is_symlink():
+                raise RuntimeError("indicator raster current path is not a symlink")
+            if current_link.is_symlink():
+                previous_link_target = os.readlink(current_link)
+            temporary_link = public_root / f".current-{args.release_id}.tmp"
+            temporary_link.unlink(missing_ok=True)
+            os.symlink(args.release_id, temporary_link, target_is_directory=True)
+            os.replace(temporary_link, current_link)
         os.replace(temporary_pointer, pointer_path)
     except Exception:
+        temporary_pointer = locals().get("temporary_pointer")
+        if isinstance(temporary_pointer, Path):
+            temporary_pointer.unlink(missing_ok=True)
+        if current_link is not None and previous_link_target is not None:
+            restore_link = public_root / ".current-restore.tmp"
+            restore_link.unlink(missing_ok=True)
+            os.symlink(previous_link_target, restore_link, target_is_directory=True)
+            os.replace(restore_link, current_link)
+        elif current_link is not None:
+            current_link.unlink(missing_ok=True)
         # Keep the copied immutable release for investigation/audit, but never
         # switch the pointer when validation or pointer creation fails.
         raise

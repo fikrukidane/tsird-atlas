@@ -51,6 +51,16 @@ services:
         target: /data/drought/production-releases
         read_only: true
 
+  # Only immutable, display-ready indicator packages are visible to MapServer.
+  # The parent mount lets the activation utility atomically replace `current`
+  # without a container restart and never exposes development source archives.
+  tsird-mapserver:
+    volumes:
+      - type: bind
+        source: /opt/tigrayinsights/apps/tsird/releases/drought/indicators
+        target: /data/drought/production-indicators
+        read_only: true
+
   tsird-edge:
     image: ${TSIRD_EDGE_IMAGE:-ghcr.io/fikrukidane/tsird-atlas-edge:REPLACE_ME}
     build: !reset null

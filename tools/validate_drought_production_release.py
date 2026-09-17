@@ -26,12 +26,21 @@ ALLOWED_KINDS = {
     "public_status",
     "static_documentation",
     "vector_display_summary",
+    "native_evidence_raster",
 }
 SHA256 = re.compile(r"^[a-f0-9]{64}$")
 RELEASE_ID = re.compile(r"^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{6}Z(?:-[a-z0-9][a-z0-9-]*)?$")
 PUBLIC_REPLAY_FORBIDDEN_PROPERTIES = {"planning_action", "priority_class", "priority_rank", "triggered_rules"}
 AUTO_INDICATOR_CHANNEL = "indicator-evidence"
-AUTO_INDICATOR_KINDS = {"drought_evidence_summary", "vector_display_summary", "public_status"}
+AUTO_INDICATOR_KINDS = {"drought_evidence_summary", "vector_display_summary", "public_status", "native_evidence_raster"}
+AUTO_INDICATOR_RASTERS = {
+    "native-raster-chirps": "chirps-current-rainfall.tif",
+    "native-raster-rapid": "chirps-rapid-rainfall.tif",
+    "native-raster-ndvi": "ndvi-current.tif",
+    "native-raster-swi": "swi040-current.tif",
+    "native-raster-lst": "lst-current.tif",
+    "native-raster-wapor": "wapor-transpiration-current.tif",
+}
 
 
 def fail(message: str) -> None:
@@ -120,6 +129,11 @@ def validate_asset(release_dir: Path, asset: Any, index: int, names: set[str]) -
     file_path = release_dir / relative_path
     if not file_path.is_file():
         fail(f"assets[{index}] referenced file is missing: {relative_path}")
+    if kind == "native_evidence_raster":
+        if AUTO_INDICATOR_RASTERS.get(asset_id) != str(relative_path):
+            fail("native evidence raster is not one of the fixed display-ready indicator files")
+        if file_path.is_symlink() or file_path.suffix.lower() not in {".tif", ".tiff"}:
+            fail("native evidence raster must be a regular TIFF file")
 
     size = asset.get("byte_size")
     if not isinstance(size, int) or size < 0:
@@ -212,9 +226,9 @@ def validate_release(
         if state == "auto-validated" and asset.get("kind") not in AUTO_INDICATOR_KINDS:
             fail("auto-validated indicator release contains a non-indicator asset")
     if state == "auto-validated":
-        required = {"drought-evidence-summary", "drought-workspace-latest", "release-status"}
+        required = {"drought-evidence-summary", "drought-workspace-latest", "release-status", *AUTO_INDICATOR_RASTERS}
         if names != required:
-            fail("auto-validated indicator release must contain exactly the required indicator assets")
+            fail("auto-validated indicator release must contain exactly the required indicator summaries and fixed native rasters")
     return manifest
 
 
