@@ -36,11 +36,14 @@ administrator key for either publisher key.
 
 1. `tsird-release-upload` is SFTP-only. It may upload a pre-approved release
    directory below `/srv/sftp/tsird-release/incoming/` and cannot access the
-   application, Docker or serving release root.
+   application, Docker or serving release root. It is the only account with
+   write access to that ingress.
 2. `tsird-release-activate` has a dedicated SSH key with a forced command. It
    may only run `activate <release-id>`. The forced command invokes the checked
    in activation utility with fixed ingress and public-root paths; it does not
-   provide an interactive shell.
+   provide an interactive shell. It belongs to a dedicated ingress-reader
+   group with read/traverse access only, so it can checksum-validate an
+   uploaded package but cannot add, replace or delete ingress files.
 
 Use separate keys/credentials in n8n. Do not reuse the normal VPS
 administrator key for either account.
@@ -84,8 +87,10 @@ and disables forwarding/TTY, for example:
 command="/usr/local/sbin/tsird-activate-drought-release",no-port-forwarding,no-agent-forwarding,no-X11-forwarding,no-pty ssh-ed25519 AAAA... tsird-release-activate
 ```
 
-The SFTP account should use `internal-sftp` with a chroot whose parent is
-root-owned; grant it write access only to its `incoming` subdirectory.
+The SFTP account uses `internal-sftp -u 027` with a chroot whose parent is
+root-owned. Its `incoming` directory is setgid to the dedicated reader group:
+new release directories and files remain uploader-owned, while the activation
+account receives only the group read/traverse access required for validation.
 
 ## Publisher sequence
 

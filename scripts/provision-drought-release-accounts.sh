@@ -10,6 +10,7 @@ set -euo pipefail
 APP_ROOT="/opt/tigrayinsights/apps/tsird"
 UPLOAD_USER="tsird-release-upload"
 ACTIVATE_USER="tsird-release-activate"
+INGRESS_READ_GROUP="tsird-release-ingress-readers"
 SFTP_ROOT="/srv/sftp/tsird-release"
 INGRESS_ROOT="${SFTP_ROOT}/incoming"
 PUBLIC_ROOT="${APP_ROOT}/releases/drought"
@@ -88,6 +89,11 @@ ensure_user() {
   usermod --lock "$account"
 }
 
+ensure_group() {
+  local group="$1"
+  getent group "$group" >/dev/null 2>&1 || groupadd --system "$group"
+}
+
 ensure_key() {
   local account="$1"
   local source_key="$2"
@@ -101,9 +107,19 @@ ensure_key() {
 
 ensure_user "$UPLOAD_USER" "/usr/sbin/nologin" "/var/lib/$UPLOAD_USER"
 ensure_user "$ACTIVATE_USER" "/bin/bash" "/var/lib/$ACTIVATE_USER"
+ensure_group "$INGRESS_READ_GROUP"
+# The activation account must verify an uploaded package before copying it to
+# the serving root. It receives only group read/traverse access to ingress;
+# the SFTP account remains its sole writer.
+usermod --append --groups "$INGRESS_READ_GROUP" "$ACTIVATE_USER"
 
 install -d -o root -g root -m 0755 /srv /srv/sftp "$SFTP_ROOT"
-install -d -o "$UPLOAD_USER" -g "$UPLOAD_USER" -m 0700 "$INGRESS_ROOT"
+install -d -o "$UPLOAD_USER" -g "$INGRESS_READ_GROUP" -m 2750 "$INGRESS_ROOT"
+# Repair the same narrow read/traverse rule if the helper is rerun after an
+# interrupted release. This never gives the activation account write access.
+find "$INGRESS_ROOT" -mindepth 1 -exec chgrp "$INGRESS_READ_GROUP" {} +
+find "$INGRESS_ROOT" -type d -exec chmod g+rx {} +
+find "$INGRESS_ROOT" -type f -exec chmod g+r {} +
 install -d -o root -g root -m 0755 "${APP_ROOT}/releases"
 install -d -o "$ACTIVATE_USER" -g "$ACTIVATE_USER" -m 0750 "$PUBLIC_ROOT"
 
@@ -156,7 +172,7 @@ cat > "$temporary_dropin" <<EOF
 # to the serving API mount.
 Match User $UPLOAD_USER
     ChrootDirectory $SFTP_ROOT
-    ForceCommand internal-sftp -d /incoming
+    ForceCommand internal-sftp -u 027 -d /incoming
     PasswordAuthentication no
     PubkeyAuthentication yes
     AllowTcpForwarding no
