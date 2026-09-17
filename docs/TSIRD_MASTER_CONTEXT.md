@@ -96,7 +96,7 @@ development WMS layers. Historical snapshots are archived observations, not
 as-issued forecast or model replays. Source timestamps form the evidence
 history; the UI does not interpolate gaps or combine indicators into a score.
 
-The compact production-release builder packages retained API summaries,
+The production-release builder packages retained API summaries,
 historical replay snapshots, and provider-native FEWS NET display GeoJSON into
 a checksum-verified release. The API reads only the approved `current.json`
 pointer under its narrowly mounted release root. The first public package,
@@ -137,7 +137,8 @@ provider-native FEWS NET outlines, and explicitly remains unavailable until an
 approved `current.json` exists. It never falls back to development evidence.
 
 The production-only web overlay preserves the familiar public route hierarchy:
-`/map/drought/` reads approved, compact Tabia evidence summaries; `/priority/`
+`/map/drought/` is a searchable approved-evidence workspace over all retained
+Tabia summaries in the release; `/priority/`
 retains approved review-month, FEWS NET issue and map-display controls over
 sanitised historical assets; and `/scenario/` and `/model/` explain
 the bounded public candidate-review and model context. The shared local web
