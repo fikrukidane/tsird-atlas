@@ -81,27 +81,36 @@ class DroughtDashboard {
   }
 
   async initialize() {
+    this._renderLoadingState();
     const response = await fetch(this.dataUrl, { cache: 'no-store' });
     if (!response.ok) throw new Error(`Drought data unavailable (${response.status})`);
     this.data = await response.json();
     this._validateData();
-    await this._loadObservedArtifact();
-    await this._loadObservedRuns();
-    await this._loadPreliminaryArtifact();
-    await this._loadNdviArtifact();
-    await this._loadSwiArtifact();
-    await this._loadLstArtifact();
-    await this._loadWaporArtifact();
-    await this._loadOutlookArtifact();
-    await this._loadPriorityFoundation();
-    await this._loadFewsNetContext();
-    await this._loadHistoryRuns();
-    await this._loadPublicGeometry();
+    await Promise.all([
+      this._loadObservedArtifact(),
+      this._loadObservedRuns(),
+      this._loadPreliminaryArtifact(),
+      this._loadNdviArtifact(),
+      this._loadSwiArtifact(),
+      this._loadLstArtifact(),
+      this._loadWaporArtifact(),
+      this._loadOutlookArtifact(),
+      this._loadPriorityFoundation(),
+      this._loadFewsNetContext(),
+      this._loadHistoryRuns(),
+      this._loadPublicGeometry()
+    ]);
     this._createBoundaryLayer();
     this._renderShell();
     this._renderMode();
     window.addEventListener('tsird:boundary-selected', event => this._handleBoundarySelection(event));
     return this;
+  }
+
+  _renderLoadingState() {
+    const root = document.getElementById(this.containerId);
+    if (!root) return;
+    root.innerHTML = `<div class="drought-heading"><div><strong>${this.priorityOnly ? 'Retrospective Evidence Replay' : 'Drought intelligence'}</strong><span>Tigray · loading retained evidence</span></div></div><div class="drought-notice">Loading the approved retained evidence and map controls…</div>`;
   }
 
   async _loadPriorityFoundation() {
