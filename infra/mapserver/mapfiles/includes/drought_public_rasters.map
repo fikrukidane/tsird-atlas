@@ -1,10 +1,10 @@
 # Public counterparts of the retained native-grid evidence layers.  They read
 # only a fixed, checksum-validated automatic indicator package mounted at
-# /data/drought/production-indicators; no development raster path is exposed.
+# /production-indicators; no development raster path is exposed.
 
 LAYER
   NAME "tigray_drought_chirps_raw_public" TYPE RASTER STATUS OFF
-  DATA "/data/drought/production-indicators/current/chirps-current-rainfall.tif"
+  DATA "/production-indicators/current/chirps-current-rainfall.tif"
   METADATA "wms_title" "Tigray Latest Rainfall Total (CHIRPS native grid, retained evidence)" "wms_srs" "EPSG:3857 EPSG:4326" "wms_enable_request" "*" END
   CLASS NAME "Below 50 mm" EXPRESSION ([pixel] < 50) STYLE COLOR 255 247 188 END END
   CLASS NAME "50–100 mm" EXPRESSION (([pixel] >= 50) AND ([pixel] < 100)) STYLE COLOR 254 227 145 END END
@@ -20,7 +20,7 @@ END
 
 LAYER
   NAME "tigray_drought_chirps_rapid_raw_public" TYPE RASTER STATUS OFF
-  DATA "/data/drought/production-indicators/current/chirps-rapid-rainfall.tif"
+  DATA "/production-indicators/current/chirps-rapid-rainfall.tif"
   METADATA "wms_title" "Tigray Rapid Rainfall Total (CHIRPS preliminary native grid, retained evidence)" "wms_srs" "EPSG:3857 EPSG:4326" "wms_enable_request" "*" END
   CLASS NAME "Below 50 mm" EXPRESSION ([pixel] < 50) STYLE COLOR 255 247 188 END END
   CLASS NAME "50–100 mm" EXPRESSION (([pixel] >= 50) AND ([pixel] < 100)) STYLE COLOR 254 227 145 END END
@@ -36,7 +36,7 @@ END
 
 LAYER
   NAME "tigray_drought_ndvi_raw_public" TYPE RASTER STATUS OFF
-  DATA "/data/drought/production-indicators/current/ndvi-current.tif"
+  DATA "/production-indicators/current/ndvi-current.tif"
   METADATA "wms_title" "Tigray Vegetation Condition (Copernicus NDVI native grid, retained evidence)" "wms_srs" "EPSG:3857 EPSG:4326" "wms_enable_request" "*" END
   CLASS NAME "NDVI below 0.10" EXPRESSION ([pixel] < 0.10) STYLE COLOR 165 0 38 END END
   CLASS NAME "NDVI 0.10–0.20" EXPRESSION (([pixel] >= 0.10) AND ([pixel] < 0.20)) STYLE COLOR 215 48 39 END END
@@ -52,7 +52,7 @@ END
 
 LAYER
   NAME "tigray_drought_swi_raw_public" TYPE RASTER STATUS OFF
-  DATA "/data/drought/production-indicators/current/swi040-current.tif"
+  DATA "/production-indicators/current/swi040-current.tif"
   METADATA "wms_title" "Tigray Soil-water Context (Copernicus SWI-040 native grid, retained evidence)" "wms_srs" "EPSG:3857 EPSG:4326" "wms_enable_request" "*" END
   CLASS NAME "SWI-040 below 10%" EXPRESSION ([pixel] < 10) STYLE COLOR 178 24 43 END END
   CLASS NAME "SWI-040 10–20%" EXPRESSION (([pixel] >= 10) AND ([pixel] < 20)) STYLE COLOR 214 96 77 END END
@@ -68,7 +68,7 @@ END
 
 LAYER
   NAME "tigray_drought_lst_raw_public" TYPE RASTER STATUS OFF
-  DATA "/data/drought/production-indicators/current/lst-current.tif"
+  DATA "/production-indicators/current/lst-current.tif"
   METADATA "wms_title" "Tigray Thermal Context (Copernicus LST native grid, retained evidence)" "wms_srs" "EPSG:3857 EPSG:4326" "wms_enable_request" "*" END
   CLASS NAME "LST below 15 °C" EXPRESSION ([pixel] < 15) STYLE COLOR 5 48 97 END END
   CLASS NAME "LST 15–20 °C" EXPRESSION (([pixel] >= 15) AND ([pixel] < 20)) STYLE COLOR 33 102 172 END END
@@ -84,7 +84,7 @@ END
 
 LAYER
   NAME "tigray_drought_wapor_raw_public" TYPE RASTER STATUS OFF
-  DATA "/data/drought/production-indicators/current/wapor-transpiration-current.tif"
+  DATA "/production-indicators/current/wapor-transpiration-current.tif"
   METADATA "wms_title" "Tigray Agricultural Water Use (FAO WaPOR transpiration native grid, retained evidence)" "wms_srs" "EPSG:3857 EPSG:4326" "wms_enable_request" "*" END
   CLASS NAME "Transpiration below 0.5 mm/day" EXPRESSION ([pixel] < 0.5) STYLE COLOR 255 247 188 END END
   CLASS NAME "0.5–1.0 mm/day" EXPRESSION (([pixel] >= 0.5) AND ([pixel] < 1.0)) STYLE COLOR 254 227 145 END END
