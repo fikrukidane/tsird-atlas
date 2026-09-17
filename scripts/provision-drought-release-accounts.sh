@@ -111,9 +111,11 @@ install -d -o root -g root -m 0755 "${APP_ROOT}/releases"
 install -d -o "$ACTIVATE_USER" -g "$ACTIVATE_USER" -m 0750 "$PUBLIC_ROOT"
 # Automatic indicator releases are source-derived retained evidence. The
 # forced-command activation account alone creates and updates their versioned
-# release directories and current pointer; the served process reads them via
-# its separate read-only mount.
-install -d -o "$ACTIVATE_USER" -g "$ACTIVATE_USER" -m 0750 "$PUBLIC_ROOT/indicators"
+# release directories and current pointer; MapServer reads them through its
+# separate read-only bind mount as www-data, so the directory must be
+# traversable by that serving process. The package contents remain immutable
+# and the parent release root remains restricted to the activation account.
+install -d -o "$ACTIVATE_USER" -g "$ACTIVATE_USER" -m 0755 "$PUBLIC_ROOT/indicators"
 
 ensure_key "$UPLOAD_USER" "$UPLOAD_KEY" "/var/lib/$UPLOAD_USER/.ssh/authorized_keys"
 
