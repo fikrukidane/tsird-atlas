@@ -3,6 +3,7 @@
 
   const page = document.body.dataset.tsirdPage || 'drought';
   const api = page === 'priority' ? '../../api/drought/public/release' : '../api/drought/public/release';
+  const indicatorApi = '../api/drought/public/indicators';
   const releaseHref = page === 'priority' ? '../release/' : 'release/';
   const panel = document.getElementById('public-drought-panel');
   const map = new ol.Map({
@@ -79,7 +80,8 @@
     const sourceText = mode.unavailable ? mode.unavailable : (mode.priority ? 'The approved replay geometry is shown separately from FEWS NET provider-native context.' : latestRunText(workspace, mode.indicator));
     const sourceCards = Object.entries(MODES).filter(([key, item]) => ['observed', 'rapid', 'vegetation', 'soil_water', 'thermal', 'water_use'].includes(key)).map(([key, item]) => indicatorCard(workspace, key, item)).join('');
     const historyNotice = activeMode === 'history' ? `<p><a class="public-drought-link" href="priority/">Open retained January–August replay and provider context</a>.</p>` : '';
-    panel.innerHTML = `<h1>${page === 'priority' ? 'Retrospective Evidence Replay' : 'Drought intelligence'}</h1><div class="public-drought-banner">Approved public release <b>${esc(release.release_id)}</b><br><small>${esc(release.public_scope)}</small></div><div class="public-drought-evidence-note">This is the public evidence workspace. It exposes every approved Tabia summary in this release; it does not calculate a forecast, publish a priority decision, or change the model.</div><div class="public-drought-modes">${controls}</div><h2>${esc(mode.label)}</h2><p class="public-drought-meta">${sourceText}</p><p>${esc(mode.note || '')}</p><div class="public-drought-detail" data-detail>${mode.unavailable ? `<strong>Not included as a raw public data stream</strong><p>${esc(mode.unavailable)}</p>${historyNotice}` : 'Select a coloured Tabia, or use the map search, to read the retained evidence summary.'}</div><h2>Approved evidence in this release</h2><div class="public-drought-release-status"><b>Current Tabia evidence streams</b><span>Final rainfall, rapid rainfall, vegetation, soil-water, thermal and crop water-use context are available here as retained summaries.</span></div>${sourceCards}<h2>Map key</h2><ul class="public-drought-legend">${mode.priority ? Object.entries(priorityColours).map(([key, colour]) => `<li><i class="public-drought-swatch" style="background:${colour}"></i>${key} retrospective draft code</li>`).join('') : `<li><i class="public-drought-swatch" style="background:${colours[0]}"></i>lower retained value</li><li><i class="public-drought-swatch" style="background:${colours[colours.length - 1]}"></i>higher retained value</li><li><i class="public-drought-swatch" style="background:#64748b"></i>insufficient evidence</li>`}</ul><p class="public-drought-footnote">The release uses reviewed, retained summaries—not raw grids or a live development API. <a href="${releaseHref}">Open the dedicated evidence replay and FEWS NET context</a>.</p>`;
+    const releaseLabel = release.schema_version === 'tsird-drought-public-indicator-release.v1' ? 'Automatically validated indicator release' : 'Approved public release';
+    panel.innerHTML = `<h1>${page === 'priority' ? 'Retrospective Evidence Replay' : 'Drought intelligence'}</h1><div class="public-drought-banner">${releaseLabel} <b>${esc(release.release_id)}</b><br><small>${esc(release.public_scope)}</small></div><div class="public-drought-evidence-note">This is the public evidence workspace. It exposes retained Tabia summaries after source-specific technical checks; it does not calculate a forecast, publish a priority decision, or change the model.</div><div class="public-drought-modes">${controls}</div><h2>${esc(mode.label)}</h2><p class="public-drought-meta">${sourceText}</p><p>${esc(mode.note || '')}</p><div class="public-drought-detail" data-detail>${mode.unavailable ? `<strong>Not included as a raw public data stream</strong><p>${esc(mode.unavailable)}</p>${historyNotice}` : 'Select a coloured Tabia, or use the map search, to read the retained evidence summary.'}</div><h2>Current evidence in this release</h2><div class="public-drought-release-status"><b>Current Tabia evidence streams</b><span>Final rainfall, rapid rainfall, vegetation, soil-water, thermal and crop water-use context are available here as retained summaries.</span></div>${sourceCards}<h2>Map key</h2><ul class="public-drought-legend">${mode.priority ? Object.entries(priorityColours).map(([key, colour]) => `<li><i class="public-drought-swatch" style="background:${colour}"></i>${key} retrospective draft code</li>`).join('') : `<li><i class="public-drought-swatch" style="background:${colours[0]}"></i>lower retained value</li><li><i class="public-drought-swatch" style="background:${colours[colours.length - 1]}"></i>higher retained value</li><li><i class="public-drought-swatch" style="background:#64748b"></i>insufficient evidence</li>`}</ul><p class="public-drought-footnote">The release uses retained summaries—not raw grids or a live development API. <a href="${releaseHref}">Open the dedicated evidence replay and FEWS NET context</a>.</p>`;
     panel.querySelectorAll('[data-mode]').forEach(button => button.addEventListener('click', () => { activeMode = button.dataset.mode; tabiaLayer.changed(); renderPanel(release, workspace); }));
   }
   function setDetail(feature, workspace) {
@@ -118,9 +120,21 @@
     let release;
     try { const response = await fetch(api, { cache: 'no-store' }); if (response.status === 404) throw new Error('No approved public evidence release is available yet.'); if (!response.ok) throw new Error(`Release metadata returned ${response.status}`); release = await response.json(); }
     catch (error) { panel.innerHTML = `<h1>Drought intelligence</h1><div class="public-drought-banner warning">${esc(error.message)}</div><p>This route never displays development data. Use the release process to publish an approved compact evidence package.</p>`; return; }
-    const assets = new Map(release.assets.map(asset => [asset.asset_id, asset]));
+    let workspaceRelease = release;
+    if (page !== 'priority') {
+      try {
+        const indicatorResponse = await fetch(indicatorApi, { cache: 'no-store' });
+        if (indicatorResponse.ok) workspaceRelease = await indicatorResponse.json();
+        else if (indicatorResponse.status !== 404) throw new Error(`Indicator release metadata returned ${indicatorResponse.status}`);
+      } catch (error) {
+        panel.innerHTML = `<h1>Drought intelligence</h1><div class="public-drought-banner warning">${esc(error.message)}</div><p>The previously approved indicator evidence remains available only when a separate validated indicator package has not been published.</p>`;
+        return;
+      }
+    }
+    const assets = new Map(workspaceRelease.assets.map(asset => [asset.asset_id, asset]));
+    const reviewedAssets = new Map(release.assets.map(asset => [asset.asset_id, asset]));
     const workspaceAsset = assets.get('drought-workspace-latest');
-    const replayAsset = assets.get('priority-replay-latest');
+    const replayAsset = reviewedAssets.get('priority-replay-latest');
     if (!workspaceAsset || !replayAsset) { panel.innerHTML = `<h1>Drought intelligence</h1><div class="public-drought-banner warning">This approved release predates the public workspace payload.</div><p>The dedicated <a href="release/">retrospective evidence replay</a> remains available. A later approved package is required before this familiar conditions workspace can be populated.</p>`; return; }
     try {
       const [workspaceResponse, replayResponse] = await Promise.all([fetch(workspaceAsset.url, { cache: 'no-store' }), fetch(replayAsset.url, { cache: 'no-store' })]);
@@ -138,7 +152,7 @@
       features.forEach(feature => { const id = feature.get('tsird_tabia_id'); const record = records.get(id) || {}; Object.assign(record, feature.getProperties()); records.set(id, record); featureIndex.set(id, feature); });
       tabiaLayer.getSource().addFeatures(features);
       if (!tabiaLayer.getSource().isEmpty()) map.getView().fit(tabiaLayer.getSource().getExtent(), { padding: [30, 30, 30, 30], maxZoom: 10 });
-      renderPanel(release, workspace);
+      renderPanel(workspaceRelease, workspace);
       bindSearch(workspace);
       map.on('singleclick', event => { const feature = map.forEachFeatureAtPixel(event.pixel, candidate => candidate); if (feature) showFeature(feature, workspace); });
     } catch (error) { panel.innerHTML = `<h1>Drought intelligence</h1><div class="public-drought-banner warning">${esc(error.message)}</div>`; }

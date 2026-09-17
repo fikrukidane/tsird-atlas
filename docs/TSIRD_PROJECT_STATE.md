@@ -132,6 +132,12 @@ layers.
   credential-configured. The publisher script is forced to Unix line endings
   through `.gitattributes`, because it executes inside a Linux container even
   when staged from a Windows checkout.
+  The repository now also defines an automatic indicator-evidence package and
+  a separate nested production pointer. Only source-derived Tabia evidence
+  summaries that pass technical checks can use it; Priority Replay, FEWS NET,
+  model configuration and raw rasters cannot. Its n8n schedule and VPS wrapper
+  deployment remain an operational step, not evidence of automatic production
+  publication already occurring.
   A tagged-source
   GitHub Actions workflow publishes the three prebuilt serving images (web, API
   and edge) to GHCR only for an explicit `tsird-drought-v*` tag or manual

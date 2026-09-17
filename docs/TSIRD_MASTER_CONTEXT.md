@@ -131,6 +131,12 @@ The release did not perform data processing or expose development services. See 
 [activation design](../infra/host-nginx/tsird-drought-release-activation.md)
 and [n8n publisher setup](drought/n8n-production-publisher-setup.md).
 
+A separate automatic indicator-evidence channel now has its own nested
+`indicators/current.json` pointer. It can carry only technically validated
+Tabia indicator summaries; it cannot advance Priority Replay, FEWS NET context,
+model configuration or a raw-raster layer. See
+[automatic indicator publication](drought/automatic-indicator-publication.md).
+
 The public-only release viewer is `/map/drought/release/`. It calls only the
 approved-release API, displays neutral C1--C4 retrospective draft codes and
 provider-native FEWS NET outlines, and explicitly remains unavailable until an

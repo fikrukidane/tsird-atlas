@@ -43,6 +43,14 @@ EVIDENCE_DATA_ROOT = Path("/data/drought")
 PUBLIC_DROUGHT_RELEASE_ROOT = Path(
     os.environ.get("DROUGHT_PUBLIC_RELEASE_ROOT", "/data/drought/production-releases")
 )
+# Indicator evidence has a separate, automatically maintained pointer beneath
+# the same read-only release mount.  Priority/replay releases never use it.
+PUBLIC_DROUGHT_INDICATOR_RELEASE_ROOT = Path(
+    os.environ.get(
+        "DROUGHT_PUBLIC_INDICATOR_RELEASE_ROOT",
+        str(PUBLIC_DROUGHT_RELEASE_ROOT / "indicators"),
+    )
+)
 PUBLIC_RELEASE_ID_PATTERN = re.compile(
     r"^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{6}Z(?:-[a-z0-9][a-z0-9-]*)?$"
 )
@@ -627,7 +635,10 @@ HISTORY_METADATA = {
 }
 
 
-def _read_approved_public_drought_release():
+def _read_approved_public_drought_release(
+    release_root: Path = PUBLIC_DROUGHT_RELEASE_ROOT,
+    allowed_states: set[str] | None = None,
+):
     """Read the one publisher-selected, immutable public release.
 
     This deliberately supports only a pointer plus an approved manifest under
@@ -635,21 +646,22 @@ def _read_approved_public_drought_release():
     or filesystem location, and it cannot expose development artifacts merely
     because they are present on a shared local mount.
     """
-    pointer_path = PUBLIC_DROUGHT_RELEASE_ROOT / "current.json"
+    allowed_states = allowed_states or {"approved"}
+    pointer_path = release_root / "current.json"
     try:
         pointer = json.loads(pointer_path.read_text(encoding="utf-8"))
         release_id = pointer.get("release_id")
         if not isinstance(release_id, str) or not PUBLIC_RELEASE_ID_PATTERN.fullmatch(release_id):
             raise ValueError("current release ID is invalid")
-        root = PUBLIC_DROUGHT_RELEASE_ROOT.resolve()
+        root = release_root.resolve()
         release_dir = (root / release_id).resolve(strict=True)
         if release_dir.parent != root:
             raise ValueError("current release directory is outside the configured root")
         manifest = json.loads((release_dir / "manifest.json").read_text(encoding="utf-8"))
         if manifest.get("schema_version") != "tsird-drought-production-release/v1":
             raise ValueError("current release schema is unsupported")
-        if manifest.get("release_id") != release_id or manifest.get("release_state") != "approved":
-            raise ValueError("current release is not approved")
+        if manifest.get("release_id") != release_id or manifest.get("release_state") not in allowed_states:
+            raise ValueError("current release state is not permitted for this public route")
         assets = manifest.get("assets")
         if not isinstance(assets, list):
             raise ValueError("current release assets are invalid")
@@ -714,6 +726,61 @@ async def public_drought_release_asset(asset_id: str):
     return FileResponse(
         path,
         media_type=media_type,
+        headers={"Cache-Control": "no-cache, max-age=0, must-revalidate"},
+    )
+
+
+@app.get("/drought/public/indicators")
+async def public_drought_indicators_release():
+    """Return the current auto-validated indicator package only.
+
+    This intentionally has a distinct pointer/root from reviewed Priority
+    Replay releases, so source-derived indicator refreshes cannot advance or
+    replace a replay/model product.
+    """
+    pointer, manifest, asset_map = _read_approved_public_drought_release(
+        PUBLIC_DROUGHT_INDICATOR_RELEASE_ROOT,
+        {"auto-validated"},
+    )
+    if manifest.get("release_channel") != "indicator-evidence":
+        raise HTTPException(status_code=503, detail="Indicator release channel is invalid")
+    return {
+        "schema_version": "tsird-drought-public-indicator-release.v1",
+        "release_id": manifest["release_id"],
+        "activated_at": pointer.get("activated_at"),
+        "previous_release_id": pointer.get("previous_release_id"),
+        "public_scope": manifest.get("public_scope"),
+        "assets": [
+            {
+                "asset_id": asset_id,
+                "kind": asset.get("kind"),
+                "source": asset.get("source"),
+                "source_observation_start": asset.get("source_observation_start"),
+                "source_observation_end": asset.get("source_observation_end"),
+                "retrieved_at": asset.get("retrieved_at"),
+                "processing_version": asset.get("processing_version"),
+                "quality_state": asset.get("quality_state"),
+                "interpretation_boundary": asset.get("interpretation_boundary"),
+                "url": f"/map/api/drought/public/indicators/assets/{asset_id}",
+            }
+            for asset_id, (asset, _) in asset_map.items()
+        ],
+    }
+
+
+@app.get("/drought/public/indicators/assets/{asset_id}")
+async def public_drought_indicator_release_asset(asset_id: str):
+    """Serve an allow-listed asset from the automatic indicator package."""
+    _, manifest, asset_map = _read_approved_public_drought_release(
+        PUBLIC_DROUGHT_INDICATOR_RELEASE_ROOT,
+        {"auto-validated"},
+    )
+    if manifest.get("release_channel") != "indicator-evidence" or asset_id not in asset_map:
+        raise HTTPException(status_code=404, detail="Unknown public indicator-release asset")
+    _, path = asset_map[asset_id]
+    return FileResponse(
+        path,
+        media_type="application/geo+json" if path.suffix == ".geojson" else "application/json",
         headers={"Cache-Control": "no-cache, max-age=0, must-revalidate"},
     )
 

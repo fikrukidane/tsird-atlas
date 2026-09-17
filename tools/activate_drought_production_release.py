@@ -41,6 +41,11 @@ def main() -> int:
     parser.add_argument("release_id")
     parser.add_argument("--incoming-root", type=Path, required=True)
     parser.add_argument("--public-root", type=Path, required=True)
+    parser.add_argument(
+        "--allow-auto-validated-indicators",
+        action="store_true",
+        help="allow only an auto-validated indicator-evidence package at this separate pointer root",
+    )
     args = parser.parse_args()
     if not PUBLIC_RELEASE_ID_PATTERN.fullmatch(args.release_id):
         parser.error("release_id is invalid")
@@ -53,14 +58,24 @@ def main() -> int:
 
     # Verify the uploaded package before and after copying.  Only an approved
     # release can become current; a failed copy never changes current.json.
-    validate_release(incoming_release, allow_validated=False)
+    manifest = validate_release(
+        incoming_release,
+        allow_validated=False,
+        allow_auto_validated_indicators=args.allow_auto_validated_indicators,
+    )
+    if args.allow_auto_validated_indicators and manifest.get("release_channel") != "indicator-evidence":
+        parser.error("automatic activation accepts only indicator-evidence releases")
     public_root.mkdir(parents=True, exist_ok=True)
     target = public_root / args.release_id
     if target.exists():
         parser.error("target release ID already exists; releases are immutable")
     shutil.copytree(incoming_release, target, copy_function=shutil.copy2)
     try:
-        validate_release(target, allow_validated=False)
+        validate_release(
+            target,
+            allow_validated=False,
+            allow_auto_validated_indicators=args.allow_auto_validated_indicators,
+        )
         pointer_path = public_root / "current.json"
         pointer = {
             "schema_version": "tsird-drought-production-current-pointer/v1",
