@@ -31,6 +31,7 @@ class DroughtDashboard {
     this.historyUrl = options.historyUrl || 'api/drought/development/history';
     this.evidenceBaseUrl = options.evidenceBaseUrl || 'api/drought/development/evidence';
     this.boundaryUrl = options.boundaryUrl || 'api/boundaries';
+    this.wmsBaseUrl = options.wmsBaseUrl || '/map/ogc';
     this.containerId = options.containerId || 'drought-dashboard';
     this.priorityOnly = Boolean(options.priorityOnly);
     this.mode = this.priorityOnly ? 'priority' : 'observed';
@@ -78,6 +79,7 @@ class DroughtDashboard {
     this.publicGeometryUrl = options.publicGeometryUrl || null;
     this.publicGeometry = [];
     this.publicEvidenceLayer = null;
+    this.publicRasterLayer = null;
   }
 
   async initialize() {
@@ -1574,7 +1576,11 @@ class DroughtDashboard {
       const publicRaster = activeLayerId && activeLayerId.endsWith('_raw_dev')
         ? activeLayerId.replace(/_dev$/, '_public')
         : null;
-      if (this.onSetEvidenceLayer) this.onSetEvidenceLayer(publicRaster);
+      // Public raw rasters are deliberately not part of the general Atlas TOC.
+      // Manage a dedicated ImageWMS layer here so the Native raster switch
+      // actually renders the approved retained source grid.
+      if (this.onSetEvidenceLayer) this.onSetEvidenceLayer(null);
+      this._setPublicRasterLayer(publicRaster);
       this._setPublicEvidenceLayer(publicRaster ? null : activeLayerId);
       return;
     }
@@ -1586,6 +1592,25 @@ class DroughtDashboard {
     this.map.getLayers().getArray().forEach(layer => {
       if (ids.includes(layer.layerId)) layer.setVisible(layer.layerId === activeLayerId);
     });
+  }
+
+  _setPublicRasterLayer(layerId) {
+    if (!layerId) {
+      if (this.publicRasterLayer) this.publicRasterLayer.setVisible(false);
+      return;
+    }
+    if (!this.publicRasterLayer) {
+      const source = new ol.source.ImageWMS({
+        url: this.wmsBaseUrl,
+        params: { LAYERS: layerId, TRANSPARENT: true, FORMAT: 'image/png', STYLES: '' },
+        serverType: 'mapserver', ratio: 1, wmsVersion: '1.3.0'
+      });
+      this.publicRasterLayer = new ol.layer.Image({ source, opacity: 0.76, visible: false, zIndex: 996 });
+      this.publicRasterLayer.set('layerId', 'tsird_public_native_raster');
+      this.map.addLayer(this.publicRasterLayer);
+    }
+    this.publicRasterLayer.getSource().updateParams({ LAYERS: layerId, TRANSPARENT: true, FORMAT: 'image/png', STYLES: '' });
+    this.publicRasterLayer.setVisible(true);
   }
 
   _publicEvidenceRows() {

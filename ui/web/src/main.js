@@ -85,6 +85,7 @@ async function initializeApplication(registryPath, options) {
         historyUrl: options.droughtHistoryUrl,
         evidenceBaseUrl: options.droughtEvidenceBaseUrl,
         boundaryUrl: options.droughtBoundaryUrl,
+        wmsBaseUrl: registry.wmsBaseUrl,
         publicMode: options.droughtPublicMode,
         publicGeometryUrl: options.droughtPublicGeometryUrl,
         onEnsureContextLayers: layerIds => layerIds.forEach(layerId => interaction.setLayerVisible(layerId, true)),
