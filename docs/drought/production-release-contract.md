@@ -19,7 +19,9 @@ permitted to use it.
   manifest.json
   drought-evidence-summary.json
   priority-replay-summary.json
+  priority-replay-latest.geojson
   fews-net-context.json
+  fews-net-context-latest.geojson
   status.json
 ```
 
@@ -150,8 +152,10 @@ An upload failure leaves the current public release unchanged.
 
 The template and its fixed OpenSSH publisher script are version-controlled at
 `n8n/workflows/tsird-drought-production-publisher-v1.development.json` and
-`n8n/publisher/tsird-drought-production-publisher-v1.sh`. They are not yet
-imported or locally key-configured. The built-in n8n SFTP/SSH nodes are not
-used because the installed version does not expose host-key pinning. The fixed
-local staging boundary and one-time setup procedure are documented in
+`n8n/publisher/tsird-drought-production-publisher-v1.sh`. They require a
+separate local n8n import and narrowly staged key and host-verification inputs;
+those operational inputs are not tracked in this repository. The built-in n8n
+SFTP/SSH nodes are not used because the installed version does not expose
+host-key pinning. The fixed local staging boundary and one-time setup procedure
+are documented in
 [n8n production publisher setup](n8n-production-publisher-setup.md).
