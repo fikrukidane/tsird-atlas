@@ -718,6 +718,177 @@ async def public_drought_release_asset(asset_id: str):
     )
 
 
+# These routes adapt only the approved release package to the shared Atlas
+# dashboard's read-only display contracts. They never query development data,
+# raw raster storage, n8n, or the local runner.
+def _public_release_json(asset_id: str):
+    _, _, asset_map = _read_approved_public_drought_release()
+    record = asset_map.get(asset_id)
+    if not record:
+        raise HTTPException(status_code=404, detail="Approved public drought asset is unavailable")
+    _, path = record
+    try:
+        with path.open("r", encoding="utf-8") as handle:
+            return json.load(handle)
+    except (OSError, json.JSONDecodeError):
+        logging.exception("Approved public drought JSON asset read error")
+        raise HTTPException(status_code=503, detail="Approved public drought asset is unreadable")
+
+
+def _public_workspace_indicator(indicator: str):
+    workspace = _public_release_json("drought-workspace-latest")
+    indicators = workspace.get("indicators") if isinstance(workspace, dict) else None
+    payload = indicators.get(indicator) if isinstance(indicators, dict) else None
+    if not isinstance(payload, dict) or not isinstance(payload.get("run"), dict) or not isinstance(payload.get("summaries"), list):
+        raise HTTPException(status_code=404, detail="Indicator is not included in the approved public release")
+    return payload
+
+
+def _public_dashboard_run(raw: dict, indicator: str) -> dict:
+    period_end = raw.get("source_period_end") or raw.get("observation_end") or raw.get("period_end")
+    analysis_year = raw.get("analysis_year")
+    if not analysis_year and isinstance(period_end, str) and len(period_end) >= 4:
+        analysis_year = int(period_end[:4])
+    return {**raw, "run_id": raw.get("run_id") or f"public-{indicator}-latest", "status": raw.get("status") or "approved retained evidence", "analysis_year": analysis_year or 2026, "season_months": raw.get("season_months") or [], "source_latest_month": raw.get("source_latest_month") or period_end, "native_resolution": raw.get("native_resolution") or "Tabia summary", "baseline_year_start": raw.get("baseline_year_start") or 1991, "baseline_year_end": raw.get("baseline_year_end") or 2020}
+
+
+def _public_quality_summary(rows: list[dict]) -> dict:
+    quality_counts: dict[str, int] = {}
+    class_counts: dict[str, int] = {}
+    for row in rows:
+        quality = str(row.get("quality_status") or "unavailable")
+        quality_counts[quality] = quality_counts.get(quality, 0) + 1
+        condition = str(row.get("condition_class") or "unavailable")
+        class_counts[condition] = class_counts.get(condition, 0) + 1
+    return {"quality_counts": quality_counts, "class_counts": class_counts}
+
+
+@app.get("/drought/public/dashboard/overview")
+async def public_drought_dashboard_overview():
+    observed = _public_workspace_indicator("observed")
+    areas = []
+    for row in observed["summaries"][:3]:
+        if not isinstance(row, dict) or not isinstance(row.get("tsird_tabia_id"), str) or not isinstance(row.get("tabia_name_en"), str):
+            continue
+        boundary = {"type": "tabia", "id": row["tsird_tabia_id"], "label": row["tabia_name_en"]}
+        areas.append({"id": row["tsird_tabia_id"], "name_en": row["tabia_name_en"], "name_ti": "", "context_en": row.get("woreda_name_en") or "Tigray", "observed": {"boundary": boundary}, "vulnerability": {"boundary": boundary}})
+    return {"schema_version": "tsird-public-drought-dashboard/v1", "status": "approved_release", "title": "TSIRD Drought Intelligence", "geographic_note": "Approved retained evidence workspace. Indicators remain separate and exploratory; this page is not an official forecast, food-security classification, allocation recommendation, or operational decision product.", "sources": [{"id": "approved-release", "label": "Approved retained evidence", "role": "evidence", "provider": "TSIRD", "resolution": "Tabia summaries", "note": "Released evidence is read-only in production."}], "areas": areas}
+
+
+@app.get("/drought/public/dashboard/indicator/{indicator}")
+async def public_drought_dashboard_indicator(indicator: str):
+    if indicator not in {"observed", "rapid", "vegetation", "soil_water", "thermal", "water_use"}:
+        raise HTTPException(status_code=404, detail="Unknown public dashboard indicator")
+    payload = _public_workspace_indicator(indicator)
+    rows = [row for row in payload["summaries"] if isinstance(row, dict)]
+    run = _public_dashboard_run(payload["run"], indicator)
+    if indicator == "observed":
+        return {"schema_version": "tsird-public-observed-rainfall/v1", "environment": "approved_release", "run": run, "artifact": {"native_resolution": run["native_resolution"], "quality_summary": _public_quality_summary(rows)}, "conditions": rows}
+    return {"schema_version": f"tsird-public-{indicator}/v1", "environment": "approved_release", "run": run, "summaries": rows}
+
+
+@app.get("/drought/public/dashboard/observed-rainfall/runs")
+async def public_drought_dashboard_observed_runs():
+    return {"schema_version": "tsird-public-observed-runs/v1", "runs": []}
+
+
+@app.get("/drought/public/dashboard/evidence/{indicator}/runs")
+async def public_drought_dashboard_evidence_runs(indicator: str):
+    aliases = {"rainfall": "observed", "rapid": "rapid", "ndvi": "vegetation", "swi": "soil_water", "lst": "thermal", "wapor": "water_use"}
+    release_indicator = aliases.get(indicator)
+    if not release_indicator:
+        raise HTTPException(status_code=404, detail="Unknown public evidence indicator")
+    payload = _public_workspace_indicator(release_indicator)
+    return {"schema_version": "tsird-public-evidence-runs/v1", "runs": [_public_dashboard_run(payload["run"], release_indicator)]}
+
+
+@app.get("/drought/public/dashboard/history/{indicator}/{tabia_id}")
+async def public_drought_dashboard_history(indicator: str, tabia_id: str):
+    fields = {
+        "rainfall": ("observed", "rainfall_mm", "Final rainfall", "mm"),
+        "rapid": ("rapid", "rainfall_mm", "Rapid rainfall", "mm"),
+        "ndvi": ("vegetation", "ndvi_mean", "Vegetation", "NDVI"),
+        "swi": ("soil_water", "swi040_mean", "Soil water", "%"),
+        "lst": ("thermal", "lst_c_mean", "Land-surface temperature", "°C"),
+        "wapor": ("water_use", "transpiration_mm", "Crop water use", "mm/day"),
+    }
+    detail = fields.get(indicator)
+    if not detail:
+        raise HTTPException(status_code=404, detail="Unknown public evidence indicator")
+    release_indicator, value_field, label, unit = detail
+    payload = _public_workspace_indicator(release_indicator)
+    row = next((item for item in payload["summaries"] if isinstance(item, dict) and item.get("tsird_tabia_id") == tabia_id), None)
+    if not row:
+        raise HTTPException(status_code=404, detail="Tabia is not included in the approved release")
+    run = _public_dashboard_run(payload["run"], release_indicator)
+    baseline = row.get("baseline_median_mm") if indicator == "rainfall" else None
+    point = {"run_id": run["run_id"], "observation_at": run.get("observation_end") or run.get("source_period_end") or run.get("period_end") or "not recorded", "value": row.get(value_field), "expected_median": baseline, "percentile": row.get("percentile"), "baseline_status": "available" if baseline is not None else "unavailable", "baseline_label": "CHIRPS 1991–2020 reference" if baseline is not None else "Not included in this release", "quality_status": row.get("quality_status") or "unavailable", "native_resolution": run["native_resolution"], "status": run["status"]}
+    return {"schema_version": "tsird-public-evidence-history/v1", "environment": "approved_release", "indicator": indicator, "metadata": {"label": label, "unit": unit}, "tabia": {"tabia_name_en": row.get("tabia_name_en") or "Tabia", "woreda_name_en": row.get("woreda_name_en") or "Tigray"}, "points": [point]}
+
+
+@app.get("/drought/public/dashboard/priority/replays")
+async def public_drought_dashboard_priority_replays():
+    return _public_release_json("priority-replay-summary")
+
+
+@app.get("/drought/public/dashboard/priority/previews")
+async def public_drought_dashboard_priority_previews():
+    """The approved release exposes retained replay snapshots, not draft previews."""
+    return {"previews": []}
+
+
+@app.get("/drought/public/dashboard/geometry")
+async def public_drought_dashboard_geometry():
+    index = _public_release_json("priority-replay-summary")
+    replay = next((item for item in index.get("replays", []) if isinstance(item, dict) and isinstance(item.get("asset_id"), str)), None)
+    if not replay:
+        raise HTTPException(status_code=404, detail="Approved public Tabia geometry is unavailable")
+    return _public_release_json(replay["asset_id"])
+
+
+@app.get("/drought/public/dashboard/priority/replays/{snapshot_id}/features")
+async def public_drought_dashboard_priority_replay_features(snapshot_id: str):
+    index = _public_release_json("priority-replay-summary")
+    replay = next((item for item in index.get("replays", []) if isinstance(item, dict) and item.get("snapshot_id") == snapshot_id), None)
+    if not replay or not isinstance(replay.get("asset_id"), str):
+        raise HTTPException(status_code=404, detail="Approved public replay snapshot is unavailable")
+    return _public_release_json(replay["asset_id"])
+
+
+@app.get("/drought/public/dashboard/fews-net/runs")
+async def public_drought_dashboard_fews_runs():
+    return _public_release_json("fews-net-context-index")
+
+
+@app.get("/drought/public/dashboard/fews-net/runs/{run_id}/features")
+async def public_drought_dashboard_fews_features(run_id: str):
+    index = _public_release_json("fews-net-context-index")
+    run = next((item for item in index.get("runs", []) if isinstance(item, dict) and item.get("run_id") == run_id), None)
+    if not run or not isinstance(run.get("asset_id"), str):
+        raise HTTPException(status_code=404, detail="Approved provider context issue is unavailable")
+    return _public_release_json(run["asset_id"])
+
+
+@app.get("/drought/public/dashboard/model-configuration")
+async def public_drought_dashboard_model_configuration():
+    return {"schema_version": "tsird-public-model-information/v1", "configuration": {"version": "read-only", "configuration": {"factors": []}}, "editing_available": False, "selection_note": "Production presents retained replay evidence only. Configuration editing and activation remain in development."}
+
+
+@app.get("/drought/public/dashboard/model-readiness")
+async def public_drought_dashboard_model_readiness():
+    return {"schema_version": "tsird-public-model-readiness/v1", "status": "not_ready", "decision": {"status": "not-ready"}, "selection_note": "Retrospective evidence review only; production cannot score, forecast, publish or activate a model."}
+
+
+@app.get("/drought/public/dashboard/seasonal-outlook/active")
+async def public_drought_dashboard_outlook_active(variable: str = Query("seasonal_rainfall")):
+    return {"schema_version": "tsird-public-seasonal-outlook/v1", "available": False, "variable": variable, "reason": "No reviewed seasonal outlook is included in this approved evidence release."}
+
+
+@app.get("/drought/public/dashboard/seasonal-outlook/runs")
+async def public_drought_dashboard_outlook_runs(variable: str = Query("seasonal_rainfall")):
+    return {"schema_version": "tsird-public-seasonal-outlook/v1", "variable": variable, "runs": []}
+
+
 @app.get("/gazetteer")
 async def gazetteer(q: str = Query(..., min_length=1, max_length=100)):
     try:
