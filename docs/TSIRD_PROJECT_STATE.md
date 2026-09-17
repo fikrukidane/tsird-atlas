@@ -162,6 +162,14 @@ layers.
   present each released stream, its recorded source/run context, searchable
   Tabia detail, and links to retained replay/FEWS NET context; it must not
   silently substitute live development endpoints or raw artifacts.
+- The public-development parity contract is recorded in
+  [public-development-parity-contract.md](drought/public-development-parity-contract.md).
+  The implementation branch replaces the reduced public viewer with the shared
+  Atlas shell and Drought Dashboard, backed only by approved-release adapter
+  routes. It also restores the familiar route hierarchy for the public release,
+  Priority Review, Scenario Laboratory and Model information. This is branch
+  state pending review and deployment; it must not be described as live until
+  the corresponding immutable images and production overlay have been applied.
 
 ### Registry inventory
 

@@ -24,6 +24,10 @@ services:
         target: /usr/share/nginx/html/drought/priority/index.html
         read_only: true
       - type: bind
+        source: ./infra/production-public-web/drought/release/index.html
+        target: /usr/share/nginx/html/drought/release/index.html
+        read_only: true
+      - type: bind
         source: ./infra/production-public-web/drought/priority/model/index.html
         target: /usr/share/nginx/html/drought/priority/model/index.html
         read_only: true

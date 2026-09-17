@@ -85,6 +85,8 @@ async function initializeApplication(registryPath, options) {
         historyUrl: options.droughtHistoryUrl,
         evidenceBaseUrl: options.droughtEvidenceBaseUrl,
         boundaryUrl: options.droughtBoundaryUrl,
+        publicMode: options.droughtPublicMode,
+        publicGeometryUrl: options.droughtPublicGeometryUrl,
         onEnsureContextLayers: layerIds => layerIds.forEach(layerId => interaction.setLayerVisible(layerId, true)),
         onSetEvidenceLayer: activeLayerId => {
           ['tigray_drought_chirps_dev', 'tigray_drought_chirps_raw_dev', 'tigray_drought_chirps_rapid_raw_dev',
