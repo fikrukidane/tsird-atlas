@@ -58,7 +58,10 @@ services:
     volumes:
       - type: bind
         source: /opt/tigrayinsights/apps/tsird/releases/drought/indicators
-        target: /data/drought/production-indicators
+        # /data is already an immutable bind mount in the base Compose file.
+        # Mount the approved package at a separate root-level path instead of
+        # attempting a nested mount below that read-only parent.
+        target: /production-indicators
         read_only: true
 
   tsird-edge:
