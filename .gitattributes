@@ -1,0 +1,3 @@
+# The local n8n publisher runs in an Alpine Linux container.  Keep its shell
+# syntax on Unix line endings even when contributors use a Windows checkout.
+n8n/publisher/*.sh text eol=lf

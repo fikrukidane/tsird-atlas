@@ -96,14 +96,15 @@ development WMS layers. Historical snapshots are archived observations, not
 as-issued forecast or model replays. Source timestamps form the evidence
 history; the UI does not interpolate gaps or combine indicators into a score.
 
-Production-release preparation is local-only at this stage. A compact release
-builder can package retained API summaries plus one latest replay and one
-provider-native FEWS NET display GeoJSON into a checksum-verified, unapproved
-local release. The API has separate read-only `/drought/public/release` routes
-that return unavailable until a future publisher places an **approved**
-`current.json` pointer under a narrowly mounted release root. This does not add
-a production n8n route, credential, raw-data mount, automatic promotion or
-publicly served release. See [production release contract](drought/production-release-contract.md).
+The compact production-release builder packages retained API summaries,
+historical replay snapshots, and provider-native FEWS NET display GeoJSON into
+a checksum-verified release. The API reads only the approved `current.json`
+pointer under its narrowly mounted release root. The first public package,
+`2026-09-17T032845Z`, was explicitly approved and activated at
+`2026-09-17T03:42:03Z`; its predecessor `2026-09-16T225513Z` remains available
+for rollback. This does not add a production n8n route, raw-data mount,
+automatic promotion, or model-scoring capability. See the
+[production release contract](drought/production-release-contract.md).
 
 The tracked production overlay mounts only `/opt/tigrayinsights/apps/tsird/releases/drought`
 read-only into `tsird-api`; it does not start an n8n worker or expose raw evidence.
@@ -122,9 +123,11 @@ and the SSH configuration were provisioned and boundary-tested on 2026-09-16;
 the activation utility accepts only an already-approved, checksum-verified
 release and atomically advances `current.json`. It cannot build data or run the
 model. A version-controlled, inactive local n8n publisher template now records
-the fixed seven-file transfer and activation sequence, but it is not yet
-imported or credential-configured. No release transfer, current-pointer change,
-image pull, service restart, or public activation has been performed. See the
+the fixed allow-listed transfer and activation sequence. It was used to publish
+the approved 18-asset release `2026-09-17T032845Z` at
+`2026-09-17T03:42:03Z`. The publisher shell script is explicitly checked out
+with Unix line endings because it executes in an Alpine Linux n8n container.
+The release did not perform data processing or expose development services. See the
 [activation design](../infra/host-nginx/tsird-drought-release-activation.md)
 and [n8n publisher setup](drought/n8n-production-publisher-setup.md).
 

@@ -129,8 +129,9 @@ layers.
   one account is SFTP-only to the ingress directory, and the other accepts only
   the forced `activate <release-id>` command. A tracked, inactive local n8n
   publisher template uses those distinct roles but has not been imported or
-  credential-configured. No release transfer, raw-data mount, current-pointer
-  change, production image pull, service restart, or deployment has occurred.
+  credential-configured. The publisher script is forced to Unix line endings
+  through `.gitattributes`, because it executes inside a Linux container even
+  when staged from a Windows checkout.
   A tagged-source
   GitHub Actions workflow publishes the three prebuilt serving images (web, API
   and edge) to GHCR only for an explicit `tsird-drought-v*` tag or manual
@@ -139,6 +140,17 @@ layers.
   `1f88ef7f9ec7af4cdbcd5fffd56fd81e5a03df83`, completed its three-image GHCR
   build successfully on 2026-09-16. This is a CI-only rehearsal: no VPS
   deployment, production data release or public activation followed.
+- A subsequent, explicitly approved public data release was staged from the
+  local n8n mount and activated on the VPS at `2026-09-17T03:42:03Z`:
+  `2026-09-17T032845Z`. It contains 18 checksum-validated, sanitised assets:
+  the compact Tabia evidence workspace summary, January--August 2026 retained
+  replay snapshots, and January/February/April/June/July 2026 provider-native
+  FEWS NET issue geometries. It advanced only the narrow public
+  `current.json` pointer; it did not transfer raw rasters, mount development
+  n8n data, run ETL, or alter the priority model. The rollback predecessor is
+  `2026-09-16T225513Z`. Public browser checks confirmed the approved Drought
+  Intelligence workspace and the public Priority Review controls after
+  activation.
 - The `/map/` proxy contract remains active, including `/map/ogc` and `/map/api/gazetteer`. Public URLs in release notes are documented deployment targets, not availability checks performed here.
 - The production public-drought route design adds a compact per-Tabia workspace
   summary to a future approved release package and production-only static
