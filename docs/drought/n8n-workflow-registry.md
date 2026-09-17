@@ -47,6 +47,7 @@ All schedule times use `Africa/Addis_Ababa`.
 | `c3s-skill-pilot` | C3S–CHIRPS seasonal skill pilot v1 | fixed 1993–2016 August ECMWF System 51 / CHIRPS regional comparison | Manual development study; no schedule activated | Tracked and inactive. It deletes source rasters and retains annual regional summaries plus leave-one-year-out tercile Brier diagnostics. It is not Woreda/Tabia skill, calibration, a provider-issued forecast, or a public Outlook. |
 | `fews-net-food-security` | FEWS NET public classification discovery v1 | official Ethiopia publication and linked-asset metadata only | Weekly availability check pending local n8n activation; no automatic provider-geometry retention | The loader retains the reviewed January--July 2026 native-FSC issues for the historical comparison view. The future check remains a provider-catalogue gate until an explicit release-selection and validity-period rule is approved. No Tabia crosswalk or TSIRD food-security class is created. |
 | `storage-inventory` | Drought storage inventory v1 | read-only storage inventory | First day of month, 07:15 | **Active locally.** Read-only; it never archives or deletes. Capacity status is reviewed in Pipeline Control and n8n execution history. |
+| `automatic-indicator-publisher` | Automatic retained indicator publisher v1 | fixed local API reads, fixed display-ready raster package, pinned-host SFTP and `activate-indicators` | Daily 10:30 Addis after a manual end-to-end rehearsal | Tracked and inactive. It coalesces complete source-derived evidence, avoids duplicates with a persistent fingerprint, and can advance only the separate public indicator pointer. |
 
 ## Existing inactive n8n workflow records
 
@@ -149,3 +150,17 @@ before changing its pointer. It cannot create a release, retrieve data, build
 images, execute an arbitrary remote command, remove files, or schedule itself.
 Until the credentials are bound and a named approver supplies a package, it
 remains an inactive local import template.
+
+## Automatic indicator publisher (tracked template; not yet activated)
+
+The automatic indicator publisher is separate from the reviewed-release
+publisher. It accepts only the verified production host, uses the existing
+least-privilege keys and pinned server identity, and has no user-supplied
+release ID, path, source URL, model option or remote command. It reads only the
+fixed six development summary endpoints and the read-only display-ready raster
+folder, makes a checksum-validated nine-asset package, and calls only the
+forced `activate-indicators <release-id>` command. Its persistent fingerprint
+means an unchanged daily check does not upload or activate another package.
+
+Its setup and mandatory first rehearsal are in
+[n8n automatic indicator publisher setup](n8n-automatic-indicator-publisher-setup.md).

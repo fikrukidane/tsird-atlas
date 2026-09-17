@@ -43,3 +43,13 @@ only that parent directory read-only and serves six fixed WMS layer names from
 the immutable display-ready copies. This enables the existing Native raster /
 Tabia average switch without mounting development `data/drought`, a source
 archive, n8n state, or credentials on the VPS.
+
+## Automatic n8n publication
+
+The tracked automatic publisher is intentionally a separate inactive n8n
+workflow. It coalesces the current retained evidence into one nine-asset
+package and publishes it only when the six summary streams pass the technical
+gate and its fingerprint differs from the last successful automatic package.
+The fixed workflow, restricted keys, pinned server key, and narrow read-only
+native-raster mount are documented in
+[n8n automatic indicator publisher setup](n8n-automatic-indicator-publisher-setup.md).

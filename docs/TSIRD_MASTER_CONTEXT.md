@@ -137,6 +137,11 @@ Tabia indicator summaries and the six fixed display-ready native-grid raster
 derivatives. It cannot advance Priority Replay, FEWS NET context, model
 configuration or any source archive. See
 [automatic indicator publication](drought/automatic-indicator-publication.md).
+Its tracked, inactive n8n coalescing publisher checks the six fixed evidence
+streams daily and transfers only a changed, checksum-validated nine-asset
+package through the existing pinned-host restricted accounts. It must still
+pass a manual end-to-end rehearsal before its schedule is activated; it is not
+evidence that automatic production publication is already occurring.
 
 The public-only release viewer is `/map/drought/release/`. It calls only the
 approved-release API, displays neutral C1--C4 retrospective draft codes and
