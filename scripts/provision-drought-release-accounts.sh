@@ -129,15 +129,21 @@ cat > "$ACTIVATOR" <<EOF
 set -euo pipefail
 
 command="\${SSH_ORIGINAL_COMMAND:-}"
-if [[ ! "\$command" =~ ^activate\\ ([0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{6}Z(-[a-z0-9][a-z0-9-]*)?)\$ ]]; then
-  echo "Only: activate <release-id>" >&2
-  exit 64
+if [[ "\$command" =~ ^activate\\ ([0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{6}Z(-[a-z0-9][a-z0-9-]*)?)\$ ]]; then
+  exec /usr/bin/python3 "$APP_ROOT/tools/activate_drought_production_release.py" \\
+    "\${BASH_REMATCH[1]}" \\
+    --incoming-root "$INGRESS_ROOT" \\
+    --public-root "$PUBLIC_ROOT"
 fi
-
-exec /usr/bin/python3 "$APP_ROOT/tools/activate_drought_production_release.py" \\
-  "\${BASH_REMATCH[1]}" \\
-  --incoming-root "$INGRESS_ROOT" \\
-  --public-root "$PUBLIC_ROOT"
+if [[ "\$command" =~ ^activate-indicators\\ ([0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{6}Z-indicators)\$ ]]; then
+  exec /usr/bin/python3 "$APP_ROOT/tools/activate_drought_production_release.py" \\
+    "\${BASH_REMATCH[1]}" \\
+    --incoming-root "$INGRESS_ROOT" \\
+    --public-root "$PUBLIC_ROOT/indicators" \\
+    --allow-auto-validated-indicators
+fi
+echo "Only: activate <release-id> or activate-indicators <release-id>" >&2
+exit 64
 EOF
 chown root:root "$ACTIVATOR"
 chmod 0755 "$ACTIVATOR"

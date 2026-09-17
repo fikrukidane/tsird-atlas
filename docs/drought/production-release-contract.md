@@ -42,6 +42,29 @@ staging or production-publish authorization.
 Every manifest names the preparer and preparation time.  An approved manifest
 additionally names the independent release approver and approval time.
 
+### Automatic indicator-evidence channel
+
+Source-derived indicator evidence has a separate channel from the reviewed
+release. Its manifest uses `release_channel: indicator-evidence` and
+`release_state: auto-validated`. The package may contain **only** the current
+rainfall evidence index, the current Tabia indicator-summary payload, and its
+public status record. It cannot contain a priority replay, model configuration,
+FEWS NET geometry, reviewer record, raw raster, source archive, or a browser
+link to development storage.
+
+The automatic builder refuses an empty source, failed/unavailable run, or a
+stream with no quality-approved Tabia summaries. A freshness marker such as
+`degraded` remains visible in the published source metadata rather than hiding
+the last technically sound retained observations. A failed build or upload
+leaves the prior indicator pointer untouched.
+
+Automatic indicator packages are activated only below the separate
+`releases/drought/indicators/current.json` pointer. The normal reviewed
+`current.json` pointer remains reserved for named-approved Priority Replay and
+provider-context packages. The public Drought Intelligence page joins the
+automatic indicator summaries to the latest reviewed Tabia geometry; Priority
+Review never reads the automatic channel.
+
 ## Required evidence boundary
 
 Every asset must declare:
