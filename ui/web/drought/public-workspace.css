@@ -1,0 +1,41 @@
+.public-drought-page { background: #0f141b; color: #e5edf5; }
+.public-drought-header { min-height: 50px; padding: 9px 18px; display: flex; align-items: center; justify-content: space-between; gap: 16px; background: #101820; border-bottom: 1px solid #304457; }
+.public-drought-header strong { color: #61a5fa; font-size: 18px; }
+.public-drought-header span { display: block; color: #aab8c7; font-size: 12px; margin-top: 2px; }
+.public-drought-header nav { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+.public-drought-header a { color: #dcecff; border: 1px solid #31506c; border-radius: 3px; padding: 6px 9px; font-size: 12px; text-decoration: none; }
+.public-drought-header a:hover, .public-drought-header a[aria-current="page"] { background: #12415d; }
+.public-drought-layout { height: calc(100vh - 60px); min-height: 560px; display: grid; grid-template-columns: minmax(0, 1fr) 360px; }
+.public-drought-map { width: 100%; height: 100%; background: #d8e1e7; }
+.public-drought-panel { overflow-y: auto; background: #151c24; border-left: 1px solid #334155; padding: 14px; font: 13px/1.4 Arial, sans-serif; }
+.public-drought-panel h1 { font-size: 19px; margin: 0 0 8px; color: #e8f4ff; }
+.public-drought-panel h2 { font-size: 14px; color: #9dd8ff; border-top: 1px solid #344656; padding-top: 12px; margin: 15px 0 8px; }
+.public-drought-panel p { margin: 7px 0; }
+.public-drought-banner { background: #213343; border: 1px solid #3c667f; padding: 9px; color: #dceefd; margin: 8px 0 12px; }
+.public-drought-banner.warning { background: #352d0a; border-color: #736214; color: #ffe79b; }
+.public-drought-modes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 5px; }
+.public-drought-modes button { border: 1px solid #4d6478; background: #1b2732; color: #eff8ff; border-radius: 3px; padding: 7px 4px; cursor: pointer; font-size: 11px; }
+.public-drought-modes button.is-active { background: #07577d; border-color: #56c4ef; }
+.public-drought-modes button:disabled { opacity: .55; cursor: not-allowed; }
+.public-drought-meta { color: #b4c8d8; font-size: 12px; }
+.public-drought-detail { background: #1b2631; border: 1px solid #4b6276; padding: 10px; margin-top: 12px; }
+.public-drought-detail strong { color: #ffffff; }
+.public-drought-detail dl { display: grid; grid-template-columns: auto 1fr; margin: 8px 0 0; gap: 4px 8px; }
+.public-drought-select { margin: 9px 0; display: grid; gap: 5px; }
+.public-drought-select label, .public-drought-select > span { color: #cfe5f6; font-weight: bold; }
+.public-drought-select select { width: 100%; margin-top: 4px; background: #17232d; color: #ffffff; border: 1px solid #52728b; padding: 6px; border-radius: 3px; }
+.public-drought-select small { color: #a7bac9; }
+.public-drought-detail dt { color: #a9c1d4; }
+.public-drought-detail dd { margin: 0; color: #fff; }
+.public-drought-legend { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; list-style: none; padding: 0; margin: 7px 0; }
+.public-drought-legend li { display: flex; align-items: center; gap: 6px; font-size: 11px; color: #d9e5ef; }
+.public-drought-swatch { width: 12px; height: 12px; display: inline-block; border: 1px solid rgba(255,255,255,.7); flex: 0 0 auto; }
+.public-drought-empty { padding: 12px; border: 1px dashed #526d81; color: #c5d6e5; }
+.public-drought-footnote { font-size: 11px; color: #a7bac9; border-top: 1px solid #344656; margin-top: 15px; padding-top: 10px; }
+.public-method-main { max-width: 900px; margin: 34px auto; padding: 0 18px; font: 14px/1.5 Arial, sans-serif; }
+.public-method-card { background: #151c24; border: 1px solid #3c5366; padding: 20px; border-radius: 4px; }
+.public-method-card h1 { color: #dff4ff; margin-top: 0; }
+.public-method-card h2 { color: #9dd8ff; font-size: 16px; margin: 22px 0 8px; }
+.public-method-card li { margin: 6px 0; color: #d5e1eb; }
+.public-method-card .public-drought-banner { max-width: none; }
+@media (max-width: 900px) { .public-drought-layout { grid-template-columns: 1fr; height: auto; } .public-drought-map { height: 60vh; } .public-drought-panel { min-height: 340px; border-left: 0; border-top: 1px solid #334155; } }

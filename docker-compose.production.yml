@@ -11,6 +11,30 @@ services:
   tsird-web:
     image: ${TSIRD_WEB_IMAGE:-ghcr.io/fikrukidane/tsird-atlas-web:REPLACE_ME}
     build: !reset null
+    # Development and production share immutable web images.  These small
+    # production-only HTML overlays keep the familiar route names while
+    # preventing public pages from calling development APIs or controls.
+    volumes:
+      - type: bind
+        source: ./infra/production-public-web/drought/index.html
+        target: /usr/share/nginx/html/drought/index.html
+        read_only: true
+      - type: bind
+        source: ./infra/production-public-web/drought/priority/index.html
+        target: /usr/share/nginx/html/drought/priority/index.html
+        read_only: true
+      - type: bind
+        source: ./infra/production-public-web/drought/priority/model/index.html
+        target: /usr/share/nginx/html/drought/priority/model/index.html
+        read_only: true
+      - type: bind
+        source: ./infra/production-public-web/drought/priority/scenario/index.html
+        target: /usr/share/nginx/html/drought/priority/scenario/index.html
+        read_only: true
+      - type: bind
+        source: ./infra/production-public-web/drought/control/index.html
+        target: /usr/share/nginx/html/drought/control/index.html
+        read_only: true
 
   tsird-api:
     image: ${TSIRD_API_IMAGE:-ghcr.io/fikrukidane/tsird-atlas-api:REPLACE_ME}

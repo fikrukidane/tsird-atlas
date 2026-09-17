@@ -1,0 +1,109 @@
+(function () {
+  'use strict';
+
+  const page = document.body.dataset.tsirdPage || 'drought';
+  const api = page === 'priority' ? '../../api/drought/public/release' : '../api/drought/public/release';
+  const releaseHref = page === 'priority' ? '../release/' : 'release/';
+  const panel = document.getElementById('public-drought-panel');
+  const map = new ol.Map({
+    target: 'public-drought-map',
+    layers: [new ol.layer.Tile({ source: new ol.source.OSM() })],
+    view: new ol.View({ center: ol.proj.fromLonLat([39.5, 13.7]), zoom: 7 })
+  });
+  const tabiaLayer = new ol.layer.Vector({ source: new ol.source.Vector(), zIndex: 20 });
+  map.addLayer(tabiaLayer);
+
+  const MODES = {
+    observed: { label: 'Latest', indicator: 'observed', value: 'rainfall_mm', unit: 'mm', note: 'Final retained CHIRPS rainfall evidence, shown as Tabia summaries.' },
+    rapid: { label: 'Rapid rain', indicator: 'rapid', value: 'rainfall_mm', unit: 'mm', note: 'Preliminary CHIRPS rainfall evidence. It is not a final classification.' },
+    vegetation: { label: 'Vegetation', indicator: 'vegetation', value: 'ndvi_mean', unit: '', note: 'Copernicus NDVI retained as contextual vegetation evidence.' },
+    soil_water: { label: 'Soil water', indicator: 'soil_water', value: 'swi040_mean', unit: '%', note: 'Coarse Copernicus soil-water context; it is not a Tabia-scale observation.' },
+    thermal: { label: 'Thermal', indicator: 'thermal', value: 'lst_c_mean', unit: '°C', note: 'Land-surface-temperature context, not measured air temperature.' },
+    water_use: { label: 'Crop water use', indicator: 'water_use', value: 'transpiration_mm', unit: 'mm', note: 'FAO WaPOR transpiration context, not crop extent, yield, or drought severity.' },
+    history: { label: 'History', unavailable: 'Historical per-Tabia traces are not included in this compact public release yet. The release never falls back to development history.' },
+    outlook: { label: 'Outlook', unavailable: 'No reviewed provider outlook is included in this approved public release.' },
+    exposure: { label: 'Exposure', exposure: true, value: 'population_decile', unit: ' decile', note: 'Static exposure context is shown separately; it is not a composite risk score.' },
+    priority: { label: 'Evidence replay', priority: true, value: 'retrospective_draft_code', unit: '', note: 'Neutral C1–C4 retrospective draft codes from retained evidence only; not an instruction or operational decision.' }
+  };
+  const colours = ['#e8eef4', '#f9d56e', '#f9a65a', '#e76f51', '#9b4d47', '#543b3b'];
+  const priorityColours = { C1: '#b91c1c', C2: '#ea580c', C3: '#f59e0b', C4: '#eab308', 'insufficient-evidence': '#64748b' };
+  let records = new Map();
+  let activeMode = page === 'priority' ? 'priority' : 'observed';
+  let activeAssetNames = new Set();
+
+  function esc(value) { return String(value == null ? '—' : value).replace(/[&<>'"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[c]); }
+  function number(value, digits) { return Number.isFinite(Number(value)) ? Number(value).toFixed(digits == null ? 1 : digits) : 'Not available'; }
+  function modeRecord(feature) { return records.get(feature.get('tsird_tabia_id')) || {}; }
+  function quantileColour(value, values) {
+    if (!Number.isFinite(Number(value))) return '#64748b';
+    const usable = values.filter(Number.isFinite).sort((a, b) => a - b);
+    if (!usable.length) return '#64748b';
+    const position = usable.findIndex(item => item >= Number(value));
+    return colours[Math.max(0, Math.min(colours.length - 1, Math.floor((position < 0 ? usable.length - 1 : position) * colours.length / usable.length)))];
+  }
+  function currentValues() {
+    const mode = MODES[activeMode];
+    return Array.from(records.values()).map(record => Number(record[mode.value])).filter(Number.isFinite);
+  }
+  function tabiaStyle(feature) {
+    const mode = MODES[activeMode];
+    const record = modeRecord(feature);
+    const fill = mode.priority ? (priorityColours[record.retrospective_draft_code] || '#64748b') : quantileColour(record[mode.value], currentValues());
+    return new ol.style.Style({ fill: new ol.style.Fill({ color: `${fill}b8` }), stroke: new ol.style.Stroke({ color: '#ffffff', width: .55 }) });
+  }
+  tabiaLayer.setStyle(tabiaStyle);
+
+  function latestRunText(workspace, indicator) {
+    const run = workspace.indicators[indicator] && workspace.indicators[indicator].run;
+    if (!run) return 'No retained source summary in this release.';
+    const date = run.source_period_end || run.observation_end || run.period_end || run.source_latest_month || 'date not recorded';
+    return `${esc(run.source_product || 'Retained source')} · ${esc(String(date).slice(0, 10))} · ${esc(run.status || 'retained')}`;
+  }
+  function renderPanel(release, workspace) {
+    const mode = MODES[activeMode];
+    const controls = Object.entries(MODES).filter(([key]) => page !== 'priority' || key === 'priority').map(([key, item]) => `<button type="button" data-mode="${key}" class="${key === activeMode ? 'is-active' : ''}">${item.label}</button>`).join('');
+    const sourceText = mode.unavailable ? mode.unavailable : (mode.priority ? 'The approved replay geometry is shown separately from FEWS NET provider-native context.' : latestRunText(workspace, mode.indicator));
+    panel.innerHTML = `<h1>${page === 'priority' ? 'Retrospective Evidence Replay' : 'Drought intelligence'}</h1><div class="public-drought-banner">Approved public release <b>${esc(release.release_id)}</b><br><small>${esc(release.public_scope)}</small></div><div class="public-drought-modes">${controls}</div><h2>${esc(mode.label)}</h2><p class="public-drought-meta">${sourceText}</p><p>${esc(mode.note || '')}</p><div class="public-drought-detail" data-detail>${mode.unavailable ? `<strong>Not included in this release</strong><p>${esc(mode.unavailable)}</p>` : 'Select a coloured Tabia to read the retained evidence summary.'}</div><h2>Map key</h2><ul class="public-drought-legend">${mode.priority ? Object.entries(priorityColours).map(([key, colour]) => `<li><i class="public-drought-swatch" style="background:${colour}"></i>${key} retrospective draft code</li>`).join('') : `<li><i class="public-drought-swatch" style="background:${colours[0]}"></i>lower retained value</li><li><i class="public-drought-swatch" style="background:${colours[colours.length - 1]}"></i>higher retained value</li><li><i class="public-drought-swatch" style="background:#64748b"></i>insufficient evidence</li>`}</ul><p class="public-drought-footnote">This public workspace uses only the approved release package. It has no raw grids, development controls, n8n status, or model-scoring path. <a href="${releaseHref}">Open the dedicated evidence replay and FEWS NET view</a>.</p>`;
+    panel.querySelectorAll('[data-mode]').forEach(button => button.addEventListener('click', () => { activeMode = button.dataset.mode; tabiaLayer.changed(); renderPanel(release, workspace); }));
+  }
+  function setDetail(feature, workspace) {
+    const target = panel.querySelector('[data-detail]');
+    const mode = MODES[activeMode];
+    const record = modeRecord(feature);
+    if (!target || mode.unavailable) return;
+    let rows;
+    if (mode.priority) rows = [['Stored draft code', record.retrospective_draft_code], ['Rainfall', `${number(record.rainfall_mm)} mm`], ['Rainfall percentile', record.rainfall_percentile], ['Evidence state', record.evidence_state]];
+    else if (mode.exposure) rows = [['Population context', record.population_decile], ['Cropland context', record.cropland_decile], ['Accessibility context', record.accessibility_context]];
+    else rows = [[mode.label, `${number(record[mode.value], mode.indicator === 'vegetation' ? 3 : 1)}${mode.unit}`], ['Coverage', `${number(record.coverage_pct)}%`], ['Quality', record.quality_status]];
+    target.innerHTML = `<strong>${esc(record.tabia_name_en || feature.get('tabia_name_en'))} — ${esc(record.woreda_name_en || feature.get('woreda_name_en'))}</strong><dl>${rows.map(([label, value]) => `<dt>${esc(label)}</dt><dd>${esc(value)}</dd>`).join('')}</dl>`;
+  }
+  async function load() {
+    let release;
+    try { const response = await fetch(api, { cache: 'no-store' }); if (response.status === 404) throw new Error('No approved public evidence release is available yet.'); if (!response.ok) throw new Error(`Release metadata returned ${response.status}`); release = await response.json(); }
+    catch (error) { panel.innerHTML = `<h1>Drought intelligence</h1><div class="public-drought-banner warning">${esc(error.message)}</div><p>This route never displays development data. Use the release process to publish an approved compact evidence package.</p>`; return; }
+    const assets = new Map(release.assets.map(asset => [asset.asset_id, asset]));
+    const workspaceAsset = assets.get('drought-workspace-latest');
+    const replayAsset = assets.get('priority-replay-latest');
+    if (!workspaceAsset || !replayAsset) { panel.innerHTML = `<h1>Drought intelligence</h1><div class="public-drought-banner warning">This approved release predates the public workspace payload.</div><p>The dedicated <a href="release/">retrospective evidence replay</a> remains available. A later approved package is required before this familiar conditions workspace can be populated.</p>`; return; }
+    try {
+      const [workspaceResponse, replayResponse] = await Promise.all([fetch(workspaceAsset.url, { cache: 'no-store' }), fetch(replayAsset.url, { cache: 'no-store' })]);
+      if (!workspaceResponse.ok || !replayResponse.ok) throw new Error('Required public workspace assets are unavailable.');
+      const workspace = await workspaceResponse.json();
+      const replay = await replayResponse.json();
+      Object.entries(workspace.indicators || {}).forEach(([indicator, payload]) => (payload.summaries || []).forEach(summary => {
+        const id = summary.tsird_tabia_id;
+        if (!id) return;
+        const record = records.get(id) || {};
+        Object.assign(record, summary);
+        records.set(id, record);
+      }));
+      const features = new ol.format.GeoJSON().readFeatures(replay, { featureProjection: 'EPSG:3857' });
+      features.forEach(feature => { const id = feature.get('tsird_tabia_id'); const record = records.get(id) || {}; Object.assign(record, feature.getProperties()); records.set(id, record); });
+      tabiaLayer.getSource().addFeatures(features);
+      if (!tabiaLayer.getSource().isEmpty()) map.getView().fit(tabiaLayer.getSource().getExtent(), { padding: [30, 30, 30, 30], maxZoom: 10 });
+      renderPanel(release, workspace);
+      map.on('singleclick', event => { const feature = map.forEachFeatureAtPixel(event.pixel, candidate => candidate); if (feature) setDetail(feature, workspace); });
+    } catch (error) { panel.innerHTML = `<h1>Drought intelligence</h1><div class="public-drought-banner warning">${esc(error.message)}</div>`; }
+  }
+  load();
+}());
