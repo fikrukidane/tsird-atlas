@@ -44,6 +44,12 @@ const SUMMARY_FIELDS = {
 };
 const HISTORY_SOURCES = ["rapid", "ndvi", "swi", "lst", "wapor"];
 const HISTORY_FIELDS = ["tsird_tabia_id", "value", "baseline_median_mm", "percentile", "comparison_status", "coverage_pct", "quality_status", "reference_median", "reference_deviation_pct", "reference_year_count", "reference_status"];
+const EXPOSURE_MEASURES = ["population", "cropland", "road"];
+const EXPOSURE_PROPERTIES = {
+  population: ["tsird_tabia_id", "tabia_name_en", "woreda_name_en", "population_total", "people_per_sq_km", "coverage_pct", "quality_status"],
+  cropland: ["tsird_tabia_id", "tabia_name_en", "woreda_name_en", "cropland_pct", "cropland_area_ha", "coverage_pct", "quality_status"],
+  road: ["tsird_tabia_id", "tabia_name_en", "woreda_name_en", "nearest_road_m", "tigray_roads_2006_intersects", "quality_status"],
+};
 
 const now = () => new Date().toISOString().replace(/\.\d{3}Z$/, "Z");
 // Match the VPS forced-command contract: ISO date separators remain while
@@ -122,6 +128,23 @@ function tabiaGeometry(payload) {
     return {type:"Feature",geometry:feature.geometry,properties};
   })};
 }
+function publicExposure(measure, payload, expectedTabiaIds) {
+  if (!EXPOSURE_PROPERTIES[measure] || payload.type !== "FeatureCollection" || !Array.isArray(payload.features)) fail(`${measure} exposure payload is not a FeatureCollection`);
+  const ids = new Set();
+  const features = payload.features.map((feature) => {
+    const properties = feature && feature.properties;
+    const geometry = feature && feature.geometry;
+    const tabiaId = properties && properties.tsird_tabia_id;
+    if (typeof tabiaId !== "string" || !geometry || typeof geometry !== "object") fail(`${measure} exposure feature is incomplete`);
+    ids.add(tabiaId);
+    const safe = {}; for (const key of EXPOSURE_PROPERTIES[measure]) if (Object.hasOwn(properties, key)) safe[key] = properties[key];
+    return {type:"Feature", id:tabiaId, geometry, properties:safe};
+  });
+  if (ids.size !== expectedTabiaIds.size || [...ids].some((id) => !expectedTabiaIds.has(id))) fail(`${measure} exposure does not cover the released Tabia boundary set`);
+  const metadata = payload.metadata && typeof payload.metadata === "object" ? payload.metadata : {};
+  const safeMetadata = {}; for (const key of ["measure", "run_id", "reference_year", "source_release", "cropland_class", "native_resolution", "source_product", "method"]) if (Object.hasOwn(metadata, key)) safeMetadata[key] = metadata[key];
+  return {type:"FeatureCollection", schema_version:"tsird-public-tabia-exposure/v1", metadata:safeMetadata, features};
+}
 async function main() {
   const host = process.argv[2] || "";
   if (!/^[A-Za-z0-9.-]+$/.test(host)) fail("production host is invalid");
@@ -145,6 +168,10 @@ async function main() {
     observedSnapshots[runId] = observedSnapshot(await getJson(`/map/api/drought/development/observed-rainfall/runs/${encodeURIComponent(runId)}?limit=748`));
     if (!geometry) geometry = tabiaGeometry(await getJson(`/map/api/drought/development/observed-rainfall/runs/${encodeURIComponent(runId)}/features`));
   }
+  const expectedTabiaIds = new Set(geometry.features.map((feature) => feature.properties.tsird_tabia_id));
+  if (!expectedTabiaIds.size) fail("released Tabia geometry is incomplete");
+  const exposures = {};
+  for (const measure of EXPOSURE_MEASURES) exposures[measure] = publicExposure(measure, await getJson(`/map/api/drought/development/exposure/${measure}/features`), expectedTabiaIds);
   const histories = {};
   for (const source of HISTORY_SOURCES) {
     const index = historyIndex(source, await getJson(`/map/api/drought/development/evidence/${source}/runs`));
@@ -161,7 +188,7 @@ async function main() {
     observation_start:run.observation_start, observation_end:run.observation_end, quality_summary:run.quality_summary,
     source_product:run.provenance && run.provenance.source_product, method:run.provenance && run.provenance.method,
     interpretation_boundary:"Retained rainfall evidence only; it does not create a drought class or combined score." })) };
-  const fingerprint = crypto.createHash("sha256").update(JSON.stringify({workspace, publicRainfall, observedRuns, observedSnapshots, histories, rasters:RASTERS.map((entry) => [entry[1], sha256(path.join(NATIVE_ROOT, entry[1]))])})).digest("hex");
+  const fingerprint = crypto.createHash("sha256").update(JSON.stringify({workspace, publicRainfall, observedRuns, observedSnapshots, histories, exposures, rasters:RASTERS.map((entry) => [entry[1], sha256(path.join(NATIVE_ROOT, entry[1]))])})).digest("hex");
   fs.mkdirSync(STAGING_ROOT, {recursive:true, mode:0o700});
   const receiptFile = path.join(STAGING_ROOT, "last-successful-fingerprint.json");
   if (fs.existsSync(receiptFile)) { try { if (JSON.parse(fs.readFileSync(receiptFile, "utf8")).fingerprint === fingerprint) { console.log(JSON.stringify({status:"current", note:"No retained indicator or native raster change; public pointer was not moved."})); return; } } catch {} }
@@ -172,6 +199,7 @@ async function main() {
     written["drought-workspace-latest.json"] = writeJson(path.join(releaseDir, "drought-workspace-latest.json"), workspace);
     written["tabia-geometry.json"] = writeJson(path.join(releaseDir, "tabia-geometry.json"), geometry);
     written["observed-rainfall-runs.json"] = writeJson(path.join(releaseDir, "observed-rainfall-runs.json"), observedRuns);
+    for (const [measure, features] of Object.entries(exposures)) written[`exposure-${measure}.json`] = writeJson(path.join(releaseDir, `exposure-${measure}.json`), features);
     for (const [runId, snapshot] of Object.entries(observedSnapshots)) written[`observed-rainfall-run-${safeSuffix(runId)}.json`] = writeJson(path.join(releaseDir, `observed-rainfall-run-${safeSuffix(runId)}.json`), snapshot);
     for (const [source, history] of Object.entries(histories)) {
       written[`evidence-${source}-runs.json`] = writeJson(path.join(releaseDir, `evidence-${source}-runs.json`), history.index);
@@ -187,6 +215,8 @@ async function main() {
       asset("observed-rainfall-runs", "drought_evidence_summary", "observed-rainfall-runs.json", ...written["observed-rainfall-runs.json"], "TSIRD retained observed rainfall snapshot index", start, end, observedRuns.schema_version, `${boundary} Historical selections remain archived observations.`),
       asset("release-status", "public_status", "status.json", ...written["status.json"], "TSIRD automated indicator validator", start, end, status.schema_version, "Publication provenance only; it is not a scientific certification or operational decision."),
     ];
+    const exposureSources = {population:"WorldPop 2025 Tabia population baseline", cropland:"ESA WorldCover 2021 Tabia cropland baseline", road:"TSIRD Tigray Roads 2006 Tabia road-proximity baseline"};
+    for (const measure of EXPOSURE_MEASURES) assets.push(asset(`exposure-${measure}`, "vector_display_summary", `exposure-${measure}.json`, ...written[`exposure-${measure}.json`], exposureSources[measure], start, end, exposures[measure].schema_version, "Static Tabia context shown separately; it is not a composite risk, food-security classification, allocation recommendation, or operational decision."));
     for (const run of observedRuns.runs) {
       const filename=`observed-rainfall-run-${safeSuffix(run.run_id)}.json`; const [runStart,runEnd]=windowFor(run);
       assets.push(asset(`observed-rainfall-run-${safeSuffix(run.run_id)}`, "vector_display_summary", filename, ...written[filename], "TSIRD retained observed rainfall Tabia snapshot", runStart, runEnd, observedSnapshots[run.run_id].schema_version, `${boundary} Historical snapshot is an archived observation, not a forecast or a past decision product.`));
