@@ -179,7 +179,7 @@ def main():
     run_id = f"chirps-v3-{args.analysis_year}-{'-'.join(map(str, months))}-baseline-{args.baseline_start}-{args.baseline_end}"
     historical_raster = root / "published" / f"{run_id}.tif"
     publish_rainfall_total(current, historical_raster)
-    if not args.defer_current_publish:
+    if not args.defer_current_publish and os.environ.get("TSIRD_RETAIN_HISTORICAL_ONLY") != "1":
         publish_rainfall_total(current, root / "published" / "chirps-current-rainfall.tif")
     baseline = {year: [cache_clip(cache, year, month, bounds)[0] for month in months]
                 for year in range(args.baseline_start, args.baseline_end + 1)}

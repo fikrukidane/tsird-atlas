@@ -66,7 +66,7 @@ LAYER
   STATUS OFF
   CONNECTIONTYPE POSTGIS
   CONNECTION "host=tsird-postgis port=5432 dbname=tsird user=tsird password=change_me_strong"
-  DATA "geometry FROM (SELECT t.gid, t.geometry, t.\"TABIA\", t.\"WEREDA\", c.percentile, c.condition_class, c.rainfall_mm, c.baseline_median_mm, c.grid_cell_count, c.coverage_pct, c.quality_status FROM tigray_tabias_ws t JOIN tsird.drought_tabia_rainfall_condition c USING (tsird_tabia_id) WHERE c.run_id = 'chirps-v3-2026-6-7-baseline-1991-2020' AND c.quality_status = 'ok') AS drought USING UNIQUE gid USING SRID=4326"
+  DATA "geometry FROM (SELECT t.gid, t.geometry, t.\"TABIA\", t.\"WEREDA\", c.percentile, c.condition_class, c.rainfall_mm, c.baseline_median_mm, c.grid_cell_count, c.coverage_pct, c.quality_status FROM tigray_tabias_ws t JOIN tsird.drought_tabia_rainfall_condition c USING (tsird_tabia_id) WHERE c.run_id=(SELECT run_id FROM tsird.drought_rainfall_run WHERE status='development' ORDER BY source_latest_month DESC, cardinality(season_months) DESC, created_at DESC LIMIT 1) AND c.quality_status='ok') AS drought USING UNIQUE gid USING SRID=4326"
   CLASSITEM "rainfall_mm"
   METADATA
     "wms_title" "Tigray Latest Rainfall Condition (CHIRPS v3, development)"
@@ -98,7 +98,7 @@ LAYER
   STATUS OFF
   CONNECTIONTYPE POSTGIS
   CONNECTION "host=tsird-postgis port=5432 dbname=tsird user=tsird password=change_me_strong"
-  DATA "geometry FROM (SELECT t.gid,t.geometry,t.\"TABIA\",t.\"WEREDA\",n.ndvi_mean,n.coverage_pct,n.quality_status FROM tigray_tabias_ws t JOIN tsird.drought_tabia_ndvi n USING (tsird_tabia_id) WHERE n.run_id=(SELECT run_id FROM tsird.drought_ndvi_run ORDER BY created_at DESC LIMIT 1) AND n.quality_status='ok') AS ndvi USING UNIQUE gid USING SRID=4326"
+  DATA "geometry FROM (SELECT t.gid,t.geometry,t.\"TABIA\",t.\"WEREDA\",n.ndvi_mean,n.coverage_pct,n.quality_status FROM tigray_tabias_ws t JOIN tsird.drought_tabia_ndvi n USING (tsird_tabia_id) WHERE n.run_id=(SELECT run_id FROM tsird.drought_ndvi_run ORDER BY observation_end DESC, created_at DESC LIMIT 1) AND n.quality_status='ok') AS ndvi USING UNIQUE gid USING SRID=4326"
   CLASSITEM "ndvi_mean"
   METADATA
     "wms_title" "Tigray Vegetation Condition (NDVI, development)"
@@ -124,7 +124,7 @@ LAYER
   STATUS OFF
   CONNECTIONTYPE POSTGIS
   CONNECTION "host=tsird-postgis port=5432 dbname=tsird user=tsird password=change_me_strong"
-  DATA "geometry FROM (SELECT t.gid,t.geometry,t.\"TABIA\",t.\"WEREDA\",s.swi040_mean,s.coverage_pct,s.quality_status FROM tigray_tabias_ws t JOIN tsird.drought_tabia_swi s USING (tsird_tabia_id) WHERE s.run_id=(SELECT run_id FROM tsird.drought_swi_run ORDER BY created_at DESC LIMIT 1) AND s.quality_status='ok') AS swi USING UNIQUE gid USING SRID=4326"
+  DATA "geometry FROM (SELECT t.gid,t.geometry,t.\"TABIA\",t.\"WEREDA\",s.swi040_mean,s.coverage_pct,s.quality_status FROM tigray_tabias_ws t JOIN tsird.drought_tabia_swi s USING (tsird_tabia_id) WHERE s.run_id=(SELECT run_id FROM tsird.drought_swi_run ORDER BY observation_at DESC, created_at DESC LIMIT 1) AND s.quality_status='ok') AS swi USING UNIQUE gid USING SRID=4326"
   CLASSITEM "swi040_mean"
   METADATA
     "wms_title" "Tigray Soil-water Context (SWI-040, development)"
@@ -150,7 +150,7 @@ LAYER
   STATUS OFF
   CONNECTIONTYPE POSTGIS
   CONNECTION "host=tsird-postgis port=5432 dbname=tsird user=tsird password=change_me_strong"
-  DATA "geometry FROM (SELECT t.gid,t.geometry,t.\"TABIA\",t.\"WEREDA\",l.lst_c_mean,l.errorbar_c_mean,l.coverage_pct,l.quality_status FROM tigray_tabias_ws t JOIN tsird.drought_tabia_lst l USING (tsird_tabia_id) WHERE l.run_id=(SELECT run_id FROM tsird.drought_lst_run ORDER BY created_at DESC LIMIT 1) AND l.quality_status='ok') AS lst USING UNIQUE gid USING SRID=4326"
+  DATA "geometry FROM (SELECT t.gid,t.geometry,t.\"TABIA\",t.\"WEREDA\",l.lst_c_mean,l.errorbar_c_mean,l.coverage_pct,l.quality_status FROM tigray_tabias_ws t JOIN tsird.drought_tabia_lst l USING (tsird_tabia_id) WHERE l.run_id=(SELECT run_id FROM tsird.drought_lst_run ORDER BY observation_at DESC, created_at DESC LIMIT 1) AND l.quality_status='ok') AS lst USING UNIQUE gid USING SRID=4326"
   CLASSITEM "lst_c_mean"
   METADATA
     "wms_title" "Tigray Thermal Context (LST, development)"
@@ -221,7 +221,7 @@ LAYER
   STATUS OFF
   CONNECTIONTYPE POSTGIS
   CONNECTION "host=tsird-postgis port=5432 dbname=tsird user=tsird password=change_me_strong"
-  DATA "geometry FROM (SELECT t.gid,t.geometry,t.\"TABIA\",t.\"WEREDA\",p.rainfall_mm,p.coverage_pct,p.quality_status FROM tigray_tabias_ws t JOIN tsird.drought_tabia_preliminary_rainfall p USING (tsird_tabia_id) WHERE p.run_id=(SELECT run_id FROM tsird.drought_preliminary_rainfall_run ORDER BY created_at DESC LIMIT 1) AND p.quality_status='ok') AS rapid USING UNIQUE gid USING SRID=4326"
+  DATA "geometry FROM (SELECT t.gid,t.geometry,t.\"TABIA\",t.\"WEREDA\",p.rainfall_mm,p.coverage_pct,p.quality_status FROM tigray_tabias_ws t JOIN tsird.drought_tabia_preliminary_rainfall p USING (tsird_tabia_id) WHERE p.run_id=(SELECT run_id FROM tsird.drought_preliminary_rainfall_run WHERE status='development' ORDER BY period_end DESC, created_at DESC LIMIT 1) AND p.quality_status='ok') AS rapid USING UNIQUE gid USING SRID=4326"
   CLASSITEM "rainfall_mm"
   METADATA
     "wms_title" "Tigray Rapid Rainfall Total (CHIRPS preliminary Tabia summary, development)"
@@ -314,7 +314,7 @@ LAYER
   STATUS OFF
   CONNECTIONTYPE POSTGIS
   CONNECTION "host=tsird-postgis port=5432 dbname=tsird user=tsird password=change_me_strong"
-  DATA "geometry FROM (SELECT t.gid,t.geometry,t.\"TABIA\",t.\"WEREDA\",w.transpiration_mm,w.aeti_mm,w.coverage_pct,w.quality_status FROM tigray_tabias_ws t JOIN tsird.drought_tabia_wapor w USING (tsird_tabia_id) WHERE w.run_id=(SELECT run_id FROM tsird.drought_wapor_run ORDER BY created_at DESC LIMIT 1) AND w.quality_status='ok') AS wapor USING UNIQUE gid USING SRID=4326"
+  DATA "geometry FROM (SELECT t.gid,t.geometry,t.\"TABIA\",t.\"WEREDA\",w.transpiration_mm,w.aeti_mm,w.coverage_pct,w.quality_status FROM tigray_tabias_ws t JOIN tsird.drought_tabia_wapor w USING (tsird_tabia_id) WHERE w.run_id=(SELECT run_id FROM tsird.drought_wapor_run ORDER BY source_period_end DESC, created_at DESC LIMIT 1) AND w.quality_status='ok') AS wapor USING UNIQUE gid USING SRID=4326"
   CLASSITEM "transpiration_mm"
   METADATA
     "wms_title" "Tigray Agricultural Water Use (FAO WaPOR transpiration, development)"

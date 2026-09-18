@@ -135,7 +135,8 @@ def main():
     run_id = f"chirps-v3-prelim-{selected[0][0]}{selected[0][1]:02d}{selected[0][2]}-to-{end_year}{end_month:02d}{end_pentad}"
     historical_raster = root / "published" / f"{run_id}.tif"
     publish_rainfall_total(paths, historical_raster)
-    publish_rainfall_total(paths, root / "published" / "chirps-rapid-rainfall.tif")
+    if os.environ.get("TSIRD_RETAIN_HISTORICAL_ONLY") != "1":
+        publish_rainfall_total(paths, root / "published" / "chirps-rapid-rainfall.tif")
     base = output / run_id
     with base.with_suffix('.csv').open('w', newline='', encoding='utf-8') as handle:
         writer = csv.DictWriter(handle, fieldnames=rows[0].keys()); writer.writeheader(); writer.writerows(rows)

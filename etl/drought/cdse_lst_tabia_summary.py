@@ -91,8 +91,10 @@ def main():
     root = Path("/data/drought"); raw = root / "raw" / "cdse-clms-lst-v2"; outputs = root / "outputs"
     raw.mkdir(parents=True, exist_ok=True); outputs.mkdir(parents=True, exist_ok=True)
     raster = raw / f"{run_id}.tif"; checksum = retrieve(token, collection, bounds, stamp, raster)
-    publish_provider_band(raster, root / "published" / "lst-current.tif", band=1,
-                          scale=0.01, offset=0, mask_band=5)
+    historical_only = os.environ.get("TSIRD_RETAIN_HISTORICAL_ONLY") == "1"
+    if not historical_only:
+        publish_provider_band(raster, root / "published" / "lst-current.tif", band=1,
+                              scale=0.01, offset=0, mask_band=5)
     rows = []
     for tabia_id, tabia, woreda, geometry in tabias:
         row = {"tsird_tabia_id": tabia_id, "tabia_name_en": tabia, "woreda_name_en": woreda}; row.update(tabia_stats(raster, geometry)); rows.append(row)
@@ -103,6 +105,7 @@ def main():
                 "observation_at": stamp, "native_resolution": "approximately 5 km, hourly", "raster_path": str(raster), "raster_sha256": checksum,
                 "source_retrieved_at": datetime.now(timezone.utc).isoformat(), "source_age_days": round(age, 1),
                 "method": "Tabia zonal means: LST, ERRORBAR, PPP, QFLAG; LST and ERRORBAR raw values scaled /100 to degrees Celsius",
+                "historical_retention_only": historical_only,
                 "publication_note": "Development artifact only. Land-surface temperature is thermal context, not an air-temperature observation, drought class, or food-security prediction."}
     base.with_suffix(".manifest.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
     print(json.dumps({"run_id": run_id, "status": status, "rows": len(rows), "raster_bytes": raster.stat().st_size}))
