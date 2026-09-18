@@ -11,6 +11,34 @@ services:
   tsird-web:
     image: ${TSIRD_WEB_IMAGE:-ghcr.io/fikrukidane/tsird-atlas-web:REPLACE_ME}
     build: !reset null
+    # Development and production share immutable web images.  These small
+    # production-only HTML overlays keep the familiar route names while
+    # preventing public pages from calling development APIs or controls.
+    volumes:
+      - type: bind
+        source: ./infra/production-public-web/drought/index.html
+        target: /usr/share/nginx/html/drought/index.html
+        read_only: true
+      - type: bind
+        source: ./infra/production-public-web/drought/priority/index.html
+        target: /usr/share/nginx/html/drought/priority/index.html
+        read_only: true
+      - type: bind
+        source: ./infra/production-public-web/drought/release/index.html
+        target: /usr/share/nginx/html/drought/release/index.html
+        read_only: true
+      - type: bind
+        source: ./infra/production-public-web/drought/priority/model/index.html
+        target: /usr/share/nginx/html/drought/priority/model/index.html
+        read_only: true
+      - type: bind
+        source: ./infra/production-public-web/drought/priority/scenario/index.html
+        target: /usr/share/nginx/html/drought/priority/scenario/index.html
+        read_only: true
+      - type: bind
+        source: ./infra/production-public-web/drought/control/index.html
+        target: /usr/share/nginx/html/drought/control/index.html
+        read_only: true
 
   tsird-api:
     image: ${TSIRD_API_IMAGE:-ghcr.io/fikrukidane/tsird-atlas-api:REPLACE_ME}
@@ -21,6 +49,19 @@ services:
       - type: bind
         source: /opt/tigrayinsights/apps/tsird/releases/drought
         target: /data/drought/production-releases
+        read_only: true
+
+  # Only immutable, display-ready indicator packages are visible to MapServer.
+  # The parent mount lets the activation utility atomically replace `current`
+  # without a container restart and never exposes development source archives.
+  tsird-mapserver:
+    volumes:
+      - type: bind
+        source: /opt/tigrayinsights/apps/tsird/releases/drought/indicators
+        # /data is already an immutable bind mount in the base Compose file.
+        # Mount the approved package at a separate root-level path instead of
+        # attempting a nested mount below that read-only parent.
+        target: /production-indicators
         read_only: true
 
   tsird-edge:

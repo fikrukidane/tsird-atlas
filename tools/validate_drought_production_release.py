@@ -26,10 +26,21 @@ ALLOWED_KINDS = {
     "public_status",
     "static_documentation",
     "vector_display_summary",
+    "native_evidence_raster",
 }
 SHA256 = re.compile(r"^[a-f0-9]{64}$")
 RELEASE_ID = re.compile(r"^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{6}Z(?:-[a-z0-9][a-z0-9-]*)?$")
 PUBLIC_REPLAY_FORBIDDEN_PROPERTIES = {"planning_action", "priority_class", "priority_rank", "triggered_rules"}
+AUTO_INDICATOR_CHANNEL = "indicator-evidence"
+AUTO_INDICATOR_KINDS = {"drought_evidence_summary", "vector_display_summary", "public_status", "native_evidence_raster"}
+AUTO_INDICATOR_RASTERS = {
+    "native-raster-chirps": "chirps-current-rainfall.tif",
+    "native-raster-rapid": "chirps-rapid-rainfall.tif",
+    "native-raster-ndvi": "ndvi-current.tif",
+    "native-raster-swi": "swi040-current.tif",
+    "native-raster-lst": "lst-current.tif",
+    "native-raster-wapor": "wapor-transpiration-current.tif",
+}
 
 
 def fail(message: str) -> None:
@@ -118,6 +129,11 @@ def validate_asset(release_dir: Path, asset: Any, index: int, names: set[str]) -
     file_path = release_dir / relative_path
     if not file_path.is_file():
         fail(f"assets[{index}] referenced file is missing: {relative_path}")
+    if kind == "native_evidence_raster":
+        if AUTO_INDICATOR_RASTERS.get(asset_id) != str(relative_path):
+            fail("native evidence raster is not one of the fixed display-ready indicator files")
+        if file_path.is_symlink() or file_path.suffix.lower() not in {".tif", ".tiff"}:
+            fail("native evidence raster must be a regular TIFF file")
 
     size = asset.get("byte_size")
     if not isinstance(size, int) or size < 0:
@@ -151,7 +167,11 @@ def validate_asset(release_dir: Path, asset: Any, index: int, names: set[str]) -
         validate_public_replay_payload(file_path)
 
 
-def validate_release(release_dir: Path, allow_validated: bool) -> dict[str, Any]:
+def validate_release(
+    release_dir: Path,
+    allow_validated: bool,
+    allow_auto_validated_indicators: bool = False,
+) -> dict[str, Any]:
     manifest_path = release_dir / "manifest.json"
     if not manifest_path.is_file():
         fail(f"missing manifest: {manifest_path}")
@@ -171,12 +191,22 @@ def validate_release(release_dir: Path, allow_validated: bool) -> dict[str, Any]
         fail("release directory name must equal manifest release_id")
 
     state = manifest.get("release_state")
-    if state not in {"validated", "approved", "rejected"}:
-        fail("release_state must be validated, approved or rejected")
+    if state not in {"validated", "approved", "auto-validated", "rejected"}:
+        fail("release_state must be validated, approved, auto-validated or rejected")
     if state == "rejected":
         fail("rejected release cannot be staged or published")
     if state == "validated" and not allow_validated:
         fail("validated release is not approved for staging or publishing")
+    channel = manifest.get("release_channel", "reviewed-release")
+    if channel not in {"reviewed-release", AUTO_INDICATOR_CHANNEL}:
+        fail("release_channel must be reviewed-release or indicator-evidence")
+    if state == "auto-validated":
+        if channel != AUTO_INDICATOR_CHANNEL:
+            fail("auto-validated releases are permitted only for indicator-evidence")
+        if not allow_auto_validated_indicators:
+            fail("auto-validated indicator release requires the dedicated indicator publisher")
+    elif channel == AUTO_INDICATOR_CHANNEL:
+        fail("indicator-evidence releases must use auto-validated state")
     require_string(manifest.get("prepared_by"), "prepared_by")
     require_timestamp(manifest.get("prepared_at"), "prepared_at")
     if state == "approved":
@@ -193,6 +223,16 @@ def validate_release(release_dir: Path, allow_validated: bool) -> dict[str, Any]
     names: set[str] = set()
     for index, asset in enumerate(assets):
         validate_asset(release_dir, asset, index, names)
+        if state == "auto-validated" and asset.get("kind") not in AUTO_INDICATOR_KINDS:
+            fail("auto-validated indicator release contains a non-indicator asset")
+    if state == "auto-validated":
+        required = {"drought-evidence-summary", "drought-workspace-latest", "release-status", *AUTO_INDICATOR_RASTERS}
+        if not required.issubset(names):
+            fail("auto-validated indicator release lacks a required current indicator summary or fixed native raster")
+        allowed_history = re.compile(r"^(tabia-geometry|observed-rainfall-runs|observed-rainfall-run-[a-z0-9-]+|evidence-(rapid|ndvi|swi|lst|wapor)-runs|evidence-(rapid|ndvi|swi|lst|wapor)-run-[a-z0-9-]+)$")
+        unexpected = names - required
+        if any(not allowed_history.fullmatch(name) for name in unexpected):
+            fail("auto-validated indicator release contains an unapproved asset")
     return manifest
 
 
@@ -204,9 +244,18 @@ def main() -> int:
         action="store_true",
         help="permit a validated (but not approved) manifest for a local staging check only",
     )
+    parser.add_argument(
+        "--allow-auto-validated-indicators",
+        action="store_true",
+        help="permit an auto-validated indicator-evidence package for the dedicated publisher only",
+    )
     args = parser.parse_args()
     try:
-        manifest = validate_release(args.release_directory.resolve(), args.allow_validated)
+        manifest = validate_release(
+            args.release_directory.resolve(),
+            args.allow_validated,
+            args.allow_auto_validated_indicators,
+        )
     except ValueError:
         return 1
     print(

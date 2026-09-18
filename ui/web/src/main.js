@@ -86,18 +86,23 @@ async function initializeApplication(registryPath, options) {
         evidenceBaseUrl: options.droughtEvidenceBaseUrl,
         exposureUrl: options.droughtExposureUrl,
         boundaryUrl: options.droughtBoundaryUrl,
+        wmsBaseUrl: registry.wmsBaseUrl,
+        publicMode: options.droughtPublicMode,
+        publicGeometryUrl: options.droughtPublicGeometryUrl,
         onEnsureContextLayers: layerIds => layerIds.forEach(layerId => interaction.setLayerVisible(layerId, true)),
         onSetEvidenceLayer: activeLayerId => {
           ['tigray_drought_chirps_dev', 'tigray_drought_chirps_raw_dev', 'tigray_drought_chirps_rapid_raw_dev',
            'tigray_drought_chirps_rapid_tabia_dev', 'tigray_drought_ndvi_dev', 'tigray_drought_ndvi_raw_dev',
            'tigray_drought_swi_dev', 'tigray_drought_swi_raw_dev', 'tigray_drought_lst_dev', 'tigray_drought_lst_raw_dev',
            'tigray_drought_wapor_dev', 'tigray_drought_wapor_raw_dev',
+           'tigray_drought_chirps_raw_public', 'tigray_drought_chirps_rapid_raw_public',
+           'tigray_drought_ndvi_raw_public', 'tigray_drought_swi_raw_public', 'tigray_drought_lst_raw_public', 'tigray_drought_wapor_raw_public',
            'tigray_drought_road_accessibility_dev', 'tigray_drought_population_dev', 'tigray_drought_cropland_dev']
             .forEach(layerId => interaction.setLayerVisible(layerId, layerId === activeLayerId));
         }
       });
       await droughtDashboard.initialize();
-      if (!options.priorityOnly) interaction.setLayerVisible('tigray_drought_chirps_dev', true);
+      if (!options.priorityOnly && !options.droughtPublicMode) interaction.setLayerVisible('tigray_drought_chirps_dev', true);
       console.log('✓ Drought intelligence workspace initialized (development artifact)');
     }
 

@@ -8,7 +8,7 @@
 #
 # GetFeatureInfo Metadata Strategy:
 # - GetFeatureInfo is enabled via METADATA keywords: wms_include_items, gml_include_items, wms_feature_info_mime_type
-# - Each layer includes TEMPLATE "dummy.html" for HTML output format
+# - Each layer includes TEMPLATE "/etc/mapserver/dummy.html" for HTML output format
 # - The DUMP keyword (unsupported in MapServer 8.6.0) has been removed; METADATA + TEMPLATE provide feature attributes
 # - Each layer includes curated field lists for meaningful attribute queries
 # - See docs/atlas/vector_featureinfo_plan.yml for field curation rationale
@@ -38,7 +38,7 @@ LAYER
     "gml_include_items" "ZONES,AREA,PERIMETER,ETZONES01C,ETZONES01C_1"
     "wms_include_items" "ZONES,AREA,PERIMETER,ETZONES01C,ETZONES01C_1"
   END
-  TEMPLATE "dummy.html"
+  TEMPLATE "/etc/mapserver/dummy.html"
   CLASS
     STYLE
       OUTLINECOLOR 100 100 100
@@ -61,7 +61,7 @@ END
 #  METADATA
 #    "gml_include_items" "ZONENAME"
 #  END
-#  TEMPLATE "dummy.html"
+#  TEMPLATE "/etc/mapserver/dummy.html"
 #  CLASS
 #    STYLE
 #      OUTLINECOLOR 100 100 100
@@ -90,7 +90,7 @@ LAYER
     "gml_include_items" "W_NAME,REGION_R2I,Area_km2,Pop_04,Pop_Den,Admin_Unit"
     "wms_include_items" "W_NAME,REGION_R2I,Area_km2,Pop_04,Pop_Den,Admin_Unit"
   END
-  TEMPLATE "dummy.html"
+  TEMPLATE "/etc/mapserver/dummy.html"
   CLASS
     STYLE
       OUTLINECOLOR 100 100 100
@@ -116,7 +116,7 @@ LAYER
     "gml_include_items" "RDLNTYPETX,RDLNSTATTX,RDLNTYPE,RDLNSTAT,LENGTH"
     "wms_include_items" "RDLNTYPETX,RDLNSTATTX,RDLNTYPE,RDLNSTAT,LENGTH"
   END
-  TEMPLATE "dummy.html"
+  TEMPLATE "/etc/mapserver/dummy.html"
   CLASS
     STYLE
       COLOR 150 150 150
@@ -144,7 +144,7 @@ LAYER
     "gml_include_items" "TABIA,WEREDA,ZONES,SQ_KM,HECTARES,DENSITY"
     "wms_include_items" "TABIA,WEREDA,ZONES,SQ_KM,HECTARES,DENSITY"
   END
-  TEMPLATE "dummy.html"
+  TEMPLATE "/etc/mapserver/dummy.html"
   CLASS
     STYLE
       OUTLINECOLOR 100 100 100
@@ -173,7 +173,7 @@ LAYER
     "gml_include_items" "ELEVATION,LENGTH"
     "wms_include_items" "ELEVATION,LENGTH"
   END
-  TEMPLATE "dummy.html"
+  TEMPLATE "/etc/mapserver/dummy.html"
   CLASS
     STYLE
       COLOR 150 150 150
@@ -200,7 +200,7 @@ LAYER
     "gml_include_items" "Woreda_Nam,Woreda_ID,Type_of_in,Institutio,X_Coordina,Y_Coordina"
     "wms_include_items" "Woreda_Nam,Woreda_ID,Type_of_in,Institutio,X_Coordina,Y_Coordina"
   END
-  TEMPLATE "dummy.html"
+  TEMPLATE "/etc/mapserver/dummy.html"
   CLASS
     STYLE
       SYMBOL 0
@@ -229,7 +229,7 @@ LAYER
     "gml_include_items" "WEREDA,ZONE_NAME,Tot_Popula,SUM_SQ_KM,SUM_HECTAR,wor_name"
     "wms_include_items" "WEREDA,ZONE_NAME,Tot_Popula,SUM_SQ_KM,SUM_HECTAR,wor_name"
   END
-  TEMPLATE "dummy.html"
+  TEMPLATE "/etc/mapserver/dummy.html"
   CLASS
     STYLE
       OUTLINECOLOR 100 100 100
@@ -258,7 +258,7 @@ LAYER
     "gml_include_items" "NAME,OWNER,ZONE_,RDID,length_KM,LAYER"
     "wms_include_items" "NAME,OWNER,ZONE_,RDID,length_KM,LAYER"
   END
-  TEMPLATE "dummy.html"
+  TEMPLATE "/etc/mapserver/dummy.html"
   CLASS
     STYLE
       COLOR 150 150 150
@@ -284,7 +284,7 @@ LAYER
     "gml_include_items" "NAME,TYPE,OWNER,ZONE_,LENGTH_KM,NEAR_DIST"
     "wms_include_items" "NAME,TYPE,OWNER,ZONE_,LENGTH_KM,NEAR_DIST"
   END
-  TEMPLATE "dummy.html"
+  TEMPLATE "/etc/mapserver/dummy.html"
   CLASS
     STYLE
       COLOR 150 150 150
@@ -312,7 +312,7 @@ LAYER
     "gml_include_items" "Name,Type,Zone_Name,Woreda_Nam,T_Name,X"
     "wms_include_items" "Name,Type,Zone_Name,Woreda_Nam,T_Name,X"
   END
-  TEMPLATE "dummy.html"
+  TEMPLATE "/etc/mapserver/dummy.html"
   CLASS
     STYLE
       SYMBOL 0
@@ -341,7 +341,7 @@ LAYER
     "gml_include_items" "WEREDA,ZONE_NAME,Tot_Popula,SUM_SQ_KM,SUM_HECTAR,wor_name"
     "wms_include_items" "WEREDA,ZONE_NAME,Tot_Popula,SUM_SQ_KM,SUM_HECTAR,wor_name"
   END
-  TEMPLATE "dummy.html"
+  TEMPLATE "/etc/mapserver/dummy.html"
   CLASS
     STYLE
       OUTLINECOLOR 100 100 100
@@ -370,7 +370,7 @@ LAYER
     "gml_include_items" "TOWN_NAME,WEREDA,REGION,ZONES,POP,POPTOT"
     "wms_include_items" "TOWN_NAME,WEREDA,REGION,ZONES,POP,POPTOT"
   END
-  TEMPLATE "dummy.html"
+  TEMPLATE "/etc/mapserver/dummy.html"
   CLASS
     STYLE
       SYMBOL 0
@@ -399,7 +399,7 @@ LAYER
     "gml_include_items" "NAME1,NAME2,NAME3,COUNTRY,CODE,SQKM"
     "wms_include_items" "NAME1,NAME2,NAME3,COUNTRY,CODE,SQKM"
   END
-  TEMPLATE "dummy.html"
+  TEMPLATE "/etc/mapserver/dummy.html"
   CLASS
     STYLE
       OUTLINECOLOR 100 100 100
@@ -428,7 +428,7 @@ LAYER
     "gml_include_items" "BASIN_NAME,BASIN_NR,BASIN,SQKM,BASIN_COD"
     "wms_include_items" "BASIN_NAME,BASIN_NR,BASIN,SQKM,BASIN_COD"
   END
-  TEMPLATE "dummy.html"
+  TEMPLATE "/etc/mapserver/dummy.html"
   CLASS
     STYLE
       OUTLINECOLOR 100 100 100
@@ -457,7 +457,7 @@ LAYER
     "gml_include_items" "AREA,PERIMETER"
     "wms_include_items" "AREA,PERIMETER"
   END
-  TEMPLATE "dummy.html"
+  TEMPLATE "/etc/mapserver/dummy.html"
   CLASS
     STYLE
       OUTLINECOLOR 100 100 100
@@ -486,7 +486,7 @@ LAYER
     "gml_include_items" "REGION,AREA,PERIMETER"
     "wms_include_items" "REGION,AREA,PERIMETER"
   END
-  TEMPLATE "dummy.html"
+  TEMPLATE "/etc/mapserver/dummy.html"
   CLASS
     STYLE
       OUTLINECOLOR 100 100 100
@@ -515,7 +515,7 @@ LAYER
     "gml_include_items" "ZONES,AREA,PERIMETER"
     "wms_include_items" "ZONES,AREA,PERIMETER"
   END
-  TEMPLATE "dummy.html"
+  TEMPLATE "/etc/mapserver/dummy.html"
   CLASS
     STYLE
       OUTLINECOLOR 100 100 100
@@ -544,7 +544,7 @@ LAYER
     "gml_include_items" "ELEVATION,LENGTH"
     "wms_include_items" "ELEVATION,LENGTH"
   END
-  TEMPLATE "dummy.html"
+  TEMPLATE "/etc/mapserver/dummy.html"
   CLASS
     STYLE
       COLOR 150 150 150
@@ -572,7 +572,7 @@ LAYER
     "gml_include_items" "all"
     "wms_include_items" "all"
   END
-  TEMPLATE "dummy.html"
+  TEMPLATE "/etc/mapserver/dummy.html"
   CLASS
     STYLE
       OUTLINECOLOR 100 100 100
@@ -627,7 +627,7 @@ LAYER
     "gml_include_items" "CONTOUR,LENGTH"
     "wms_include_items" "CONTOUR,LENGTH"
   END
-  TEMPLATE "dummy.html"
+  TEMPLATE "/etc/mapserver/dummy.html"
   CLASS
     STYLE
       COLOR 150 150 150
@@ -655,7 +655,7 @@ LAYER
     "gml_include_items" "CODE,WATER,ACRES,HECTARES"
     "wms_include_items" "CODE,WATER,ACRES,HECTARES"
   END
-  TEMPLATE "dummy.html"
+  TEMPLATE "/etc/mapserver/dummy.html"
   CLASS
     STYLE
       OUTLINECOLOR 100 100 100
@@ -684,7 +684,7 @@ LAYER
     "gml_include_items" "NAME,BASINNAME,TYPE,HY_BAS,HY_SBA,WATRANK"
     "wms_include_items" "NAME,BASINNAME,TYPE,HY_BAS,HY_SBA,WATRANK"
   END
-  TEMPLATE "dummy.html"
+  TEMPLATE "/etc/mapserver/dummy.html"
   CLASS
     STYLE
       OUTLINECOLOR 100 100 100
@@ -713,7 +713,7 @@ LAYER
     "gml_include_items" "NAME,FAOSOIL,TAXON,SOILTYPE,PHASE1,PHASE2"
     "wms_include_items" "NAME,FAOSOIL,TAXON,SOILTYPE,PHASE1,PHASE2"
   END
-  TEMPLATE "dummy.html"
+  TEMPLATE "/etc/mapserver/dummy.html"
   CLASS
     STYLE
       OUTLINECOLOR 100 100 100
@@ -742,7 +742,7 @@ LAYER
     "gml_include_items" "LCPYTYPETX,HECTARES"
     "wms_include_items" "LCPYTYPETX,HECTARES"
   END
-  TEMPLATE "dummy.html"
+  TEMPLATE "/etc/mapserver/dummy.html"
   CLASS
     STYLE
       OUTLINECOLOR 100 100 100
@@ -774,7 +774,7 @@ LAYER
     "gml_include_items" "VEGNTX,VEGN,HECTARES"
     "wms_include_items" "VEGNTX,VEGN,HECTARES"
   END
-  TEMPLATE "dummy.html"
+  TEMPLATE "/etc/mapserver/dummy.html"
   CLASS
     STYLE
       OUTLINECOLOR 100 100 100
@@ -803,7 +803,7 @@ LAYER
     "gml_include_items" "AREANAME,IUCNCAT,DESIGNATE,YEAR,SIZE,CNTRYNAME"
     "wms_include_items" "AREANAME,IUCNCAT,DESIGNATE,YEAR,SIZE,CNTRYNAME"
   END
-  TEMPLATE "dummy.html"
+  TEMPLATE "/etc/mapserver/dummy.html"
   CLASS
     STYLE
       OUTLINECOLOR 100 100 100
@@ -832,7 +832,7 @@ LAYER
     "gml_include_items" "PATTER,PATTERN_G"
     "wms_include_items" "PATTER,PATTERN_G"
   END
-  TEMPLATE "dummy.html"
+  TEMPLATE "/etc/mapserver/dummy.html"
   CLASS
     STYLE
       OUTLINECOLOR 100 100 100
@@ -861,7 +861,7 @@ LAYER
     "gml_include_items" "TOWN_NAME,STATION_CO,MAIN_TOWN,RAIN_SUM,N_YEARS,JAN"
     "wms_include_items" "TOWN_NAME,STATION_CO,MAIN_TOWN,RAIN_SUM,N_YEARS,JAN"
   END
-  TEMPLATE "dummy.html"
+  TEMPLATE "/etc/mapserver/dummy.html"
   CLASS
     STYLE
       OUTLINECOLOR 100 100 100
@@ -890,7 +890,7 @@ LAYER
     "gml_include_items" "RIV_NAME,TYPE,CLASS,RIV_ORDER,LENGTH"
     "wms_include_items" "RIV_NAME,TYPE,CLASS,RIV_ORDER,LENGTH"
   END
-  TEMPLATE "dummy.html"
+  TEMPLATE "/etc/mapserver/dummy.html"
   CLASS
     STYLE
       COLOR 150 150 150
@@ -918,7 +918,7 @@ LAYER
     "gml_include_items" "ROAD_TYPE,TYPE,CLASS,LENGTH"
     "wms_include_items" "ROAD_TYPE,TYPE,CLASS,LENGTH"
   END
-  TEMPLATE "dummy.html"
+  TEMPLATE "/etc/mapserver/dummy.html"
   CLASS
     STYLE
       COLOR 150 150 150
@@ -946,7 +946,7 @@ LAYER
     "gml_include_items" "LENGTH,HYDDNETALL"
     "wms_include_items" "LENGTH,HYDDNETALL"
   END
-  TEMPLATE "dummy.html"
+  TEMPLATE "/etc/mapserver/dummy.html"
   CLASS
     STYLE
       COLOR 150 150 150
@@ -974,7 +974,7 @@ LAYER
     "gml_include_items" "TOWN_NAME,WEREDA,REGION,ZONES,POP,POPTOT"
     "wms_include_items" "TOWN_NAME,WEREDA,REGION,ZONES,POP,POPTOT"
   END
-  TEMPLATE "dummy.html"
+  TEMPLATE "/etc/mapserver/dummy.html"
   CLASS
     STYLE
       SYMBOL 0
@@ -1003,7 +1003,7 @@ LAYER
     "gml_include_items" "NAME,CLASS,CLASSTX,DESCRIP,LOCATION,HECTARES"
     "wms_include_items" "NAME,CLASS,CLASSTX,DESCRIP,LOCATION,HECTARES"
   END
-  TEMPLATE "dummy.html"
+  TEMPLATE "/etc/mapserver/dummy.html"
   CLASS
     STYLE
       OUTLINECOLOR 100 100 100

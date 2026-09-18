@@ -1376,6 +1376,24 @@
     "tigray_drought_wapor_raw_dev": {
       "label": "Agricultural Water Use (WaPOR Transpiration native grid · development)", "type": "raster", "published": true, "default_visible": false, "opacity": 0.76, "min_scale": 10000000, "max_scale": 50000, "queryable": false, "wms_name": "tigray_drought_wapor_raw_dev", "attribution": "FAO WaPOR v3 L2 · native ~100 m dekadal grid · development only"
     },
+    "tigray_drought_chirps_raw_public": {
+      "label": "Latest Rainfall Total (CHIRPS native grid · retained evidence)", "type": "raster", "published": true, "default_visible": false, "opacity": 0.76, "min_scale": 10000000, "max_scale": 50000, "queryable": false, "wms_name": "tigray_drought_chirps_raw_public", "attribution": "CHIRPS v3 final · native 0.05° grid · automatically retained evidence"
+    },
+    "tigray_drought_chirps_rapid_raw_public": {
+      "label": "Rapid Rainfall Total (CHIRPS preliminary native grid · retained evidence)", "type": "raster", "published": true, "default_visible": false, "opacity": 0.76, "min_scale": 10000000, "max_scale": 50000, "queryable": false, "wms_name": "tigray_drought_chirps_rapid_raw_public", "attribution": "CHIRPS v3 preliminary pentads · native 0.05° grid · automatically retained evidence"
+    },
+    "tigray_drought_ndvi_raw_public": {
+      "label": "Vegetation Condition (NDVI native grid · retained evidence)", "type": "raster", "published": true, "default_visible": false, "opacity": 0.76, "min_scale": 10000000, "max_scale": 50000, "queryable": false, "wms_name": "tigray_drought_ndvi_raw_public", "attribution": "Copernicus CLMS NDVI v3 · native ~300 m grid · automatically retained evidence"
+    },
+    "tigray_drought_swi_raw_public": {
+      "label": "Soil-water Context (SWI-040 native grid · retained evidence)", "type": "raster", "published": true, "default_visible": false, "opacity": 0.76, "min_scale": 10000000, "max_scale": 50000, "queryable": false, "wms_name": "tigray_drought_swi_raw_public", "attribution": "Copernicus CLMS SWI v4 · native 0.1° grid · automatically retained evidence"
+    },
+    "tigray_drought_lst_raw_public": {
+      "label": "Thermal Context (LST native grid · retained evidence)", "type": "raster", "published": true, "default_visible": false, "opacity": 0.76, "min_scale": 10000000, "max_scale": 50000, "queryable": false, "wms_name": "tigray_drought_lst_raw_public", "attribution": "Copernicus CLMS LST v2 · native ~5 km grid · automatically retained evidence"
+    },
+    "tigray_drought_wapor_raw_public": {
+      "label": "Agricultural Water Use (WaPOR Transpiration native grid · retained evidence)", "type": "raster", "published": true, "default_visible": false, "opacity": 0.76, "min_scale": 10000000, "max_scale": 50000, "queryable": false, "wms_name": "tigray_drought_wapor_raw_public", "attribution": "FAO WaPOR v3 L2 · native ~100 m dekadal grid · automatically retained evidence"
+    },
     "tigray_drought_road_accessibility_dev": {
       "label": "Federal and Regional Road Proximity (ERA + TRRA · development)", "type": "vector", "geometry_type": "polygon", "published": true, "default_visible": false, "opacity": 0.72, "min_scale": 5000000, "max_scale": 50000, "queryable": true, "wms_name": "tigray_drought_road_accessibility_dev", "identify_fields": ["TABIA", "WEREDA", "nearest_road_m", "tigray_roads_2006_intersects", "quality_status"], "attribution": "Tigray Roads 2006 · ERA + TRRA features only · straight-line point-on-surface network proximity · development only"
     },

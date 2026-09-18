@@ -128,8 +128,28 @@ layers.
   A separate read-only public-release acceptance script verifies the deliberate
   no-release state locally and will verify the activated viewer, manifest
   assets, and public replay boundary after a future promotion.
-  No VPS inventory was repeated; no production credential, account, transfer,
-  n8n publisher, raw-data mount or deployment has been created. A tagged-source
+  No VPS inventory was repeated. On 2026-09-16, two restricted VPS release
+  accounts and their ingress/serving paths were provisioned and boundary-tested:
+  one account is SFTP-only to the ingress directory, and the other accepts only
+  the forced `activate <release-id>` command. A tracked, inactive local n8n
+  publisher template uses those distinct roles but has not been imported or
+  credential-configured. The publisher script is forced to Unix line endings
+  through `.gitattributes`, because it executes inside a Linux container even
+  when staged from a Windows checkout.
+  The repository now also defines an automatic indicator-evidence package and
+  a separate nested production pointer. Only source-derived Tabia evidence
+  summaries and fixed display-ready native-grid TIFF derivatives that pass
+  technical checks can use it; Priority Replay, FEWS NET, model configuration
+  and source archives cannot. Its n8n schedule and VPS wrapper
+  deployment remain an operational step, not evidence of automatic production
+  publication already occurring.
+  The tracked automatic-publisher template now provides the missing narrow
+  n8n path: it checks all six fixed retained-evidence streams and six
+  display-ready raster checksums, skips unchanged evidence using a persistent
+  fingerprint, and can invoke only the existing `activate-indicators` forced
+  command. It remains inactive pending the documented local end-to-end
+  rehearsal and one read-only raster-folder mount into n8n.
+  A tagged-source
   GitHub Actions workflow publishes the three prebuilt serving images (web, API
   and edge) to GHCR only for an explicit `tsird-drought-v*` tag or manual
   dispatch. The intended VPS configuration pins the generated SHA image tags;
@@ -137,7 +157,36 @@ layers.
   `1f88ef7f9ec7af4cdbcd5fffd56fd81e5a03df83`, completed its three-image GHCR
   build successfully on 2026-09-16. This is a CI-only rehearsal: no VPS
   deployment, production data release or public activation followed.
+- A subsequent, explicitly approved public data release was staged from the
+  local n8n mount and activated on the VPS at `2026-09-17T03:42:03Z`:
+  `2026-09-17T032845Z`. It contains 18 checksum-validated, sanitised assets:
+  the compact Tabia evidence workspace summary, January--August 2026 retained
+  replay snapshots, and January/February/April/June/July 2026 provider-native
+  FEWS NET issue geometries. It advanced only the narrow public
+  `current.json` pointer; it did not transfer raw rasters, mount development
+  n8n data, run ETL, or alter the priority model. The rollback predecessor is
+  `2026-09-16T225513Z`. Public browser checks confirmed the approved Drought
+  Intelligence workspace and the public Priority Review controls after
+  activation.
 - The `/map/` proxy contract remains active, including `/map/ogc` and `/map/api/gazetteer`. Public URLs in release notes are documented deployment targets, not availability checks performed here.
+- The production public-drought route design adds a searchable per-Tabia
+  approved-evidence workspace to the release package and production-only static
+  entry-document overlays. This lets production retain the public
+  `/map/drought/`, `/priority/`, `/scenario/`, and `/model/` route structure
+  without exposing development APIs, raw rasters, n8n state, pipeline controls,
+  or model configuration. The already-activated release `2026-09-17T032845Z`
+  includes the six retained indicator summaries. The public workspace may
+  present each released stream, its recorded source/run context, searchable
+  Tabia detail, and links to retained replay/FEWS NET context; it must not
+  silently substitute live development endpoints or raw artifacts.
+- The public-development parity contract is recorded in
+  [public-development-parity-contract.md](drought/public-development-parity-contract.md).
+  The implementation branch replaces the reduced public viewer with the shared
+  Atlas shell and Drought Dashboard, backed only by approved-release adapter
+  routes. It also restores the familiar route hierarchy for the public release,
+  Priority Review, Scenario Laboratory and Model information. This is branch
+  state pending review and deployment; it must not be described as live until
+  the corresponding immutable images and production overlay have been applied.
 
 ### Registry inventory
 

@@ -7,7 +7,11 @@ All schedule times use `Africa/Addis_Ababa`.
 
 ## Contract rules
 
-- n8n may call only fixed, internal `tsird-drought-runner` endpoints.
+- Source and evidence workflows may call only fixed, internal
+  `tsird-drought-runner` endpoints. The separately named, manual Production
+  Publisher is the sole exception: it invokes only its tracked fixed-purpose
+  OpenSSH script, which accepts one approved release ID and one verified VPS
+  host; it has no runner, source-retrieval, or schedule path.
 - New canonical workflows read job state from `GET /runs/{job_id}`. The older
   `GET /runs/development-test/{job_id}` endpoint remains compatibility-only.
 - The runner permits only one active job. Schedules must not overlap; a 409
@@ -43,6 +47,7 @@ All schedule times use `Africa/Addis_Ababa`.
 | `c3s-skill-pilot` | C3S–CHIRPS seasonal skill pilot v1 | fixed 1993–2016 August ECMWF System 51 / CHIRPS regional comparison | Manual development study; no schedule activated | Tracked and inactive. It deletes source rasters and retains annual regional summaries plus leave-one-year-out tercile Brier diagnostics. It is not Woreda/Tabia skill, calibration, a provider-issued forecast, or a public Outlook. |
 | `fews-net-food-security` | FEWS NET public classification discovery v1 | official Ethiopia publication and linked-asset metadata only | Weekly availability check pending local n8n activation; no automatic provider-geometry retention | The loader retains the reviewed January--July 2026 native-FSC issues for the historical comparison view. The future check remains a provider-catalogue gate until an explicit release-selection and validity-period rule is approved. No Tabia crosswalk or TSIRD food-security class is created. |
 | `storage-inventory` | Drought storage inventory v1 | read-only storage inventory | First day of month, 07:15 | **Active locally.** Read-only; it never archives or deletes. Capacity status is reviewed in Pipeline Control and n8n execution history. |
+| `automatic-indicator-publisher` | Automatic retained indicator publisher v1 | fixed local API reads, fixed display-ready raster package, pinned-host SFTP and `activate-indicators` | Daily 10:30 Addis after a manual end-to-end rehearsal | Tracked and inactive. It coalesces complete source-derived evidence, avoids duplicates with a persistent fingerprint, and can advance only the separate public indicator pointer. |
 
 ## Existing inactive n8n workflow records
 
@@ -118,13 +123,17 @@ Before any workflow becomes active:
 5. Change this registry row to **schedule-ready**, then activate only the
    reviewed schedule trigger.
 
-## Proposed Production Publisher (not imported or configured)
+## Manual Production Publisher (tracked template; not imported or configured)
 
-`production-publisher` is a future **manual-only** n8n workflow, not a source
-retrieval workflow and not a production schedule. It has no current n8n ID,
-no configured production credential, and no production-network route.
+`production-publisher` is a tracked, inactive **manual-only** n8n workflow
+template, not a source-retrieval workflow and not a production schedule. It
+has no current n8n ID, configured production credential, or production-network
+route. It uses a fixed OpenSSH publisher script and a separately verified
+production host key rather than the installed n8n SFTP/SSH nodes, which do not
+expose host-key pinning. Its exact import/binding/staging procedure is in
+[n8n production publisher setup](n8n-production-publisher-setup.md).
 
-It may be implemented only after a compact release directory passes
+It may be imported only after a compact release directory passes
 [`production-release-contract.md`](production-release-contract.md), a named
 approver changes its manifest from `validated` to `approved`, and a separate
 least-privilege SFTP/SSH account is provisioned for the production release-data
@@ -133,5 +142,25 @@ checksums, and switch a small current-release pointer. It must never retrieve
 data, build images, run a remote shell, publish raw rasters, alter the priority
 model, or accept arbitrary destination/command parameters.
 
-Until those gates are met, this proposed publisher remains documentation and a
-local manifest-validation contract only.
+The template permits one manual release ID, one verified production host, and
+exactly seven compact package files. The fixed script performs SFTP upload to
+the restricted ingress account, then issues the forced
+`activate <release-id>` request. The VPS repeats approval/checksum validation
+before changing its pointer. It cannot create a release, retrieve data, build
+images, execute an arbitrary remote command, remove files, or schedule itself.
+Until the credentials are bound and a named approver supplies a package, it
+remains an inactive local import template.
+
+## Automatic indicator publisher (tracked template; not yet activated)
+
+The automatic indicator publisher is separate from the reviewed-release
+publisher. It accepts only the verified production host, uses the existing
+least-privilege keys and pinned server identity, and has no user-supplied
+release ID, path, source URL, model option or remote command. It reads only the
+fixed six development summary endpoints and the read-only display-ready raster
+folder, makes a checksum-validated nine-asset package, and calls only the
+forced `activate-indicators <release-id>` command. Its persistent fingerprint
+means an unchanged daily check does not upload or activate another package.
+
+Its setup and mandatory first rehearsal are in
+[n8n automatic indicator publisher setup](n8n-automatic-indicator-publisher-setup.md).

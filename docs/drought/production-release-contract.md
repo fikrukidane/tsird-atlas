@@ -18,6 +18,7 @@ permitted to use it.
 <release-id>/
   manifest.json
   drought-evidence-summary.json
+  drought-workspace-latest.json
   priority-replay-summary.json
   fews-net-context.json
   status.json
@@ -41,6 +42,30 @@ staging or production-publish authorization.
 Every manifest names the preparer and preparation time.  An approved manifest
 additionally names the independent release approver and approval time.
 
+### Automatic indicator-evidence channel
+
+Source-derived indicator evidence has a separate channel from the reviewed
+release. Its manifest uses `release_channel: indicator-evidence` and
+`release_state: auto-validated`. The package may contain current Tabia
+indicator summaries, fixed display-ready native rasters, a shared Tabia
+boundary copy, retained source-run indexes, and compact per-Tabia historical
+values. It cannot contain a priority replay, model configuration, FEWS NET
+geometry, reviewer record, raw raster archive, or a browser link to
+development storage.
+
+The automatic builder refuses an empty source, failed/unavailable run, or a
+stream with no quality-approved Tabia summaries. A freshness marker such as
+`degraded` remains visible in the published source metadata rather than hiding
+the last technically sound retained observations. A failed build or upload
+leaves the prior indicator pointer untouched.
+
+Automatic indicator packages are activated only below the separate
+`releases/drought/indicators/current.json` pointer. The normal reviewed
+`current.json` pointer remains reserved for named-approved Priority Replay and
+provider-context packages. The public Drought Intelligence page joins current
+and historical indicator values to the automatic package's shared Tabia
+geometry; Priority Review never reads the automatic channel.
+
 ## Required evidence boundary
 
 Every asset must declare:
@@ -52,7 +77,7 @@ Every asset must declare:
 - a SHA-256 checksum and byte size.
 
 Allowed asset kinds are intentionally narrow: compact drought-evidence
-summaries, retrospective replay summaries, provider-native FEWS NET context,
+summaries, Tabia display summaries, retrospective replay summaries, provider-native FEWS NET context,
 public status/provenance and static documentation. Raw rasters, raw downloads,
 n8n execution history, credentials and arbitrary database exports are rejected
 by policy and must never appear in a release manifest.
@@ -87,6 +112,13 @@ API should receive a read-only mount of only the release root, for example:
 <host release root>:/data/drought/production-releases:ro
 ```
 
+The shared web image keeps its development pages for the local stack. The
+production Compose overlay replaces only the public route entry documents with
+small static pages that call these approved-release routes. This preserves the
+same `/map/drought/`, `/priority/`, `/scenario/` and `/model/` route hierarchy
+without exposing development endpoints. `/map/drought/control/` is explicitly
+replaced with a development-only explanation on production.
+
 `current.json` is a small publisher-owned pointer containing the selected
 release ID, activation time and prior release ID. It is written only after
 remote verification; it must never point at a `validated` or `rejected`
@@ -105,6 +137,20 @@ This is an intentionally bounded first-release shape: one latest display
 snapshot plus small historical indexes, not raw rasters or a full historical
 geometry archive. It must be checked against the completed VPS capacity
 baseline before production release.
+
+The automatic indicator package includes `drought-workspace-latest.json` for
+the six current views, plus compact retained-run assets for historical rainfall,
+rapid rainfall, NDVI, SWI, LST and WaPOR selectors. The browser joins these
+value-only snapshots to one package-owned Tabia geometry asset. It contains no
+raw download URL, retrieval receipt, workflow state, development control data,
+or scoring trace.
+
+To preserve the public Priority Review controls, a later approved package may
+also include one sanitised GeoJSON per retained historical replay and one per
+retained FEWS NET issue. These are fetched only when a reviewer selects that
+month or issue. Replay assets retain neutral C1--C4 codes; FEWS NET assets keep
+provider-native geography. The package still excludes all raw rasters, model
+rules, actions, scores, reviewer records and workflow state.
 
 ## Local validation
 
@@ -133,9 +179,10 @@ local manifest from `validated` to `approved`. It does not transfer or activate
 the release. A content correction requires a new release directory rather than
 rewriting an approved release.
 
-## Future publisher protocol
+## Manual publisher protocol
 
-The later fixed-purpose n8n publisher will:
+The tracked, inactive local n8n publisher template will, after its dedicated
+least-privilege keys and a verified VPS host key are staged locally:
 
 1. accept a supplied, already validated approved release ID;
 2. stage it below `releases/<release-id>` on production;
@@ -146,3 +193,11 @@ The later fixed-purpose n8n publisher will:
 It must not create a production dataset, execute a remote shell command,
 retrieve source data, build an image, or alter an Atlas model configuration.
 An upload failure leaves the current public release unchanged.
+
+The template and its fixed OpenSSH publisher script are version-controlled at
+`n8n/workflows/tsird-drought-production-publisher-v1.development.json` and
+`n8n/publisher/tsird-drought-production-publisher-v1.sh`. They are not yet
+imported or locally key-configured. The built-in n8n SFTP/SSH nodes are not
+used because the installed version does not expose host-key pinning. The fixed
+local staging boundary and one-time setup procedure are documented in
+[n8n production publisher setup](n8n-production-publisher-setup.md).

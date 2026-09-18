@@ -32,6 +32,7 @@ class DroughtDashboard {
     this.evidenceBaseUrl = options.evidenceBaseUrl || 'api/drought/development/evidence';
     this.exposureUrl = options.exposureUrl || 'api/drought/development/exposure';
     this.boundaryUrl = options.boundaryUrl || 'api/boundaries';
+    this.wmsBaseUrl = options.wmsBaseUrl || '/map/ogc';
     this.containerId = options.containerId || 'drought-dashboard';
     this.priorityOnly = Boolean(options.priorityOnly);
     this.mode = this.priorityOnly ? 'priority' : 'observed';
@@ -79,29 +80,44 @@ class DroughtDashboard {
     this.spatialViews = { observed: 'tabia', rapid: 'raw', vegetation: 'tabia', soilWater: 'tabia', thermal: 'tabia', waterUse: 'tabia' };
     this.onEnsureContextLayers = options.onEnsureContextLayers || null;
     this.onSetEvidenceLayer = options.onSetEvidenceLayer || null;
+    this.publicMode = Boolean(options.publicMode);
+    this.publicGeometryUrl = options.publicGeometryUrl || null;
+    this.publicGeometry = [];
+    this.publicEvidenceLayer = null;
+    this.publicRasterLayer = null;
   }
 
   async initialize() {
+    this._renderLoadingState();
     const response = await fetch(this.dataUrl, { cache: 'no-store' });
     if (!response.ok) throw new Error(`Drought data unavailable (${response.status})`);
     this.data = await response.json();
     this._validateData();
-    await this._loadObservedArtifact();
-    await this._loadObservedRuns();
-    await this._loadPreliminaryArtifact();
-    await this._loadNdviArtifact();
-    await this._loadSwiArtifact();
-    await this._loadLstArtifact();
-    await this._loadWaporArtifact();
-    await this._loadOutlookArtifact();
-    await this._loadPriorityFoundation();
-    await this._loadFewsNetContext();
-    await this._loadHistoryRuns();
+    await Promise.all([
+      this._loadObservedArtifact(),
+      this._loadObservedRuns(),
+      this._loadPreliminaryArtifact(),
+      this._loadNdviArtifact(),
+      this._loadSwiArtifact(),
+      this._loadLstArtifact(),
+      this._loadWaporArtifact(),
+      this._loadOutlookArtifact(),
+      this._loadPriorityFoundation(),
+      this._loadFewsNetContext(),
+      this._loadHistoryRuns(),
+      this._loadPublicGeometry()
+    ]);
     this._createBoundaryLayer();
     this._renderShell();
     this._renderMode();
     window.addEventListener('tsird:boundary-selected', event => this._handleBoundarySelection(event));
     return this;
+  }
+
+  _renderLoadingState() {
+    const root = document.getElementById(this.containerId);
+    if (!root) return;
+    root.innerHTML = `<div class="drought-heading"><div><strong>${this.priorityOnly ? 'Retrospective Evidence Replay' : 'Drought intelligence'}</strong><span>Tigray · loading retained evidence</span></div></div><div class="drought-notice">Loading the approved retained evidence and map controls…</div>`;
   }
 
   async _loadPriorityFoundation() {
@@ -277,6 +293,19 @@ class DroughtDashboard {
     }));
   }
 
+  async _loadPublicGeometry() {
+    if (!this.publicMode || !this.publicGeometryUrl) return;
+    try {
+      const response = await fetch(this.publicGeometryUrl, { cache: 'no-store' });
+      const payload = await response.json();
+      if (!response.ok || !Array.isArray(payload.features)) throw new Error('invalid public geometry');
+      this.publicGeometry = payload.features;
+    } catch (error) {
+      console.error('[DroughtDashboard] approved public geometry unavailable:', error);
+      this.publicGeometry = [];
+    }
+  }
+
   _validateData() {
     if (!this.data || !Array.isArray(this.data.areas) || !Array.isArray(this.data.sources)) {
       throw new Error('Invalid drought intelligence schema');
@@ -332,6 +361,12 @@ class DroughtDashboard {
       style: feature => this._fixtureStyle(feature)
     });
     this.map.addLayer(this.fixtureLayer);
+    this.publicEvidenceLayer = new ol.layer.Vector({
+      source: new ol.source.Vector(), zIndex: 997,
+      style: feature => this._publicEvidenceStyle(feature)
+    });
+    this.publicEvidenceLayer.setVisible(false);
+    this.map.addLayer(this.publicEvidenceLayer);
     this.boundaryLayer = new ol.layer.Vector({
       source: new ol.source.Vector(),
       style: new ol.style.Style({
@@ -360,7 +395,7 @@ class DroughtDashboard {
     heading.className = 'drought-heading';
     heading.innerHTML = this.priorityOnly
       ? `<div><strong>Retrospective Evidence Replay</strong><span>Tigray · ${this.priorityReplays.length ? 'retained draft evidence' : 'retrospective calibration review'}</span></div>`
-      : '<div><strong>Drought intelligence</strong><span>Tigray · development view</span></div>';
+      : `<div><strong>Drought intelligence</strong><span>Tigray · ${this.publicMode ? 'approved retained evidence' : 'development view'}</span></div>`;
     const close = document.createElement('button');
     close.className = 'drought-close';
     close.type = 'button';
@@ -403,8 +438,8 @@ class DroughtDashboard {
     const footer = document.createElement('div');
     footer.className = 'drought-footer';
     footer.textContent = this.priorityOnly
-      ? (this.priorityReplays.length ? 'Development retrospective replay · draft only; no forecast or publication' : 'Development retrospective calibration review · no priority score or forecast')
-      : 'Development workspace · no composite risk score';
+      ? (this.priorityReplays.length ? `${this.publicMode ? 'Approved' : 'Development'} retrospective replay · draft only; no forecast or publication` : `${this.publicMode ? 'Approved' : 'Development'} retrospective calibration review · no priority score or forecast`)
+      : `${this.publicMode ? 'Approved retained-evidence workspace' : 'Development workspace'} · no composite risk score`;
     root.appendChild(footer);
   }
 
@@ -443,8 +478,8 @@ class DroughtDashboard {
       this.notice.textContent = historical
         ? 'Historical evidence snapshot: this Tabia-only map shows an archived CHIRPS observation period. It is not an as-issued forecast or a model backtest, and no historical native raster is implied.'
         : this.spatialViews.observed === 'raw'
-        ? 'Latest available analysis is a development CHIRPS native-grid rainfall total. Its ten bands show measured totals only—not drought priority. Select Tabia class for the baseline-relative Tabia interpretation.'
-        : 'Latest available analysis is a development CHIRPS Tabia summary. Click a coloured Tabia on the map for its evidence; areas without sufficient grid coverage are not classified.';
+        ? `Latest available analysis is a ${this.publicMode ? 'retained' : 'development'} CHIRPS native-grid rainfall total. Its ten bands show measured totals only—not drought priority. Select Tabia class for the baseline-relative Tabia interpretation.`
+        : `Latest available analysis is a ${this.publicMode ? 'retained' : 'development'} CHIRPS Tabia summary. Click a coloured Tabia on the map for its evidence; areas without sufficient grid coverage are not classified.`;
       this._renderObservedArtifact();
       if (historical) this._showHistoricalObservedMap(); else this._renderSpatialControl();
       this._renderLegend();
@@ -602,9 +637,10 @@ class DroughtDashboard {
   }
 
   _priorityPreviewStyle(feature) {
-    if (feature.get('priority_class')) {
+    const publicDraftClass = { C1: 'critical', C2: 'high', C3: 'moderate', C4: 'watch' }[feature.get('retrospective_draft_code')];
+    if (feature.get('priority_class') || publicDraftClass) {
       const priorityColours = { critical: '#4c1d95', high: '#6d28d9', moderate: '#2563eb', watch: '#bfdbfe', insufficient_evidence: '#94a3b8' };
-      const colour = priorityColours[feature.get('priority_class')] || priorityColours.insufficient_evidence;
+      const colour = priorityColours[feature.get('priority_class') || publicDraftClass] || priorityColours.insufficient_evidence;
       return new ol.style.Style({ fill: new ol.style.Fill({ color: `${colour}cc` }), stroke: new ol.style.Stroke({ color: '#7c2d12', width: 0.6 }) });
     }
     const colours = { very_low: '#7f1d1d', low: '#dc2626', watch: '#fb923c', no_signal: '#fef3c7', unavailable: '#94a3b8' };
@@ -1041,6 +1077,15 @@ class DroughtDashboard {
 
   _handleFixtureMapClick(event) {
     const historicalObserved = this.mode === 'observed' && this.observedSnapshotId !== 'latest';
+    if (this.publicMode && this.mode !== 'priority' && this.publicEvidenceLayer && this.publicEvidenceLayer.getVisible()) {
+      const feature = this.map.forEachFeatureAtPixel(event.pixel, candidate => candidate, { layerFilter: layer => layer === this.publicEvidenceLayer });
+      const tabiaId = feature && feature.get('tsird_tabia_id');
+      if (tabiaId) {
+        this.selectBoundary({ type: 'tabia', id: tabiaId, label: feature.get('tabia_name_en') || 'Selected Tabia' });
+        if (this.mode === 'history') this._handleBoundarySelection({ detail: { type: 'tabia', id: tabiaId, name_en: feature.get('tabia_name_en'), parent_name_en: feature.get('woreda_name_en') } });
+      }
+      return;
+    }
     if (this.mode === 'priority' && this.fewsNetDisplay === 'fews' && this.fewsNetLayer && this.fewsNetLayer.getVisible()) {
       const feature = this.map.forEachFeatureAtPixel(event.pixel, candidate => candidate, { layerFilter: layer => layer === this.fewsNetLayer });
       if (feature) this._showFewsNetFeatureContext(feature);
@@ -1052,11 +1097,11 @@ class DroughtDashboard {
       if (!feature || !target) return;
       this._highlightPriorityFeature(feature);
       const p = feature.getProperties();
-      if (p.priority_class) {
+      if (p.priority_class || p.retrospective_draft_code) {
         const rules = Array.isArray(p.triggered_rules) ? p.triggered_rules.map(rule => this._neutralReplayRule(rule)).join(' · ') : 'No rule explanation retained';
-        const replayCode = this._priorityReplayCode(p.priority_class);
+        const replayCode = p.retrospective_draft_code || this._priorityReplayCode(p.priority_class);
         target.innerHTML = `<strong>${p.tabia_name_en || 'Selected Tabia'}${p.woreda_name_en ? ` — ${p.woreda_name_en}` : ''}</strong><span>Retrospective replay flag: ${replayCode}</span><small>Stored local draft code: ${replayCode}. Local verification is required before considering any response; no operational action is recommended by this replay. Why: ${rules}. Rainfall ${p.rainfall_mm == null ? 'unavailable' : Number(p.rainfall_mm).toFixed(1)} mm against same-month median ${p.baseline_median_mm == null ? 'unavailable' : Number(p.baseline_median_mm).toFixed(1)} mm (CHIRPS 1991–2020 percentile ${p.rainfall_percentile == null ? 'unavailable' : Number(p.rainfall_percentile).toFixed(1)}); people decile ${p.population_decile || 'unavailable'}; cropland decile ${p.cropland_decile || 'unavailable'}; accessibility context ${p.accessibility_context || 'unavailable'}. Retrospective draft replay only—not a forecast, allocation, IPC phase, or food-security classification.</small>`;
-        this._showFewsNetTabiaContext(p.tsird_tabia_id, {
+        if (!this.publicMode) this._showFewsNetTabiaContext(p.tsird_tabia_id, {
           priorityClass: replayCode,
           tabiaName: p.tabia_name_en || 'Selected Tabia',
           woredaName: p.woreda_name_en || ''
@@ -1734,6 +1779,18 @@ class DroughtDashboard {
   }
 
   _setEvidenceLayer(activeLayerId) {
+    if (this.publicMode) {
+      const publicRaster = activeLayerId && activeLayerId.endsWith('_raw_dev')
+        ? activeLayerId.replace(/_dev$/, '_public')
+        : null;
+      // Public raw rasters are deliberately not part of the general Atlas TOC.
+      // Manage a dedicated ImageWMS layer here so the Native raster switch
+      // actually renders the approved retained source grid.
+      if (this.onSetEvidenceLayer) this.onSetEvidenceLayer(null);
+      this._setPublicRasterLayer(publicRaster);
+      this._setPublicEvidenceLayer(publicRaster ? null : activeLayerId);
+      return;
+    }
     const ids = ['tigray_drought_chirps_dev', 'tigray_drought_chirps_raw_dev', 'tigray_drought_chirps_rapid_raw_dev', 'tigray_drought_chirps_rapid_tabia_dev', 'tigray_drought_ndvi_dev', 'tigray_drought_ndvi_raw_dev', 'tigray_drought_swi_dev', 'tigray_drought_swi_raw_dev', 'tigray_drought_lst_dev', 'tigray_drought_lst_raw_dev', 'tigray_drought_wapor_dev', 'tigray_drought_wapor_raw_dev', 'tigray_drought_road_accessibility_dev', 'tigray_drought_population_dev', 'tigray_drought_cropland_dev'];
     if (this.onSetEvidenceLayer) {
       this.onSetEvidenceLayer(activeLayerId);
@@ -1742,6 +1799,78 @@ class DroughtDashboard {
     this.map.getLayers().getArray().forEach(layer => {
       if (ids.includes(layer.layerId)) layer.setVisible(layer.layerId === activeLayerId);
     });
+  }
+
+  _setPublicRasterLayer(layerId) {
+    if (!layerId) {
+      if (this.publicRasterLayer) this.publicRasterLayer.setVisible(false);
+      return;
+    }
+    if (!this.publicRasterLayer) {
+      const source = new ol.source.ImageWMS({
+        url: this.wmsBaseUrl,
+        params: { LAYERS: layerId, TRANSPARENT: true, FORMAT: 'image/png', STYLES: '' },
+        serverType: 'mapserver', ratio: 1, wmsVersion: '1.3.0'
+      });
+      this.publicRasterLayer = new ol.layer.Image({ source, opacity: 0.76, visible: false, zIndex: 996 });
+      this.publicRasterLayer.set('layerId', 'tsird_public_native_raster');
+      this.map.addLayer(this.publicRasterLayer);
+    }
+    this.publicRasterLayer.getSource().updateParams({ LAYERS: layerId, TRANSPARENT: true, FORMAT: 'image/png', STYLES: '' });
+    this.publicRasterLayer.setVisible(true);
+  }
+
+  _publicEvidenceRows() {
+    const artifact = {
+      observed: this.observedArtifact && this.observedArtifact.conditions,
+      rapid: this.preliminaryArtifact && this.preliminaryArtifact.summaries,
+      vegetation: this.ndviArtifact && this.ndviArtifact.summaries,
+      soilWater: this.swiArtifact && this.swiArtifact.summaries,
+      thermal: this.lstArtifact && this.lstArtifact.summaries,
+      waterUse: this.waporArtifact && this.waporArtifact.summaries
+    }[this.mode];
+    return Array.isArray(artifact) ? artifact : [];
+  }
+
+  _publicEvidenceValue(row) {
+    const field = { observed: 'rainfall_mm', rapid: 'rainfall_mm', vegetation: 'ndvi_mean', soilWater: 'swi040_mean', thermal: 'lst_c_mean', waterUse: 'transpiration_mm' }[this.mode];
+    return Number(row && row[field]);
+  }
+
+  _publicEvidenceColour(value, quality) {
+    if (quality !== 'ok' || !Number.isFinite(value)) return '#94a3b8';
+    if (this.mode === 'observed' || this.mode === 'rapid') return this._historicalRainfallColour(value, quality);
+    const scales = {
+      vegetation: [[0.1, '#a50026'], [0.2, '#d73027'], [0.3, '#f46d43'], [0.4, '#fdae61'], [0.5, '#fee08b'], [0.6, '#d9ef8b'], [0.7, '#a6d96a'], [0.8, '#66bd63'], [0.9, '#1a9850'], [Infinity, '#006837']],
+      soilWater: [[10, '#b2182b'], [20, '#d6604d'], [30, '#f4a582'], [40, '#fddbc7'], [50, '#f7f7f7'], [60, '#d1e5f0'], [70, '#92c5de'], [80, '#4393c3'], [90, '#2166ac'], [Infinity, '#053061']],
+      thermal: [[15, '#053061'], [20, '#2166ac'], [25, '#4393c3'], [30, '#92c5de'], [35, '#d1e5f0'], [40, '#fee08b'], [45, '#fdae61'], [50, '#f46d43'], [55, '#d6302b'], [Infinity, '#a50026']],
+      waterUse: [[0.5, '#fff7bc'], [1, '#fee391'], [1.5, '#fec44f'], [2, '#fe9929'], [2.5, '#ec7014'], [3, '#cc4c02'], [3.5, '#993404'], [4, '#662506'], [5, '#471908'], [Infinity, '#2d1208']]
+    };
+    return (scales[this.mode] || [[Infinity, '#94a3b8']]).find(item => value < item[0])[1];
+  }
+
+  _publicEvidenceStyle(feature) {
+    const colour = this._publicEvidenceColour(Number(feature.get('publicEvidenceValue')), feature.get('quality_status'));
+    return new ol.style.Style({ fill: new ol.style.Fill({ color: `${colour}cc` }), stroke: new ol.style.Stroke({ color: '#ffffff', width: 0.55 }) });
+  }
+
+  _setPublicEvidenceLayer(activeLayerId) {
+    if (!this.publicEvidenceLayer) return;
+    const source = this.publicEvidenceLayer.getSource();
+    source.clear();
+    if (!activeLayerId || !this.publicGeometry.length || this.mode === 'outlook' || this.mode === 'vulnerability') {
+      this.publicEvidenceLayer.setVisible(false);
+      return;
+    }
+    const rows = new Map(this._publicEvidenceRows().map(row => [row.tsird_tabia_id, row]));
+    const features = new ol.format.GeoJSON().readFeatures({ type: 'FeatureCollection', features: this.publicGeometry }, { dataProjection: 'EPSG:4326', featureProjection: this.map.getView().getProjection() });
+    features.forEach(feature => {
+      const id = feature.get('tsird_tabia_id');
+      const row = rows.get(id) || {};
+      feature.setProperties({ ...row, publicEvidenceValue: this._publicEvidenceValue(row) });
+    });
+    source.addFeatures(features);
+    this.publicEvidenceLayer.setVisible(true);
   }
 
   _showSelectionError(message) {
