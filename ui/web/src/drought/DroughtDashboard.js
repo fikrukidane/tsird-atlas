@@ -1704,8 +1704,14 @@ class DroughtDashboard {
       : `Rainfall total: ${analysisPeriod} (one completed calendar month)`;
     const latest = run.source_latest_month ? new Intl.DateTimeFormat('en', { month: 'long', year: 'numeric', timeZone: 'UTC' }).format(new Date(`${run.source_latest_month}T00:00:00Z`)) : 'not recorded';
     const historical = this.observedSnapshotId !== 'latest';
+    // `run` changes to the selected historical record.  Excluding that record
+    // removes the selected option from the control, so browsers fall back to
+    // its first option ("Latest seasonal analysis") even while the map is
+    // correctly displaying history.  Exclude only the actual latest run,
+    // which is already represented by the explicit `latest` option.
+    const latestRunId = this.observedRuns[0] && this.observedRuns[0].run_id;
     const snapshotOptions = this.observedRuns
-      .filter(candidate => candidate.run_id !== run.run_id)
+      .filter(candidate => candidate.run_id !== latestRunId)
       .map(candidate => {
         const monthsForRun = (candidate.season_months || []).map(Number).filter(Number.isFinite);
         const label = monthsForRun.length
