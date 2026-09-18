@@ -33,7 +33,7 @@ Verified locally on 2026-09-12:
 | Copernicus NDVI v3 | 21st of every month, January--August 2026 | 8 runs × 748 | Complete for the bounded history target; source age is correctly labelled degraded. |
 | Copernicus SWI v4 | 21st of every month, January--August 2026 | 8 runs × 748 | Complete for the bounded history target; coarse-grid coverage remains visible per Tabia. |
 | WaPOR v3 T/AETI | Third dekad of every month, January--August 2026 | 8 runs × 748 | Complete for the bounded history target; it remains crop water-use context only. |
-| Copernicus LST v2 | January--May 2026 | 5 new monthly runs × 748 | Provider-compatible records were unavailable for June--August. LST v2 is superseded upstream and remains historical evidence only pending a reviewed replacement. |
+| Copernicus LST v2 | January--May monthly observations, plus retained late-May/early-June source snapshots | 9 runs × 748 | Provider-compatible monthly records were unavailable for June--August. LST v2 is superseded upstream and remains historical evidence only pending a reviewed replacement. |
 | CHIRPS final rainfall | One run for each month, January--August 2026 | 8 runs × 748 | Complete for the bounded history target. Each run has a retained 0.05-degree native rainfall-total grid, source receipt, baseline comparison, and Tabia summary. |
 | CHIRPS rapid rainfall | One six-pentad preliminary window ending each month, January--August 2026 | 8 runs × 748 | Complete for the bounded history target. It remains an observed preliminary accumulation with no drought class. |
 
@@ -59,8 +59,11 @@ The Drought Intelligence panel provides these source-specific views:
 - **Latest rainfall** and **Rapid rain**, with the exact observation period
   visible at all times;
 - **Vegetation**, **Soil water**, **Thermal**, and **Crop water use**, each
-  with a selectable retained date, native-grid display when retained, and a
-  clearly labelled Tabia-average alternative;
+  with an indicator-specific retained-evidence selector.  The latest retained
+  observation can be shown as either its native grid or a clearly labelled
+  Tabia average.  Earlier selections show only the retained Tabia average:
+  TSIRD does not reconstruct a historical native raster where one was not
+  retained;
 - **History**, where selecting a Tabia on the map highlights it and plots the
   chosen indicator's retained observations without interpolating gaps. Final
   CHIRPS rainfall additionally offers a **Relative to normal** view: each
@@ -68,7 +71,10 @@ The Drought Intelligence panel provides these source-specific views:
   CHIRPS median and percentile. The control remains unavailable for the other
   indicators until TSIRD has retained a provider-appropriate seasonal baseline;
 - **Exposure**, as separate people, cropland, and ERAA/TRRA road-proximity
-  contexts, each with its own legend and reference year;
+  contexts, each with its own legend and reference year.  Each map is a
+  direct, read-only collection of the active Tabia summaries, so selecting a
+  Tabia reports the measure actually retained for that Tabia rather than a
+  combined exposure score;
 
 ### Relative-to-normal baseline roadmap
 
