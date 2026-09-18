@@ -226,7 +226,7 @@ def validate_release(
         if state == "auto-validated" and asset.get("kind") not in AUTO_INDICATOR_KINDS:
             fail("auto-validated indicator release contains a non-indicator asset")
     if state == "auto-validated":
-        required = {"drought-evidence-summary", "drought-workspace-latest", "release-status", *AUTO_INDICATOR_RASTERS}
+        required = {"drought-evidence-summary", "drought-workspace-latest", "release-status", "exposure-population", "exposure-cropland", "exposure-road", *AUTO_INDICATOR_RASTERS}
         if not required.issubset(names):
             fail("auto-validated indicator release lacks a required current indicator summary or fixed native raster")
         allowed_history = re.compile(r"^(tabia-geometry|observed-rainfall-runs|observed-rainfall-run-[a-z0-9-]+|evidence-(rapid|ndvi|swi|lst|wapor)-runs|evidence-(rapid|ndvi|swi|lst|wapor)-run-[a-z0-9-]+)$")

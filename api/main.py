@@ -1093,6 +1093,13 @@ async def public_drought_dashboard_geometry():
     return _public_indicator_geometry()
 
 
+@app.get("/drought/public/dashboard/exposure/{measure}/features")
+async def public_drought_dashboard_exposure_features(measure: str):
+    if measure not in {"population", "cropland", "road"}:
+        raise HTTPException(status_code=404, detail="Unknown public exposure measure")
+    return _public_indicator_release_json(f"exposure-{measure}")
+
+
 @app.get("/drought/public/dashboard/priority/replays/{snapshot_id}/features")
 async def public_drought_dashboard_priority_replay_features(snapshot_id: str):
     index = _public_release_json("priority-replay-summary")
