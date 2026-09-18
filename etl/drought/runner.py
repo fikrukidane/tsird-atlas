@@ -7,7 +7,6 @@ host port.
 """
 import json
 import os
-import shutil
 import subprocess
 import threading
 import uuid
@@ -48,6 +47,16 @@ CONTROL_WORKFLOWS = (
 
 def now():
     return datetime.now(timezone.utc).isoformat()
+
+
+def synchronize_current_evidence(kind: str) -> str:
+    """Rebuild one stable native raster from the same current run as its Tabia layer."""
+    completed = subprocess.run(
+        ["python3", str(WORK_DIR / "sync_current_evidence.py"), "--kind", kind, "--apply"],
+        cwd=WORK_DIR, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+        check=True, timeout=900,
+    )
+    return completed.stdout[-1500:]
 
 
 def control_receipt(filename: str, fields: tuple[str, ...]) -> dict | None:
@@ -138,12 +147,7 @@ def run_job(job_id: str, request: ObservedRainfallRequest):
                                        stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                                        check=True, timeout=7200)
             output.append(completed.stdout[-2000:])
-        source_raster = DATA_ROOT / "published" / f"{run_id}.tif"
-        target_raster = DATA_ROOT / "published" / "chirps-current-rainfall.tif"
-        temporary_target = target_raster.with_suffix(".promoting.tif")
-        shutil.copyfile(source_raster, temporary_target)
-        temporary_target.replace(target_raster)
-        output.append("validated artifact loaded; run-specific raster promoted to current display")
+        output.append(synchronize_current_evidence("rainfall"))
         status = "succeeded"
         error = None
     except subprocess.CalledProcessError as exc:
@@ -239,7 +243,7 @@ def run_preliminary_summary(job_id: str):
         run_id = json.loads(summary.stdout)["run_id"]
         loaded = subprocess.run(["python3", str(WORK_DIR / "load_chirps_prelim_summary.py"), str(DATA_ROOT / "outputs" / run_id)],
             cwd=WORK_DIR, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=True, timeout=600)
-        output = [summary.stdout[-2000:], loaded.stdout[-2000:]]
+        output = [summary.stdout[-2000:], loaded.stdout[-2000:], synchronize_current_evidence("rapid")]
         status, error = "succeeded", None
     except subprocess.CalledProcessError as exc:
         status, error, output = "failed", "CHIRPS preliminary Tabia summary failed", [(exc.stdout or "")[-4000:]]
@@ -362,7 +366,8 @@ def run_ndvi_tabia_summary(job_id: str):
         loaded = subprocess.run(["python3", str(WORK_DIR / "load_cdse_ndvi_summary.py"), str(DATA_ROOT / "outputs" / run_id)],
             cwd=WORK_DIR, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=True, timeout=600)
         loaded_json = json.JSONDecoder().raw_decode(loaded.stdout[loaded.stdout.find("{"):])[0]
-        status, error, output = loaded_json.get("artifact_status", "succeeded"), None, [summary.stdout[-2000:], loaded.stdout[-2000:]]
+        synced = synchronize_current_evidence("ndvi")
+        status, error, output = loaded_json.get("artifact_status", "succeeded"), None, [summary.stdout[-2000:], loaded.stdout[-2000:], synced]
     except subprocess.CalledProcessError as exc:
         status, error, output = "failed", "CDSE NDVI Tabia summary failed", [(exc.stdout or "")[-2000:]]
     except subprocess.TimeoutExpired:
@@ -379,7 +384,7 @@ def run_swi_tabia_summary(job_id: str):
         summary = subprocess.run(["python3", str(WORK_DIR / "cdse_swi_tabia_summary.py")], cwd=WORK_DIR, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=True, timeout=1800)
         run_id = json.JSONDecoder().raw_decode(summary.stdout[summary.stdout.find("{"):])[0]["run_id"]
         loaded = subprocess.run(["python3", str(WORK_DIR / "load_cdse_swi_summary.py"), str(DATA_ROOT / "outputs" / run_id)], cwd=WORK_DIR, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=True, timeout=600)
-        result=json.JSONDecoder().raw_decode(loaded.stdout[loaded.stdout.find("{"):])[0]; status,error,output=result.get("artifact_status","succeeded"),None,summary.stdout[-2000:]+loaded.stdout[-2000:]
+        result=json.JSONDecoder().raw_decode(loaded.stdout[loaded.stdout.find("{"):])[0]; synced=synchronize_current_evidence("swi"); status,error,output=result.get("artifact_status","succeeded"),None,summary.stdout[-2000:]+loaded.stdout[-2000:]+synced
     except subprocess.CalledProcessError as exc: status,error,output="failed","CDSE SWI Tabia summary failed",(exc.stdout or "")[-4000:]
     except Exception as exc: status,error,output="failed",f"Unexpected SWI summary error: {type(exc).__name__}",""
     with jobs_lock: jobs[job_id].update(status=status, finished_at=now(), error=error, output_tail=output)
@@ -394,7 +399,8 @@ def run_lst_tabia_summary(job_id: str):
         loaded = subprocess.run(["python3", str(WORK_DIR / "load_cdse_lst_summary.py"), str(DATA_ROOT / "outputs" / run_id)], cwd=WORK_DIR,
             text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=True, timeout=600)
         result = json.JSONDecoder().raw_decode(loaded.stdout[loaded.stdout.find("{"):])[0]
-        status, error, output = result.get("artifact_status", "succeeded"), None, summary.stdout[-2000:] + loaded.stdout[-2000:]
+        synced = synchronize_current_evidence("lst")
+        status, error, output = result.get("artifact_status", "succeeded"), None, summary.stdout[-2000:] + loaded.stdout[-2000:] + synced
     except subprocess.CalledProcessError as exc:
         status, error, output = "failed", "CDSE LST Tabia summary failed", (exc.stdout or "")[-4000:]
     except Exception as exc:
@@ -482,7 +488,8 @@ def run_wapor_tabia_summary(job_id: str):
         loaded = subprocess.run(["python3", str(WORK_DIR / "load_wapor_summary.py"), str(DATA_ROOT / "outputs" / run_id)], cwd=WORK_DIR,
             text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=True, timeout=600)
         result = json.JSONDecoder().raw_decode(loaded.stdout[loaded.stdout.find("{"):])[0]
-        status, error, output = result.get("artifact_status", "succeeded"), None, summary.stdout[-2000:] + loaded.stdout[-2000:]
+        synced = synchronize_current_evidence("wapor")
+        status, error, output = result.get("artifact_status", "succeeded"), None, summary.stdout[-2000:] + loaded.stdout[-2000:] + synced
     except subprocess.CalledProcessError as exc:
         status, error, output = "failed", "FAO WaPOR Tabia summary failed", (exc.stdout or "")[-4000:]
     except subprocess.TimeoutExpired:

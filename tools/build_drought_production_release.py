@@ -44,6 +44,8 @@ OBSERVED_FEATURE_PATH = "/map/api/drought/development/observed-rainfall/runs/{ru
 HISTORY_SOURCES = ("rapid", "ndvi", "swi", "lst", "wapor")
 EVIDENCE_RUNS_PATH = "/map/api/drought/development/evidence/{source}/runs"
 EVIDENCE_SUMMARY_PATH = "/map/api/drought/development/evidence/{source}/runs/{run_id}/summary"
+EXPOSURE_MEASURES = ("population", "cropland", "road")
+EXPOSURE_FEATURE_PATH = "/map/api/drought/development/exposure/{measure}/features"
 REPLAY_PATH = "/map/api/drought/development/priority/historical-replays/{snapshot_id}/features"
 FEWS_PATH = "/map/api/drought/development/fews-net-context/runs/{run_id}/features"
 RELEASE_ID = re.compile(r"^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{6}Z(?:-[a-z0-9][a-z0-9-]*)?$")
@@ -293,6 +295,49 @@ def public_tabia_geometry(payload: dict[str, Any]) -> dict[str, Any]:
             },
         })
     return {"type": "FeatureCollection", "schema_version": "tsird-public-tabia-geometry/v1", "features": public_features}
+
+
+EXPOSURE_PROPERTIES = {
+    "population": ("tsird_tabia_id", "tabia_name_en", "woreda_name_en", "population_total", "people_per_sq_km", "coverage_pct", "quality_status"),
+    "cropland": ("tsird_tabia_id", "tabia_name_en", "woreda_name_en", "cropland_pct", "cropland_area_ha", "coverage_pct", "quality_status"),
+    "road": ("tsird_tabia_id", "tabia_name_en", "woreda_name_en", "nearest_road_m", "tigray_roads_2006_intersects", "quality_status"),
+}
+
+
+def public_exposure_features(measure: str, payload: dict[str, Any], expected_tabia_ids: set[str]) -> dict[str, Any]:
+    """Retain one static Tabia exposure baseline for the public workspace.
+
+    Exposure remains three independently displayed source summaries.  This
+    strips the development response envelope while preserving the exact
+    properties and boundaries used by the shared dashboard and its palette.
+    """
+    features = payload.get("features")
+    if measure not in EXPOSURE_PROPERTIES or payload.get("type") != "FeatureCollection" or not isinstance(features, list):
+        raise RuntimeError(f"{measure} exposure payload is not a FeatureCollection")
+    public_features = []
+    ids: set[str] = set()
+    for feature in features:
+        properties = feature.get("properties") if isinstance(feature, dict) else None
+        geometry = feature.get("geometry") if isinstance(feature, dict) else None
+        tabia_id = properties.get("tsird_tabia_id") if isinstance(properties, dict) else None
+        if not isinstance(tabia_id, str) or not isinstance(geometry, dict):
+            raise RuntimeError(f"{measure} exposure feature is incomplete")
+        ids.add(tabia_id)
+        public_features.append({
+            "type": "Feature",
+            "id": tabia_id,
+            "geometry": geometry,
+            "properties": {key: properties[key] for key in EXPOSURE_PROPERTIES[measure] if key in properties},
+        })
+    if ids != expected_tabia_ids:
+        raise RuntimeError(f"{measure} exposure does not cover the released Tabia boundary set")
+    metadata = payload.get("metadata") if isinstance(payload.get("metadata"), dict) else {}
+    return {
+        "type": "FeatureCollection",
+        "schema_version": "tsird-public-tabia-exposure/v1",
+        "metadata": {key: metadata[key] for key in ("measure", "run_id", "reference_year", "source_release", "cropland_class", "native_resolution", "source_product", "method") if key in metadata},
+        "features": public_features,
+    }
 
 
 def public_workspace_summary(payloads: dict[str, dict[str, Any]]) -> dict[str, Any]:

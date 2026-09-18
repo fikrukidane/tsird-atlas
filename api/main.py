@@ -226,6 +226,62 @@ EVIDENCE_FEATURE_SQL = {
       ) reference ON true WHERE w.run_id=$1""",
 }
 
+# The three exposure measures are intentionally independent Tabia summaries.
+# They are served as fixed, read-only GeoJSON collections so the development
+# workspace can inspect each measure directly without depending on a WMS
+# identify request or combining them into a risk score.
+EXPOSURE_FEATURE_SQL = {
+    "population": """WITH active_run AS (
+      SELECT run_id, population_year, source_release, native_resolution
+      FROM tsird.drought_population_run
+      WHERE status = 'development' ORDER BY created_at DESC LIMIT 1
+    )
+    SELECT json_build_object('type','FeatureCollection',
+      'metadata', json_build_object('measure','population','run_id',(SELECT run_id FROM active_run),
+        'reference_year',(SELECT population_year FROM active_run),'source_release',(SELECT source_release FROM active_run),
+        'native_resolution',(SELECT native_resolution FROM active_run)),
+      'features',coalesce(json_agg(json_build_object(
+        'type','Feature','id',p.tsird_tabia_id,'geometry',ST_AsGeoJSON(t.geometry)::json,
+        'properties',json_build_object('tsird_tabia_id',p.tsird_tabia_id,'tabia_name_en',t."TABIA",'woreda_name_en',t."WEREDA",
+          'population_total',p.population_total,'people_per_sq_km',p.people_per_sq_km,
+          'coverage_pct',p.coverage_pct,'quality_status',p.quality_status)
+      ) ORDER BY t."TABIA"),'[]'::json))
+    FROM active_run r JOIN tsird.drought_tabia_population p USING (run_id)
+      JOIN tigray_tabias_ws t USING (tsird_tabia_id) WHERE p.quality_status='ok'""",
+    "cropland": """WITH active_run AS (
+      SELECT run_id, source_year, source_release, cropland_class, native_resolution
+      FROM tsird.drought_cropland_run
+      WHERE status = 'development' ORDER BY created_at DESC LIMIT 1
+    )
+    SELECT json_build_object('type','FeatureCollection',
+      'metadata', json_build_object('measure','cropland','run_id',(SELECT run_id FROM active_run),
+        'reference_year',(SELECT source_year FROM active_run),'source_release',(SELECT source_release FROM active_run),
+        'cropland_class',(SELECT cropland_class FROM active_run),'native_resolution',(SELECT native_resolution FROM active_run)),
+      'features',coalesce(json_agg(json_build_object(
+        'type','Feature','id',c.tsird_tabia_id,'geometry',ST_AsGeoJSON(t.geometry)::json,
+        'properties',json_build_object('tsird_tabia_id',c.tsird_tabia_id,'tabia_name_en',t."TABIA",'woreda_name_en',t."WEREDA",
+          'cropland_pct',c.cropland_pct,'cropland_area_ha',c.cropland_area_ha,
+          'coverage_pct',c.coverage_pct,'quality_status',c.quality_status)
+      ) ORDER BY t."TABIA"),'[]'::json))
+    FROM active_run r JOIN tsird.drought_tabia_cropland c USING (run_id)
+      JOIN tigray_tabias_ws t USING (tsird_tabia_id) WHERE c.quality_status='ok'""",
+    "road": """WITH active_run AS (
+      SELECT run_id, source_product, main_road_definition
+      FROM tsird.drought_road_accessibility_run
+      WHERE status = 'development' ORDER BY created_at DESC LIMIT 1
+    )
+    SELECT json_build_object('type','FeatureCollection',
+      'metadata', json_build_object('measure','road','run_id',(SELECT run_id FROM active_run),
+        'source_product',(SELECT source_product FROM active_run),'method',(SELECT main_road_definition FROM active_run)),
+      'features',coalesce(json_agg(json_build_object(
+        'type','Feature','id',a.tsird_tabia_id,'geometry',ST_AsGeoJSON(t.geometry)::json,
+        'properties',json_build_object('tsird_tabia_id',a.tsird_tabia_id,'tabia_name_en',t."TABIA",'woreda_name_en',t."WEREDA",
+          'nearest_road_m',a.nearest_road_m,'tigray_roads_2006_intersects',a.tigray_roads_2006_intersects,
+          'quality_status',a.quality_status)
+      ) ORDER BY t."TABIA"),'[]'::json))
+    FROM active_run r JOIN tsird.drought_tabia_road_accessibility a USING (run_id)
+      JOIN tigray_tabias_ws t USING (tsird_tabia_id) WHERE a.quality_status='ok'""",
+}
 # The automatic production publisher needs historical values, but it must not
 # make PostgreSQL serialise the same Tabia boundaries hundreds of times.  These
 # fixed source queries produce exactly the properties used by History; the
@@ -1037,6 +1093,13 @@ async def public_drought_dashboard_geometry():
     return _public_indicator_geometry()
 
 
+@app.get("/drought/public/dashboard/exposure/{measure}/features")
+async def public_drought_dashboard_exposure_features(measure: str):
+    if measure not in {"population", "cropland", "road"}:
+        raise HTTPException(status_code=404, detail="Unknown public exposure measure")
+    return _public_indicator_release_json(f"exposure-{measure}")
+
+
 @app.get("/drought/public/dashboard/priority/replays/{snapshot_id}/features")
 async def public_drought_dashboard_priority_replay_features(snapshot_id: str):
     index = _public_release_json("priority-replay-summary")
@@ -1565,6 +1628,30 @@ async def development_evidence_features(source_key: str, run_id: str):
     return decoded
 
 
+@app.get("/drought/development/exposure/{measure}/features")
+async def development_exposure_features(measure: str):
+    """Return one active static Tabia exposure measure as GeoJSON.
+
+    The allow-list keeps people, cropland, and road proximity separate.  This
+    endpoint is development-only and deliberately contains no composite score,
+    priority class, or inferred exposure claim.
+    """
+    sql = EXPOSURE_FEATURE_SQL.get(measure)
+    if not sql:
+        raise HTTPException(status_code=404, detail="Unknown development exposure measure")
+    try:
+        conn = await asyncpg.connect(DB_DSN)
+        try:
+            payload = await conn.fetchval(sql)
+        finally:
+            await conn.close()
+    except Exception:
+        logging.exception("Development exposure feature query error")
+        raise HTTPException(status_code=503, detail="Development exposure data is unavailable")
+    decoded = json.loads(payload) if isinstance(payload, str) else payload
+    if not decoded or not decoded.get("features"):
+        raise HTTPException(status_code=404, detail="Development exposure data is unavailable")
+    return decoded
 @app.get("/drought/development/evidence/{source_key}/runs/{run_id}/summary")
 async def development_evidence_summary(source_key: str, run_id: str):
     """Return the retained Tabia values without repeating boundary geometry.

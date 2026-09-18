@@ -31,7 +31,9 @@ pointer can advance. It also carries the retained source-run indexes and
 compact per-Tabia values needed by the rainfall snapshot selector and History
 map/date comparisons. Tabia boundary geometry is copied once and joined to
 each compact run by its stable ID; raw rasters and provider archives are never
-duplicated for history.
+duplicated for history. The same package carries the three static, independent
+Tabia exposure baselines (People, Cropland and Road proximity) so the shared
+public Exposure controls use released records rather than any development API.
 
 The companion validator accepts an `auto-validated` package only when invoked
 with `--allow-auto-validated-indicators`; the standard publisher and normal

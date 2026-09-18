@@ -25,6 +25,8 @@ from build_drought_production_release import (
     API_PATHS,
     EVIDENCE_RUNS_PATH,
     EVIDENCE_SUMMARY_PATH,
+    EXPOSURE_FEATURE_PATH,
+    EXPOSURE_MEASURES,
     HISTORY_SOURCES,
     OBSERVED_FEATURE_PATH,
     OBSERVED_RUN_PATH,
@@ -33,6 +35,7 @@ from build_drought_production_release import (
     asset_record,
     public_history_run_index,
     public_history_snapshot,
+    public_exposure_features,
     public_observed_run_index,
     public_observed_snapshot,
     public_rainfall_index,
@@ -153,6 +156,10 @@ def main() -> int:
         validate_workspace_inputs(workspace_payloads)
         rainfall_payload = request_json(args.api_base, API_PATHS["drought-evidence-summary.json"])
         observed_runs_payload = request_json(args.api_base, OBSERVED_RUNS_PATH)
+        exposure_payloads = {
+            measure: request_json(args.api_base, EXPOSURE_FEATURE_PATH.format(measure=measure))
+            for measure in EXPOSURE_MEASURES
+        }
     except RuntimeError as error:
         print(f"ERROR: {error}", file=sys.stderr)
         return 2
@@ -197,6 +204,26 @@ def main() -> int:
         print(f"ERROR: {error}", file=sys.stderr)
         return 2
 
+    geometry = history_payloads.get("tabia-geometry.json")
+    geometry_features = geometry.get("features") if isinstance(geometry, dict) else None
+    expected_tabia_ids = {
+        feature.get("properties", {}).get("tsird_tabia_id")
+        for feature in geometry_features or []
+        if isinstance(feature, dict) and isinstance(feature.get("properties"), dict)
+        and isinstance(feature["properties"].get("tsird_tabia_id"), str)
+    }
+    if not expected_tabia_ids:
+        print("ERROR: released Tabia geometry is incomplete", file=sys.stderr)
+        return 2
+    try:
+        exposure_assets = {
+            measure: public_exposure_features(measure, payload, expected_tabia_ids)
+            for measure, payload in exposure_payloads.items()
+        }
+    except RuntimeError as error:
+        print(f"ERROR: {error}", file=sys.stderr)
+        return 2
+
     workspace = public_workspace_summary(workspace_payloads)
     rainfall = public_rainfall_index(rainfall_payload)
     latest_run = workspace_payloads["observed"].get("run")
@@ -219,6 +246,10 @@ def main() -> int:
         "drought-workspace-latest.json": write_json(release_dir / "drought-workspace-latest.json", workspace),
     }
     written.update({filename: write_json(release_dir / filename, payload) for filename, payload in history_payloads.items()})
+    written.update({
+        f"exposure-{measure}.json": write_json(release_dir / f"exposure-{measure}.json", payload)
+        for measure, payload in exposure_assets.items()
+    })
     status = {
         "schema_version": "tsird-drought-automatic-indicator-release-status/v1",
         "environment": "development-to-production",
@@ -236,6 +267,15 @@ def main() -> int:
         asset_record("observed-rainfall-runs", "drought_evidence_summary", "observed-rainfall-runs.json", written["observed-rainfall-runs.json"], "TSIRD retained observed rainfall snapshot index", start, end, history_payloads["observed-rainfall-runs.json"].get("schema_version", "unknown"), f"{boundary} Historical selections remain archived observations."),
         asset_record("release-status", "public_status", "status.json", written["status.json"], "TSIRD automated indicator validator", start, end, status["schema_version"], "Publication provenance only; it is not a scientific certification or operational decision."),
     ]
+    assets.extend([
+        asset_record(
+            f"exposure-{measure}", "vector_display_summary", f"exposure-{measure}.json", written[f"exposure-{measure}.json"],
+            {"population": "WorldPop 2025 Tabia population baseline", "cropland": "ESA WorldCover 2021 Tabia cropland baseline", "road": "TSIRD Tigray Roads 2006 Tabia road-proximity baseline"}[measure],
+            start, end, exposure_assets[measure].get("schema_version", "unknown"),
+            "Static Tabia context shown separately; it is not a composite risk, food-security classification, allocation recommendation, or operational decision.",
+        )
+        for measure in EXPOSURE_MEASURES
+    ])
     for run in observed_runs:
         run_id = run["run_id"]
         asset_id = observed_asset_ids[run_id]

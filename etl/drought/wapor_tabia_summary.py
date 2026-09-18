@@ -196,7 +196,8 @@ def main():
         raise RuntimeError("WaPOR T and AETI CRS differ")
     pilot_only = os.environ.get("TSIRD_BASELINE_PILOT_ONLY") == "1"
     candidate_only = os.environ.get("TSIRD_SEASONAL_REFERENCE_CANDIDATE") == "1"
-    if not pilot_only and not candidate_only:
+    historical_only = os.environ.get("TSIRD_RETAIN_HISTORICAL_ONLY") == "1"
+    if not pilot_only and not candidate_only and not historical_only:
         publish_provider_band(t_path, root / "published" / "wapor-transpiration-current.tif", band=1,
                               scale=t_scale, offset=0, mask_band=None)
     rows = []
@@ -229,6 +230,7 @@ def main():
                 "method": "Provider COG subsets clipped to Tigray bounds; pixel-centre Tabia zonal means; source scale retained from GeoTIFF metadata.",
                 "baseline_pilot_only": pilot_only,
                 "seasonal_reference_candidate_only": candidate_only,
+                "historical_retention_only": historical_only,
                 "publication_note": ("Baseline pilot only. Transpiration is vegetation water-use context and AETI "
                                      "includes evaporation/interception; neither is a baseline, current crop extent, "
                                      "yield, drought, food-security classification, response priority, forecast, or published layer."

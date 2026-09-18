@@ -22,6 +22,7 @@ function bootPublicDroughtWorkspace() {
     droughtModelReadinessUrl: '../api/drought/public/dashboard/model-readiness',
     droughtHistoryUrl: '../api/drought/public/dashboard/history',
     droughtEvidenceBaseUrl: '../api/drought/public/dashboard/evidence',
+    droughtExposureUrl: '../api/drought/public/dashboard/exposure',
     droughtPublicGeometryUrl: '../api/drought/public/dashboard/geometry',
     droughtBoundaryUrl: '../api/boundaries'
   });

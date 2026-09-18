@@ -29,6 +29,10 @@ See [master context](TSIRD_MASTER_CONTEXT.md) for source paths and request flow.
 - Phase 3 search is implemented: FastAPI/PostGIS bilingual Woreda/Tabia lookup, zoom-to-bbox, and orange bbox highlight. The active frontend has moved beyond the static JSON search described by the formal v0.3.0 Release.
 - Navigator overview, full zoom, distance/area tools, persistent Display Settings, temporal controls, TOC and legend behavior, scale handling, and GetFeatureInfo are present in the active scripts.
 - Cartography includes Tigray zone-based Woreda styling, bilingual Woreda/Tabia labels, Ethiopia hierarchy, Eritrea admin layers, and DEM/slope classifications.
+- Dynamic drought evidence views select retained source observations by their
+  observation period. A local post-load synchronization step keeps the native
+  raster and Tabia layer on that same run, while historical backfills are
+  retained without taking over the current native-raster path.
 - Compose defines `tsird-postgis`, `tsird-mapserver`, `tsird-web`, `tsird-api`, `tsird-etl`, and `tsird-edge`. Jupyter is historical context, not a current Compose service.
 - Local-only Drought Intelligence development adds a controlled internal
   runner and six bounded, active local n8n schedules: calendar-aware CHIRPS

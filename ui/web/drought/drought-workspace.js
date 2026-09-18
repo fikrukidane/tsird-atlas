@@ -16,6 +16,7 @@ document.addEventListener('DOMContentLoaded', function () {
     droughtModelReadinessUrl: '../api/drought/development/model-readiness',
     droughtHistoryUrl: '../api/drought/development/history',
     droughtEvidenceBaseUrl: '../api/drought/development/evidence',
+    droughtExposureUrl: '../api/drought/development/exposure',
     droughtBoundaryUrl: '../api/boundaries'
   });
 });

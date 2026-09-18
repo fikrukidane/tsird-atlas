@@ -95,6 +95,12 @@ snapshots, and per-Tabia retained-observation history; MapServer exposes
 development WMS layers. Historical snapshots are archived observations, not
 as-issued forecast or model replays. Source timestamps form the evidence
 history; the UI does not interpolate gaps or combine indicators into a score.
+For every dynamic native-raster/Tabia pair, the current display is selected by
+the provider observation period (not ingestion time). The local
+`sync_current_evidence.py` utility rebuilds the stable native raster from that
+same retained run after each current refresh and after historical backfills;
+the resulting local `current-evidence-manifest.json` is a runtime receipt and
+is not tracked source data.
 
 The production-release builder packages retained API summaries,
 historical replay snapshots, and provider-native FEWS NET display GeoJSON into

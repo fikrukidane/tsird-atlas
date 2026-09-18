@@ -102,6 +102,7 @@ def process_cdse(kind, year, month, observation_timestamp):
     summary, loader, catalogue_kind, template = CDSE[kind]
     environment = os.environ.copy()
     environment["CDSE_OBSERVATION_TIMESTAMP"] = observation_timestamp
+    environment["TSIRD_RETAIN_HISTORICAL_ONLY"] = "1"
     output = run(["python3", str(WORK / summary)], environment)
     run_id = run_id_from(output)
     base = ROOT / "outputs" / run_id
@@ -116,6 +117,7 @@ def process_wapor(year, month):
     period_start = date(year, month, 21)
     environment = os.environ.copy()
     environment["WAPOR_PERIOD_START"] = period_start.isoformat()
+    environment["TSIRD_RETAIN_HISTORICAL_ONLY"] = "1"
     output = run(["python3", str(WORK / "wapor_tabia_summary.py")], environment)
     run_id = run_id_from(output)
     base = ROOT / "outputs" / run_id
@@ -157,6 +159,12 @@ def main():
                 complete.append({**item, "source_timestamp": observation_timestamp, "run_id": run_id})
         except Exception as exc:
             failures.append({**item, "error": str(exc)})
+    # A backfill must never leave an older retained observation as the stable
+    # native display. Rebuild the requested current paths from the same
+    # observation-date rule used by the dashboard and MapServer Tabia layers.
+    if complete:
+        for kind in kinds:
+            run(["python3", str(WORK / "sync_current_evidence.py"), "--kind", kind, "--apply"], os.environ.copy())
     print(json.dumps({"development_only": True, "completed": complete, "failures": failures}, indent=2))
     if failures:
         raise SystemExit(2)

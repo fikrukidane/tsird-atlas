@@ -84,6 +84,7 @@ async function initializeApplication(registryPath, options) {
         modelReadinessUrl: options.droughtModelReadinessUrl,
         historyUrl: options.droughtHistoryUrl,
         evidenceBaseUrl: options.droughtEvidenceBaseUrl,
+        exposureUrl: options.droughtExposureUrl,
         boundaryUrl: options.droughtBoundaryUrl,
         wmsBaseUrl: registry.wmsBaseUrl,
         publicMode: options.droughtPublicMode,

@@ -104,8 +104,10 @@ def main():
     outputs = root / "outputs"; outputs.mkdir(parents=True, exist_ok=True)
     raster = raw / f"{run}.tif"
     checksum = retrieve(token, collection, bounds, stamp, raster)
-    publish_provider_band(raster, root / "published" / "swi040-current.tif", band=2,
-                          scale=0.5, offset=0, mask_band=5)
+    historical_only = os.environ.get("TSIRD_RETAIN_HISTORICAL_ONLY") == "1"
+    if not historical_only:
+        publish_provider_band(raster, root / "published" / "swi040-current.tif", band=2,
+                              scale=0.5, offset=0, mask_band=5)
     rows = []
     for tabia_id, tabia, woreda, geometry in tabias:
         row = {"tsird_tabia_id": tabia_id, "tabia_name_en": tabia, "woreda_name_en": woreda}
@@ -117,6 +119,7 @@ def main():
                 "collection_id": collection, "observation_at": stamp, "native_resolution": "0.1 degree (about 12.5 km), 10-daily",
                 "raster_path": str(raster), "raster_sha256": checksum, "source_retrieved_at": datetime.now(timezone.utc).isoformat(),
                 "source_age_days": round(age, 1), "method": "Tabia zonal means: SWI010, SWI040, SWI100; raw SWI/QFLAG scaled as raw / 2",
+                "historical_retention_only": historical_only,
                 "publication_note": "Development artifact only. Coarse soil-water context, not a Tabia-scale observation or drought class."}
     base.with_suffix(".manifest.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
     print(json.dumps({"run_id": run, "status": status, "rows": len(rows), "raster_bytes": raster.stat().st_size}))

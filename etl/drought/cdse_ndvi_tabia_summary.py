@@ -196,7 +196,8 @@ def main():
     checksum = retrieve_raster(token, collection_id, bounds, stamp, raster_path)
     pilot_only = os.environ.get("TSIRD_BASELINE_PILOT_ONLY") == "1"
     candidate_only = os.environ.get("TSIRD_SEASONAL_REFERENCE_CANDIDATE") == "1"
-    if not pilot_only and not candidate_only:
+    historical_only = os.environ.get("TSIRD_RETAIN_HISTORICAL_ONLY") == "1"
+    if not pilot_only and not candidate_only and not historical_only:
         publish_provider_band(raster_path, root / "published" / "ndvi-current.tif", band=1,
                               scale=1 / 250, offset=-0.08, mask_band=3)
     rows = []
@@ -216,6 +217,7 @@ def main():
                 "catalog_item_id": item.get("id"), "method": "CDSE Process API raster; Tabia pixel-centre zonal mean and median; raw NDVI scaled as raw / 250 - 0.08",
                 "baseline_pilot_only": pilot_only,
                 "seasonal_reference_candidate_only": candidate_only,
+                "historical_retention_only": historical_only,
                 "publication_note": ("Baseline pilot only. It is not a seasonal baseline, anomaly, drought or "
                                      "food-security classification, response priority, forecast, or published layer."
                                      if pilot_only else
