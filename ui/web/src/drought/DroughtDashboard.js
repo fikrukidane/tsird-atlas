@@ -1753,6 +1753,13 @@ class DroughtDashboard {
       row.classList.toggle('is-selected', rowId === boundary.id);
     });
     try {
+      const releasedFeature = this.publicMode && boundary.type === 'tabia'
+        ? this.publicGeometry.find(feature => feature && feature.properties && feature.properties.tsird_tabia_id === boundary.id)
+        : null;
+      if (releasedFeature && releasedFeature.geometry) {
+        this._showBoundary({ geometry: releasedFeature.geometry }, boundary.type);
+        return;
+      }
       const response = await fetch(`${this.boundaryUrl}/${boundary.type}/${boundary.id}`, { cache: 'no-store' });
       if (!response.ok) throw new Error(`boundary lookup returned ${response.status}`);
       this._showBoundary(await response.json(), boundary.type);

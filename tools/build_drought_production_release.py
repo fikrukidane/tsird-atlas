@@ -290,7 +290,10 @@ def public_tabia_geometry(payload: dict[str, Any]) -> dict[str, Any]:
             "type": "Feature",
             "geometry": geometry,
             "properties": {
-                key: properties[key] for key in ("tsird_tabia_id", "tabia_name_en", "woreda_name_en")
+                key: properties[key] for key in (
+                    "tsird_tabia_id", "tabia_name_en", "tabia_name_ti",
+                    "woreda_name_en", "woreda_name_ti",
+                )
                 if key in properties
             },
         })

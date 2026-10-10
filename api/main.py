@@ -509,7 +509,9 @@ SELECT json_build_object(
     'properties', json_build_object(
       'tsird_tabia_id', c.tsird_tabia_id,
       'tabia_name_en', t."TABIA",
+      'tabia_name_ti', t.tabia_tig,
       'woreda_name_en', t."WEREDA",
+      'woreda_name_ti', w.woreda_tig,
       'rainfall_mm', c.rainfall_mm,
       'baseline_median_mm', c.baseline_median_mm,
       'percentile', c.percentile,
@@ -523,6 +525,7 @@ SELECT json_build_object(
 FROM tsird.drought_tabia_rainfall_condition c
 JOIN selected_run r USING (run_id)
 JOIN tigray_tabias_ws t USING (tsird_tabia_id)
+LEFT JOIN tigray_woredas_ws w ON w."WEREDA" = t."WEREDA"
 """
 
 DROUGHT_DEVELOPMENT_PRELIMINARY_SQL = """
@@ -918,10 +921,88 @@ def _public_indicator_geometry() -> dict:
     return {"type": "FeatureCollection", "features": [
         {"type": "Feature", "geometry": feature.get("geometry"), "properties": {
             key: feature.get("properties", {}).get(key)
-            for key in ("tsird_tabia_id", "tabia_name_en", "woreda_name_en")
+            for key in ("tsird_tabia_id", "tabia_name_en", "tabia_name_ti", "woreda_name_en", "woreda_name_ti")
             if isinstance(feature, dict) and isinstance(feature.get("properties"), dict) and key in feature["properties"]
         }} for feature in features if isinstance(feature, dict)
     ]}
+
+
+def _geometry_bbox(geometry: object) -> list[float] | None:
+    """Return an EPSG:4326 envelope from a GeoJSON geometry without GIS state."""
+    coordinates: list[tuple[float, float]] = []
+
+    def collect(value: object) -> None:
+        if not isinstance(value, list):
+            return
+        if len(value) >= 2 and all(isinstance(item, (int, float)) for item in value[:2]):
+            coordinates.append((float(value[0]), float(value[1])))
+            return
+        for item in value:
+            collect(item)
+
+    if isinstance(geometry, dict):
+        collect(geometry.get("coordinates"))
+    if not coordinates:
+        return None
+    xs, ys = zip(*coordinates)
+    return [min(xs), min(ys), max(xs), max(ys)]
+
+
+def _release_gazetteer_results_from_features(features: list[object], query: str) -> list[dict]:
+    """Search only approved Tabia geometry when the boundary database is absent."""
+    normalized = query.casefold()
+    if not normalized:
+        return []
+
+    def rank(values: list[str]) -> int | None:
+        values = [value.casefold() for value in values if value]
+        if normalized in values:
+            return 1
+        if any(value.startswith(normalized) for value in values):
+            return 2
+        if any(normalized in value for value in values):
+            return 3
+        return None
+
+    results: list[tuple[int, dict]] = []
+    woredas: dict[tuple[str, str], list[float]] = {}
+    for feature in features:
+        if not isinstance(feature, dict):
+            continue
+        properties = feature.get("properties")
+        if not isinstance(properties, dict):
+            continue
+        tabia_id = properties.get("tsird_tabia_id")
+        tabia_name = properties.get("tabia_name_en")
+        bbox = _geometry_bbox(feature.get("geometry"))
+        if not isinstance(tabia_id, str) or not isinstance(tabia_name, str) or not bbox:
+            continue
+        tabia_ti = properties.get("tabia_name_ti") if isinstance(properties.get("tabia_name_ti"), str) else ""
+        tabia_rank = rank([tabia_name, tabia_ti])
+        if tabia_rank is not None:
+            results.append((tabia_rank, {"type": "tabia", "id": tabia_id, "name_en": tabia_name, "name_ti": tabia_ti, "bbox": bbox}))
+        woreda_name = properties.get("woreda_name_en") if isinstance(properties.get("woreda_name_en"), str) else ""
+        woreda_ti = properties.get("woreda_name_ti") if isinstance(properties.get("woreda_name_ti"), str) else ""
+        if woreda_name:
+            existing = woredas.setdefault((woreda_name, woreda_ti), list(bbox))
+            existing[0], existing[1] = min(existing[0], bbox[0]), min(existing[1], bbox[1])
+            existing[2], existing[3] = max(existing[2], bbox[2]), max(existing[3], bbox[3])
+    for index, ((name_en, name_ti), bbox) in enumerate(sorted(woredas.items()), start=1):
+        woreda_rank = rank([name_en, name_ti])
+        if woreda_rank is not None:
+            results.append((woreda_rank, {"type": "woreda", "id": f"released-woreda-{index}", "name_en": name_en, "name_ti": name_ti, "bbox": bbox}))
+    return [record for _, record in sorted(results, key=lambda item: (item[0], item[1]["name_en"]))[:15]]
+
+
+def _public_gazetteer_results(query: str) -> list[dict]:
+    try:
+        geometry = _public_indicator_geometry()
+    except HTTPException as error:
+        if error.status_code not in {404, 503}:
+            raise
+        return []
+    features = geometry.get("features") if isinstance(geometry, dict) else None
+    return _release_gazetteer_results_from_features(features if isinstance(features, list) else [], query)
 
 
 def _public_history_features(rows: list[dict]) -> dict:
@@ -1147,9 +1228,10 @@ async def public_drought_dashboard_outlook_runs(variable: str = Query("seasonal_
 
 @app.get("/gazetteer")
 async def gazetteer(q: str = Query(..., min_length=1, max_length=100)):
+    query = q.strip()
     try:
         conn = await asyncpg.connect(DB_DSN)
-        rows = await conn.fetch(SEARCH_SQL, q.strip())
+        rows = await conn.fetch(SEARCH_SQL, query)
         await conn.close()
         results = []
         for row in rows:
@@ -1161,11 +1243,15 @@ async def gazetteer(q: str = Query(..., min_length=1, max_length=100)):
                 "name_ti": row["name_ti"] or "",
                 "bbox": bbox
             })
-        return results
+        if results:
+            return results
     except Exception as e:
-        import logging
         logging.error(f"Gazetteer query error: {e}")
-        return []
+    # Production deliberately does not mount the development boundary database.
+    # The current approved indicator package carries the same bounded Tabia
+    # geometry used by the public Drought workspace, so it is the only safe
+    # fallback. It never reaches into development storage.
+    return _public_gazetteer_results(query)
 
 @app.get("/health")
 async def health():

@@ -144,7 +144,7 @@ function tabiaGeometry(payload) {
   if (!payload || payload.type !== "FeatureCollection" || !Array.isArray(payload.features)) fail("Tabia geometry is invalid");
   return {type:"FeatureCollection", schema_version:"tsird-public-tabia-geometry/v1", features:payload.features.map((feature) => {
     if (!feature || !feature.geometry || !feature.properties || typeof feature.properties.tsird_tabia_id !== "string") fail("Tabia geometry feature is invalid");
-    const properties={}; for (const field of ["tsird_tabia_id", "tabia_name_en", "woreda_name_en"]) if (Object.hasOwn(feature.properties,field)) properties[field]=feature.properties[field];
+    const properties={}; for (const field of ["tsird_tabia_id", "tabia_name_en", "tabia_name_ti", "woreda_name_en", "woreda_name_ti"]) if (Object.hasOwn(feature.properties,field)) properties[field]=feature.properties[field];
     return {type:"Feature",geometry:feature.geometry,properties};
   })};
 }
