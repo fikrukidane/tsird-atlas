@@ -41,6 +41,36 @@ production pointer still reject it. VPS activation uses the fixed command
 `activate-indicators <release-id>`, which can advance only the nested
 indicator pointer and cannot advance the reviewed Priority Replay pointer.
 
+## Freshness and forward-only publication
+
+`n8n/publisher/drought-indicator-freshness-contract.json` is the one declared
+cadence contract for the six source-derived views. Every automatic package
+must contain per-source `source_observation_end`, `expected_next`,
+`stale_after`, and `automation_state` metadata derived from that contract.
+The release validator refuses an automatic package without it, and the public
+indicator endpoint exposes the same records for the map UI and monitoring.
+
+The automatic activation command is a one-way data ratchet: it compares each
+candidate source observation end with the current indicator package and
+refuses any candidate that would make a source older. Validation, transfer,
+or activation failure leaves the existing pointer unchanged. Equal dates are
+allowed because a source may correct a value for the same observation period.
+
+The current contract is intentionally honest about capability: CHIRPS final
+and rapid rainfall are automatic; NDVI, SWI and WaPOR remain
+`manual-until-acquisition`; thermal is `replacement-required` because the
+upstream LST product is superseded. Those states are visible, rather than
+being presented as successfully automated feeds.
+
+Run `tools/monitor_drought_public_freshness.py` from a scheduler outside n8n
+with an ignored state file. It reads only the public indicator metadata, emits
+one notification when freshness becomes stale/unreachable and one recovery
+notification when the state changes back. Telegram credentials are optional
+environment variables (`TSIRD_MONITOR_TELEGRAM_BOT_TOKEN` and
+`TSIRD_MONITOR_TELEGRAM_CHAT_ID`) and must never be committed. This is a
+public-freshness deadman; it does not grant the monitor any access to n8n,
+source data, releases, or production activation.
+
 ## Native-raster serving contract
 
 The activation utility atomically advances both `indicators/current.json` and

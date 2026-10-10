@@ -21,6 +21,16 @@ from pathlib import Path
 from validate_drought_production_release import RELEASE_ID as PUBLIC_RELEASE_ID_PATTERN, validate_release
 
 
+LEGACY_INDICATOR_ASSET_SOURCES = {
+    "native-raster-chirps": "observed",
+    "native-raster-rapid": "rapid",
+    "native-raster-ndvi": "vegetation",
+    "native-raster-swi": "soil_water",
+    "native-raster-lst": "thermal",
+    "native-raster-wapor": "water_use",
+}
+
+
 def utc_now() -> str:
     return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
@@ -34,6 +44,63 @@ def read_previous_release(pointer_path: Path) -> str | None:
         return candidate if isinstance(candidate, str) and PUBLIC_RELEASE_ID_PATTERN.fullmatch(candidate) else None
     except (OSError, json.JSONDecodeError):
         return None
+
+
+def indicator_freshness(manifest: dict) -> dict[str, str]:
+    """Return source observation-end dates for an automatic indicator package.
+
+    The explicit freshness block is required for new packages. The native
+    raster metadata fallback lets the first guarded activation compare safely
+    against packages created before the contract existed.
+    """
+    freshness = manifest.get("freshness")
+    if isinstance(freshness, list):
+        result = {
+            item.get("source_key"): item.get("source_observation_end")
+            for item in freshness
+            if isinstance(item, dict)
+            and isinstance(item.get("source_key"), str)
+            and isinstance(item.get("source_observation_end"), str)
+        }
+        if set(result) == set(LEGACY_INDICATOR_ASSET_SOURCES.values()):
+            return result
+    assets = manifest.get("assets")
+    if not isinstance(assets, list):
+        return {}
+    result = {}
+    for asset in assets:
+        if not isinstance(asset, dict):
+            continue
+        source = LEGACY_INDICATOR_ASSET_SOURCES.get(asset.get("asset_id"))
+        end = asset.get("source_observation_end")
+        if source and isinstance(end, str):
+            result[source] = end[:10]
+    return result
+
+
+def automatic_pointer_regression(public_root: Path, candidate: dict) -> str | None:
+    """Reject automatic indicator data that would move any source backwards."""
+    pointer_path = public_root / "current.json"
+    previous_id = read_previous_release(pointer_path)
+    if previous_id is None:
+        return None
+    try:
+        root = public_root.resolve()
+        previous_dir = (root / previous_id).resolve(strict=True)
+        if previous_dir.parent != root:
+            return "existing indicator pointer resolves outside the configured public root"
+        previous_manifest = json.loads((previous_dir / "manifest.json").read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return "existing indicator release cannot be read for the forward-only safety check"
+    previous = indicator_freshness(previous_manifest)
+    proposed = indicator_freshness(candidate)
+    expected = set(LEGACY_INDICATOR_ASSET_SOURCES.values())
+    if set(previous) != expected or set(proposed) != expected:
+        return "indicator freshness is incomplete; cannot prove the automatic pointer would not regress"
+    regressed = sorted(key for key in expected if proposed[key] < previous[key])
+    if regressed:
+        return f"automatic indicator release would regress source observation data: {', '.join(regressed)}"
+    return None
 
 
 def main() -> int:
@@ -65,6 +132,10 @@ def main() -> int:
     )
     if args.allow_auto_validated_indicators and manifest.get("release_channel") != "indicator-evidence":
         parser.error("automatic activation accepts only indicator-evidence releases")
+    if args.allow_auto_validated_indicators:
+        regression = automatic_pointer_regression(public_root, manifest)
+        if regression:
+            parser.error(regression)
     public_root.mkdir(parents=True, exist_ok=True)
     target = public_root / args.release_id
     if target.exists():

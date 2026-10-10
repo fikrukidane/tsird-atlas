@@ -30,13 +30,17 @@ This is only the small, display-ready raster folder. Do not mount the broader
 `data/drought` tree, source archives, the TSIRD repository, Docker socket, a
 database volume, or an administrator SSH directory into n8n.
 
-Copy these two tracked files into the existing n8n `/workflows` mount:
+Copy these three tracked files into the existing n8n `/workflows` mount. The
+publisher and Python validator both read the same freshness contract; do not
+activate a workflow with only a partial update.
 
 ```powershell
 Copy-Item C:\docker\projects\tsird-atlas\n8n\publisher\tsird-drought-automatic-indicator-publisher-v1.js `
   C:\docker\projects\n8n-platform\workflows\tsird-drought-automatic-indicator-publisher-v1.js -Force
 Copy-Item C:\docker\projects\tsird-atlas\n8n\publisher\tsird-drought-automatic-indicator-publisher-v1.sh `
   C:\docker\projects\n8n-platform\workflows\tsird-drought-automatic-indicator-publisher-v1.sh -Force
+Copy-Item C:\docker\projects\tsird-atlas\n8n\publisher\drought-indicator-freshness-contract.json `
+  C:\docker\projects\n8n-platform\workflows\drought-indicator-freshness-contract.json -Force
 ```
 
 The existing two restricted publisher keys and verified `known_hosts` file are
@@ -47,7 +51,7 @@ reused from `tsird-drought-publisher-keys`; no administrator key is involved.
 1. Import `n8n/workflows/tsird-drought-automatic-indicator-publisher-v1.development.json` and keep it inactive.
 2. Set its `production_host` placeholder to the already verified VPS host or IP.
 3. Execute the **Manual controlled run** once. It must either report
-   `published` with nine assets or `current` without moving the public pointer.
+   `published` with a complete freshness declaration or `current` without moving the public pointer.
    Any missing raster, unavailable source, incomplete Tabia evidence, checksum
    mismatch, host-key mismatch, upload error, or VPS validation failure must
    fail while leaving the existing public indicator pointer untouched.

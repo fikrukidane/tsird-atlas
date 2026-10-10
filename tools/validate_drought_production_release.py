@@ -13,7 +13,7 @@ import hashlib
 import json
 import re
 import sys
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path, PurePosixPath
 from typing import Any
 
@@ -41,6 +41,7 @@ AUTO_INDICATOR_RASTERS = {
     "native-raster-lst": "lst-current.tif",
     "native-raster-wapor": "wapor-transpiration-current.tif",
 }
+FRESHNESS_CONTRACT_PATH = Path(__file__).resolve().parents[1] / "n8n" / "publisher" / "drought-indicator-freshness-contract.json"
 
 
 def fail(message: str) -> None:
@@ -70,6 +71,58 @@ def require_date(value: Any, field: str) -> str:
     except ValueError:
         fail(f"{field} must be a YYYY-MM-DD date")
     return text
+
+
+def load_indicator_freshness_contract() -> dict[str, dict[str, Any]]:
+    try:
+        contract = json.loads(FRESHNESS_CONTRACT_PATH.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as error:
+        fail(f"indicator freshness contract is unreadable: {error}")
+    sources = contract.get("sources") if isinstance(contract, dict) else None
+    if contract.get("schema_version") != "tsird-drought-indicator-freshness-contract/v1" or not isinstance(sources, list):
+        fail("indicator freshness contract is invalid")
+    result: dict[str, dict[str, Any]] = {}
+    for source in sources:
+        if not isinstance(source, dict) or not isinstance(source.get("key"), str):
+            fail("indicator freshness contract has an invalid source")
+        result[source["key"]] = source
+    return result
+
+
+def validate_indicator_freshness(manifest: dict[str, Any]) -> None:
+    """Require a complete, contract-derived freshness declaration.
+
+    Freshness is release metadata rather than UI-only text. This keeps a stale
+    public indicator visible as last-known-good evidence while making its age
+    testable by the validator and by external monitoring.
+    """
+    expected = load_indicator_freshness_contract()
+    freshness = manifest.get("freshness")
+    if not isinstance(freshness, list) or len(freshness) != len(expected):
+        fail("auto-validated indicator release must contain complete freshness metadata")
+    actual: dict[str, dict[str, Any]] = {}
+    for index, record in enumerate(freshness):
+        if not isinstance(record, dict):
+            fail(f"freshness[{index}] must be an object")
+        key = require_string(record.get("source_key"), f"freshness[{index}].source_key")
+        if key in actual or key not in expected:
+            fail(f"freshness[{index}] has an unexpected or duplicate source_key")
+        actual[key] = record
+    if set(actual) != set(expected):
+        fail("auto-validated indicator release freshness sources do not match the contract")
+    for key, source in expected.items():
+        record = actual[key]
+        if record.get("label") != source.get("label"):
+            fail(f"freshness[{key}] label does not match the contract")
+        if record.get("automation_state") != source.get("automation_state"):
+            fail(f"freshness[{key}] automation state does not match the contract")
+        ended = datetime.strptime(require_date(record.get("source_observation_end"), f"freshness[{key}].source_observation_end"), "%Y-%m-%d").date()
+        expected_next = datetime.strptime(require_date(record.get("expected_next"), f"freshness[{key}].expected_next"), "%Y-%m-%d").date()
+        stale_after = datetime.strptime(require_date(record.get("stale_after"), f"freshness[{key}].stale_after"), "%Y-%m-%d").date()
+        if expected_next != ended + timedelta(days=int(source["expected_after_days"])):
+            fail(f"freshness[{key}] expected_next does not match the contract")
+        if stale_after != ended + timedelta(days=int(source["stale_after_days"])):
+            fail(f"freshness[{key}] stale_after does not match the contract")
 
 
 def safe_relative_path(value: Any, field: str) -> PurePosixPath:
@@ -233,6 +286,7 @@ def validate_release(
         unexpected = names - required
         if any(not allowed_history.fullmatch(name) for name in unexpected):
             fail("auto-validated indicator release contains an unapproved asset")
+        validate_indicator_freshness(manifest)
     return manifest
 
 

@@ -766,6 +766,7 @@ async def public_drought_release():
         "activated_at": pointer.get("activated_at"),
         "previous_release_id": pointer.get("previous_release_id"),
         "public_scope": manifest.get("public_scope"),
+        "freshness": manifest.get("freshness", []),
         "assets": [
             {
                 "asset_id": asset_id,
@@ -819,6 +820,7 @@ async def public_drought_indicators_release():
         "activated_at": pointer.get("activated_at"),
         "previous_release_id": pointer.get("previous_release_id"),
         "public_scope": manifest.get("public_scope"),
+        "freshness": manifest.get("freshness", []),
         "assets": [
             {
                 "asset_id": asset_id,
