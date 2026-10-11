@@ -1274,8 +1274,10 @@ async def gazetteer(q: str = Query(..., min_length=1, max_length=100)):
     query = q.strip()
     try:
         conn = await asyncpg.connect(DB_DSN)
-        rows = await conn.fetch(SEARCH_SQL, query)
-        await conn.close()
+        try:
+            rows = await conn.fetch(SEARCH_SQL, query)
+        finally:
+            await conn.close()
         results = []
         for row in rows:
             bbox = list(row["bbox"]) if row["bbox"] else None
@@ -1288,8 +1290,8 @@ async def gazetteer(q: str = Query(..., min_length=1, max_length=100)):
             })
         if results:
             return results
-    except Exception as e:
-        logging.error(f"Gazetteer query error: {e}")
+    except Exception:
+        logging.exception("Gazetteer query error")
     # Production deliberately does not mount the development boundary database.
     # The current approved indicator package carries the same bounded Tabia
     # geometry used by the public Drought workspace, so it is the only safe

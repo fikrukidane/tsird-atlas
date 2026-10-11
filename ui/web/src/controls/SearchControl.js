@@ -13,6 +13,8 @@ class SearchControl {
     this._results = [];
     this._activeIdx = -1;
     this._debounceTimer = null;
+    this._fallbackIndexPromise = null;
+    this._searchSequence = 0;
 
     // Widget container
     var widget = document.createElement('div');
@@ -73,17 +75,71 @@ class SearchControl {
   }
 
   async _search(query) {
+    var sequence = ++this._searchSequence;
     try {
       var resp = await fetch('/map/api/gazetteer?q=' + encodeURIComponent(query));
       if (!resp.ok) throw new Error('API ' + resp.status);
       this._results = await resp.json();
+      if (!this._results.length) {
+        this._results = await this._searchFallbackIndex(query);
+      }
+      if (sequence !== this._searchSequence) return;
       this._activeIdx = -1;
       this._render();
     } catch (err) {
       console.warn('[SearchControl] Search failed:', err.message);
-      this._results = [];
+      this._results = await this._searchFallbackIndex(query);
+      if (sequence !== this._searchSequence) return;
+      this._activeIdx = -1;
       this._render();
     }
+  }
+
+  _loadFallbackIndex() {
+    if (!this._fallbackIndexPromise) {
+      this._fallbackIndexPromise = fetch('data/search-index.json')
+        .then(function(resp) {
+          if (!resp.ok) throw new Error('fallback index ' + resp.status);
+          return resp.json();
+        })
+        .then(function(payload) {
+          return Array.isArray(payload.features) ? payload.features : [];
+        })
+        .catch(function(err) {
+          console.warn('[SearchControl] Fallback index unavailable:', err.message);
+          return [];
+        });
+    }
+    return this._fallbackIndexPromise;
+  }
+
+  async _searchFallbackIndex(query) {
+    var normalized = query.trim().toLowerCase();
+    if (!normalized) return [];
+    var records = await this._loadFallbackIndex();
+    return records
+      .filter(function(record) {
+        return (record.name_norm || record.name || '').toLowerCase().indexOf(normalized) !== -1;
+      })
+      .sort(function(left, right) {
+        var leftName = (left.name_norm || left.name || '').toLowerCase();
+        var rightName = (right.name_norm || right.name || '').toLowerCase();
+        var leftRank = leftName === normalized ? 0 : (leftName.indexOf(normalized) === 0 ? 1 : 2);
+        var rightRank = rightName === normalized ? 0 : (rightName.indexOf(normalized) === 0 ? 1 : 2);
+        return leftRank - rightRank || leftName.localeCompare(rightName);
+      })
+      .slice(0, 15)
+      .map(function(record) {
+        return {
+          type: record.type,
+          id: null,
+          name_en: record.name || '',
+          name_ti: '',
+          parent_name_en: record.parent || '',
+          bbox: record.bbox_4326 || null,
+          canonical: false
+        };
+      });
   }
 
   _render() {
@@ -103,7 +159,8 @@ class SearchControl {
       var item = document.createElement('div');
       item.className = 'item' + (i === self._activeIdx ? ' active' : '');
       var typeLabel = r.type === 'woreda' ? 'Woreda' : 'Tabia';
-      item.textContent = r.name_en + ' (' + r.name_ti + ') \u2014 ' + typeLabel;
+      var resultName = r.name_ti ? r.name_en + ' (' + r.name_ti + ')' : r.name_en;
+      item.textContent = resultName + ' \u2014 ' + typeLabel + (r.parent_name_en ? ' \u00b7 ' + r.parent_name_en : '');
       item.addEventListener('mousedown', function(e) {
         e.preventDefault();
         self._select(r);
@@ -115,7 +172,8 @@ class SearchControl {
 
   _select(record) {
     var typeLabel = record.type === 'woreda' ? 'Woreda' : 'Tabia';
-    this._input.value = record.name_en + ' (' + record.name_ti + ') \u2014 ' + typeLabel;
+    var selectedName = record.name_ti ? record.name_en + ' (' + record.name_ti + ')' : record.name_en;
+    this._input.value = selectedName + ' \u2014 ' + typeLabel;
     // Clear previous highlight before drawing new one
     HighlightOverlay.clear();
     this._close();
@@ -130,17 +188,22 @@ class SearchControl {
     // Keep other tools decoupled from the search widget while letting them
     // consume the canonical gazetteer identity.  In particular, the drought
     // evidence-history view uses a Tabia's stable TSIRD ID rather than a name.
-    window.dispatchEvent(new CustomEvent('tsird:boundary-selected', {
-      detail: {
-        type: record.type,
-        id: record.id,
-        name_en: record.name_en || '',
-        name_ti: record.name_ti || ''
-      }
-    }));
+    if (record.canonical !== false) {
+      window.dispatchEvent(new CustomEvent('tsird:boundary-selected', {
+        detail: {
+          type: record.type,
+          id: record.id,
+          name_en: record.name_en || '',
+          name_ti: record.name_ti || ''
+        }
+      }));
+    }
   }
 
   _close() {
+    // Invalidate an outstanding API/fallback request so clearing or closing
+    // the search cannot reopen the dropdown with an older query.
+    this._searchSequence += 1;
     this._dropdown.style.display = 'none';
     this._dropdown.innerHTML = '';
     this._results = [];
