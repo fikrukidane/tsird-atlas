@@ -120,10 +120,11 @@ SCENARIO_LAB_CASE_SQL = """
   LEFT JOIN tsird.drought_tabia_wapor_seasonal_reference wr ON wr.tsird_tabia_id=t.tsird_tabia_id
     AND wr.reference_id='tsird-seasonal-reference-2018-2025-v1' AND wr.calendar_month=8
 """
-# NDVI and WaPOR historical snapshots are retained in their source-specific
-# run tables.  Candidate seasonal-reference runs deliberately do not publish a
-# generic raster-catalogue record, so the read-only history map must enumerate
-# those bounded Tabia summaries separately.  This remains an allow-list: no
+# NDVI, SWI, LST and WaPOR historical snapshots are retained in source-specific
+# run tables. Candidate seasonal-reference runs deliberately do not publish a
+# generic raster-catalogue record, and SWI/LST loaders likewise retain their
+# Tabia summaries independently. The read-only history map must enumerate
+# those bounded summaries separately. This remains an allow-list: no
 # browser-provided table or filesystem path is accepted.
 HISTORICAL_TABIA_RUN_SQL = {
     "ndvi": """
@@ -165,6 +166,48 @@ HISTORICAL_TABIA_RUN_SQL = {
       WHERE r.status IN ('development', 'degraded', 'validated')
       GROUP BY r.run_id
       ORDER BY r.source_period_end DESC, r.created_at DESC
+    """,
+    "swi": """
+      SELECT r.run_id, 'swi'::text AS evidence_kind, r.observation_at AS observation_start,
+             r.observation_at AS observation_end, r.native_resolution, r.status,
+             json_build_object(
+               'retained_tabias', count(s.tsird_tabia_id),
+               'usable_tabias', count(s.tsird_tabia_id) FILTER (
+                 WHERE s.quality_status='ok' AND s.coverage_pct >= 90
+               )
+             ) AS quality_summary,
+             json_build_object(
+               'source_product', r.source_product,
+               'collection_id', r.collection_id,
+               'source_retrieved_at', r.source_retrieved_at,
+               'publication_note', r.notes
+             ) AS provenance
+      FROM tsird.drought_swi_run r
+      LEFT JOIN tsird.drought_tabia_swi s USING (run_id)
+      WHERE r.status IN ('development', 'degraded', 'validated')
+      GROUP BY r.run_id
+      ORDER BY r.observation_at DESC, r.created_at DESC
+    """,
+    "lst": """
+      SELECT r.run_id, 'lst'::text AS evidence_kind, r.observation_at AS observation_start,
+             r.observation_at AS observation_end, r.native_resolution, r.status,
+             json_build_object(
+               'retained_tabias', count(l.tsird_tabia_id),
+               'usable_tabias', count(l.tsird_tabia_id) FILTER (
+                 WHERE l.quality_status='ok' AND l.coverage_pct >= 90
+               )
+             ) AS quality_summary,
+             json_build_object(
+               'source_product', r.source_product,
+               'collection_id', r.collection_id,
+               'source_retrieved_at', r.source_retrieved_at,
+               'publication_note', r.notes
+             ) AS provenance
+      FROM tsird.drought_lst_run r
+      LEFT JOIN tsird.drought_tabia_lst l USING (run_id)
+      WHERE r.status IN ('development', 'degraded', 'validated')
+      GROUP BY r.run_id
+      ORDER BY r.observation_at DESC, r.created_at DESC
     """,
 }
 EVIDENCE_FEATURE_SQL = {
