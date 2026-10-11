@@ -17,6 +17,7 @@ BASE_URL = "https://data.chc.ucsb.edu/products/CHIRPS/v3.0/monthly/global/tifs"
 OUTPUT = Path("/data/drought/outputs/chirps-v3-final-monthly-probe.json")
 BASELINE_START, BASELINE_END = 1991, 2020
 MAX_MONTHS_TO_CHECK = 6
+PROVIDER_TIMEOUT_SECONDS = 10
 
 
 def dsn():
@@ -40,7 +41,7 @@ def url_for(year, month):
 def provider_available(url):
     request = urllib.request.Request(url, method="HEAD", headers={"User-Agent": "TSIRD-Atlas-development/1.0"})
     try:
-        with urllib.request.urlopen(request, timeout=30) as response:
+        with urllib.request.urlopen(request, timeout=PROVIDER_TIMEOUT_SECONDS) as response:
             return response.status == 200, {"http_status": response.status,
                                              "content_length": response.headers.get("Content-Length"),
                                              "last_modified": response.headers.get("Last-Modified")}

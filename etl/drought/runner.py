@@ -9,6 +9,7 @@ import json
 import os
 import subprocess
 import threading
+import time
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
@@ -25,6 +26,16 @@ CHIRPS_BASELINE_START, CHIRPS_BASELINE_END = 1991, 2020
 app = FastAPI(title="TSIRD Drought Runner", docs_url=None, redoc_url=None)
 jobs: dict[str, dict] = {}
 jobs_lock = threading.Lock()
+inventory_lock = threading.Lock()
+inventory_snapshot: dict | None = None
+inventory_snapshot_at = 0.0
+inventory_refreshing = False
+INVENTORY_CACHE_SECONDS = 300
+readiness_lock = threading.Lock()
+readiness_snapshot: dict | None = None
+readiness_snapshot_at = 0.0
+readiness_refreshing = False
+READINESS_CACHE_SECONDS = 300
 
 CONTROL_WORKFLOWS = (
     {"key": "chirps-final", "label": "CHIRPS final monthly rainfall refresh", "cadence": "Daily 08:00 Addis discovery; refresh only when a completed final month is new", "policy_state": "active"},
@@ -88,6 +99,93 @@ def current_wapor_manifest() -> dict | None:
         except (OSError, json.JSONDecodeError):
             continue
     return None
+
+
+def inventory_placeholder() -> dict:
+    """Keep the control endpoint responsive while the first inventory runs."""
+    try:
+        filesystem = os.statvfs(DATA_ROOT)
+        free_bytes = filesystem.f_frsize * filesystem.f_bavail
+        total_bytes = filesystem.f_frsize * filesystem.f_blocks
+        capacity = {"status": "refreshing", "free_percent": round((free_bytes / total_bytes * 100) if total_bytes else 0.0, 2),
+                    "operator_action": "Storage inventory is running in the background; refresh this view shortly.", "read_only": True}
+    except OSError:
+        free_bytes = total_bytes = None
+        capacity = {"status": "unavailable", "free_percent": None,
+                    "operator_action": "Mounted drought storage is unavailable.", "read_only": True}
+    return {"data_root_exists": DATA_ROOT.is_dir(), "directories": [], "total_managed_bytes": None,
+            "filesystem_free_bytes": free_bytes, "filesystem_total_bytes": total_bytes,
+            "capacity": capacity, "read_only": True, "inventory_state": "refreshing"}
+
+
+def refresh_inventory_snapshot() -> None:
+    """Build the expensive read-only inventory off the request path."""
+    global inventory_snapshot, inventory_snapshot_at, inventory_refreshing
+    try:
+        snapshot = build_inventory(DATA_ROOT)
+        snapshot["inventory_state"] = "current"
+        with inventory_lock:
+            inventory_snapshot = snapshot
+            inventory_snapshot_at = time.monotonic()
+    finally:
+        with inventory_lock:
+            inventory_refreshing = False
+
+
+def control_inventory_snapshot() -> dict:
+    """Return cached storage facts and schedule a bounded background refresh."""
+    global inventory_refreshing
+    with inventory_lock:
+        stale = inventory_snapshot is None or time.monotonic() - inventory_snapshot_at >= INVENTORY_CACHE_SECONDS
+        if stale and not inventory_refreshing:
+            inventory_refreshing = True
+            threading.Thread(target=refresh_inventory_snapshot, daemon=True).start()
+        if inventory_snapshot is not None:
+            result = dict(inventory_snapshot)
+            result["inventory_state"] = "refreshing" if inventory_refreshing else "current"
+            return result
+    return inventory_placeholder()
+
+
+def readiness_placeholder() -> dict:
+    """Keep the control endpoint responsive while readiness is inspected."""
+    return {
+        "status": "refreshing",
+        "read_only": True,
+        "reason": "Local model-readiness inspection is running in the background.",
+    }
+
+
+def refresh_readiness_snapshot() -> None:
+    """Build the expensive read-only readiness report off the request path."""
+    global readiness_snapshot, readiness_snapshot_at, readiness_refreshing
+    try:
+        snapshot = build_readiness_report()
+    except Exception:
+        # The dashboard should make a failed readiness inspection visible, but
+        # never expose connection details or an implementation traceback.
+        snapshot = {
+            "status": "unavailable",
+            "read_only": True,
+            "reason": "Local model-readiness inspection is unavailable.",
+        }
+    with readiness_lock:
+        readiness_snapshot = snapshot
+        readiness_snapshot_at = time.monotonic()
+        readiness_refreshing = False
+
+
+def control_readiness_snapshot() -> dict:
+    """Return cached readiness and schedule a bounded background refresh."""
+    global readiness_refreshing
+    with readiness_lock:
+        stale = readiness_snapshot is None or time.monotonic() - readiness_snapshot_at >= READINESS_CACHE_SECONDS
+        if stale and not readiness_refreshing:
+            readiness_refreshing = True
+            threading.Thread(target=refresh_readiness_snapshot, daemon=True).start()
+        if readiness_snapshot is not None:
+            return dict(readiness_snapshot)
+    return readiness_placeholder()
 
 
 def require_token(value: str | None):
@@ -172,11 +270,13 @@ def run_final_monthly_probe(job_id: str):
     try:
         completed = subprocess.run(["python3", str(WORK_DIR / "chirps_final_monthly_probe.py")], cwd=WORK_DIR,
                                    text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                                   check=True, timeout=180)
+                                   check=True, timeout=90)
         result = json.loads(completed.stdout)
         status, error, output = result.get("status", "unavailable"), None, completed.stdout[-3000:]
     except subprocess.CalledProcessError as exc:
         status, error, output = "unavailable", "CHIRPS final-month probe failed", (exc.stdout or "")[-3000:]
+    except subprocess.TimeoutExpired:
+        status, error, output = "unavailable", "CHIRPS final-month probe exceeded its 90-second cap", ""
     except Exception as exc:
         status, error, output = "unavailable", f"Unexpected final-month probe error: {type(exc).__name__}", ""
     with jobs_lock:
@@ -190,7 +290,7 @@ def run_calendar_final_refresh(job_id: str):
     try:
         completed = subprocess.run(["python3", str(WORK_DIR / "chirps_final_monthly_probe.py")], cwd=WORK_DIR,
                                    text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                                   check=True, timeout=180)
+                                   check=True, timeout=90)
         result = json.loads(completed.stdout)
         if result.get("status") != "ready":
             with jobs_lock:
@@ -671,18 +771,12 @@ def control():
                                                         "requested_at", "started_at", "finished_at", "error")}
                        for job in list(jobs.values())[-12:]]
         active_jobs = sum(job["status"] in {"queued", "running"} for job in jobs.values())
-    try:
-        readiness = build_readiness_report()
-    except Exception:
-        # The dashboard should make a failed readiness inspection visible, but
-        # never expose connection details or an implementation traceback.
-        readiness = {"status": "unavailable", "read_only": True,
-                     "reason": "Local model-readiness inspection is unavailable."}
+    readiness = control_readiness_snapshot()
     return {
         "environment": "development",
         "generated_at": now(),
         "runner": {"status": "ok", "active_jobs": active_jobs},
-        "storage": build_inventory(DATA_ROOT),
+        "storage": control_inventory_snapshot(),
         "workflow_policy": list(CONTROL_WORKFLOWS),
         "provider_receipts": {
             "chirps_final": control_receipt("chirps-v3-final-monthly-probe.json",

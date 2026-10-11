@@ -61,24 +61,34 @@
   }
   tabiaLayer.setStyle(tabiaStyle);
 
-  function latestRunText(workspace, indicator) {
+  function freshnessFor(release, indicator) {
+    return (release.freshness || []).find(item => item && item.source_key === indicator) || null;
+  }
+  function freshnessText(release, indicator) {
+    const freshness = freshnessFor(release, indicator);
+    if (!freshness) return 'Freshness metadata is not available in this release.';
+    const stale = freshness.stale_after && Date.now() > Date.parse(`${freshness.stale_after}T23:59:59Z`);
+    const mode = freshness.automation_state === 'automatic' ? 'automatic source refresh' : freshness.automation_state === 'replacement-required' ? 'source replacement required' : 'manual acquisition pending';
+    return `Data as of ${String(freshness.source_observation_end || 'not recorded').slice(0, 10)} · ${stale ? 'STALE' : 'within declared window'} · ${mode}. Expected next: ${String(freshness.expected_next || 'not recorded').slice(0, 10)}.`;
+  }
+  function latestRunText(release, workspace, indicator) {
     const run = workspace.indicators[indicator] && workspace.indicators[indicator].run;
     if (!run) return 'No retained source summary in this release.';
     const date = run.source_period_end || run.observation_end || run.period_end || run.source_latest_month || 'date not recorded';
-    return `${esc(run.source_product || 'Retained source')} · ${esc(String(date).slice(0, 10))} · ${esc(run.status || 'retained')}`;
+    return `${esc(run.source_product || 'Retained source')} · ${esc(String(date).slice(0, 10))} · ${esc(run.status || 'retained')}<br><small>${esc(freshnessText(release, indicator))}</small>`;
   }
-  function indicatorCard(workspace, key, mode) {
+  function indicatorCard(release, workspace, key, mode) {
     if (mode.unavailable) return '';
     const run = workspace.indicators[key] && workspace.indicators[key].run;
     if (!run) return '';
     const date = run.source_period_end || run.observation_end || run.period_end || run.source_latest_month || 'date not recorded';
-    return `<div class="public-drought-run-card"><b>${esc(mode.label)}</b>${esc(run.source_product || 'Retained source')} · ${esc(String(date).slice(0, 10))}<br>${esc(run.status || 'retained evidence')}</div>`;
+    return `<div class="public-drought-run-card"><b>${esc(mode.label)}</b>${esc(run.source_product || 'Retained source')} · ${esc(String(date).slice(0, 10))}<br>${esc(run.status || 'retained evidence')}<br><small>${esc(freshnessText(release, key))}</small></div>`;
   }
   function renderPanel(release, workspace) {
     const mode = MODES[activeMode];
     const controls = Object.entries(MODES).filter(([key]) => page !== 'priority' || key === 'priority').map(([key, item]) => `<button type="button" data-mode="${key}" class="${key === activeMode ? 'is-active' : ''}">${item.label}</button>`).join('');
-    const sourceText = mode.unavailable ? mode.unavailable : (mode.priority ? 'The approved replay geometry is shown separately from FEWS NET provider-native context.' : latestRunText(workspace, mode.indicator));
-    const sourceCards = Object.entries(MODES).filter(([key, item]) => ['observed', 'rapid', 'vegetation', 'soil_water', 'thermal', 'water_use'].includes(key)).map(([key, item]) => indicatorCard(workspace, key, item)).join('');
+    const sourceText = mode.unavailable ? mode.unavailable : (mode.priority ? 'The approved replay geometry is shown separately from FEWS NET provider-native context.' : latestRunText(release, workspace, mode.indicator));
+    const sourceCards = Object.entries(MODES).filter(([key, item]) => ['observed', 'rapid', 'vegetation', 'soil_water', 'thermal', 'water_use'].includes(key)).map(([key, item]) => indicatorCard(release, workspace, key, item)).join('');
     const historyNotice = activeMode === 'history' ? `<p><a class="public-drought-link" href="priority/">Open retained January–August replay and provider context</a>.</p>` : '';
     const releaseLabel = release.schema_version === 'tsird-drought-public-indicator-release.v1' ? 'Automatically validated indicator release' : 'Approved public release';
     panel.innerHTML = `<h1>${page === 'priority' ? 'Retrospective Evidence Replay' : 'Drought intelligence'}</h1><div class="public-drought-banner">${releaseLabel} <b>${esc(release.release_id)}</b><br><small>${esc(release.public_scope)}</small></div><div class="public-drought-evidence-note">This is the public evidence workspace. It exposes retained Tabia summaries after source-specific technical checks; it does not calculate a forecast, publish a priority decision, or change the model.</div><div class="public-drought-modes">${controls}</div><h2>${esc(mode.label)}</h2><p class="public-drought-meta">${sourceText}</p><p>${esc(mode.note || '')}</p><div class="public-drought-detail" data-detail>${mode.unavailable ? `<strong>Not included as a raw public data stream</strong><p>${esc(mode.unavailable)}</p>${historyNotice}` : 'Select a coloured Tabia, or use the map search, to read the retained evidence summary.'}</div><h2>Current evidence in this release</h2><div class="public-drought-release-status"><b>Current Tabia evidence streams</b><span>Final rainfall, rapid rainfall, vegetation, soil-water, thermal and crop water-use context are available here as retained summaries.</span></div>${sourceCards}<h2>Map key</h2><ul class="public-drought-legend">${mode.priority ? Object.entries(priorityColours).map(([key, colour]) => `<li><i class="public-drought-swatch" style="background:${colour}"></i>${key} retrospective draft code</li>`).join('') : `<li><i class="public-drought-swatch" style="background:${colours[0]}"></i>lower retained value</li><li><i class="public-drought-swatch" style="background:${colours[colours.length - 1]}"></i>higher retained value</li><li><i class="public-drought-swatch" style="background:#64748b"></i>insufficient evidence</li>`}</ul><p class="public-drought-footnote">The release uses retained summaries—not raw grids or a live development API. <a href="${releaseHref}">Open the dedicated evidence replay and FEWS NET context</a>.</p>`;

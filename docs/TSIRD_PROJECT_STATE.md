@@ -149,6 +149,15 @@ layers.
   fingerprint, and can invoke only the existing `activate-indicators` forced
   command. It remains inactive pending the documented local end-to-end
   rehearsal and one read-only raster-folder mount into n8n.
+  An October 10 local operational audit found that the previous development
+  stack had stopped after an API environment regression and that the retained
+  n8n schedules could no longer reach the internal runner. The active TSIRD
+  workflows were paused during recovery. This is operational evidence, not a
+  claim that historical schedule templates were healthy or that production
+  publication has resumed. The recovery branch adds a per-source freshness
+  contract, a forward-only automatic-indicator pointer guard and an external
+  public freshness monitor; all remain subject to local verification and the
+  required controlled end-to-end rehearsal before reactivation.
   A tagged-source
   GitHub Actions workflow publishes the three prebuilt serving images (web, API
   and edge) to GHCR only for an explicit `tsird-drought-v*` tag or manual

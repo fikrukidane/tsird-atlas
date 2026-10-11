@@ -16,7 +16,7 @@
     "Read FEWS NET discovery receipt": {"main": [[{"node": "Record FEWS NET discovery receipt", "type": "main", "index": 0}]]}
   },
   "pinData": {},
-  "active": true,
+  "active": false,
   "settings": {"executionOrder": "v1", "saveManualExecutions": true, "saveExecutionProgress": true},
   "meta": {"templateCredsSetupCompleted": true},
   "tags": []

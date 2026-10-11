@@ -45,6 +45,7 @@ from build_drought_production_release import (
     safe_asset_suffix,
     write_json,
 )
+from drought_indicator_freshness import build_freshness
 
 
 RELEASE_ID = re.compile(r"^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{6}Z-indicators$")
@@ -154,6 +155,7 @@ def main() -> int:
     try:
         workspace_payloads = {name: request_json(args.api_base, path) for name, path in WORKSPACE_PATHS.items()}
         validate_workspace_inputs(workspace_payloads)
+        freshness = build_freshness(workspace_payloads)
         rainfall_payload = request_json(args.api_base, API_PATHS["drought-evidence-summary.json"])
         observed_runs_payload = request_json(args.api_base, OBSERVED_RUNS_PATH)
         exposure_payloads = {
@@ -309,6 +311,7 @@ def main() -> int:
         "prepared_at": utc_now(),
         "previous_release_id": None,
         "public_scope": boundary,
+        "freshness": freshness,
         "assets": assets,
     }
     write_json(release_dir / "manifest.json", manifest)

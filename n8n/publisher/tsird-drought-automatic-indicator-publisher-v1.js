@@ -11,6 +11,7 @@ const crypto = require("crypto");
 const fs = require("fs");
 const os = require("os");
 const path = require("path");
+const FRESHNESS_CONTRACT = require("./drought-indicator-freshness-contract.json");
 
 const API_BASE = "http://tsird-edge:8080";
 const STAGING_ROOT = "/home/node/.n8n/tsird-drought-indicator-staging";
@@ -64,6 +65,25 @@ function windowFor(run) {
   const end = run.observation_end || run.source_period_end || run.period_end || run.source_latest_month;
   if (typeof start !== "string" || typeof end !== "string") fail("indicator run lacks a source-observation window");
   return [start.slice(0, 10), end.slice(0, 10)];
+}
+function freshnessFor(payloads) {
+  if (!FRESHNESS_CONTRACT || FRESHNESS_CONTRACT.schema_version !== "tsird-drought-indicator-freshness-contract/v1" || !Array.isArray(FRESHNESS_CONTRACT.sources)) fail("indicator freshness contract is invalid");
+  return FRESHNESS_CONTRACT.sources.map((source) => {
+    const payload = payloads[source.key];
+    if (!payload || !payload.run) fail(`${source.key} has no run metadata for freshness`);
+    const [, end] = windowFor(payload.run);
+    const observed = new Date(`${end}T00:00:00Z`);
+    if (Number.isNaN(observed.valueOf())) fail(`${source.key} has an invalid source-observation end date`);
+    const shift = (days) => new Date(observed.valueOf() + Number(days) * 86400000).toISOString().slice(0, 10);
+    return {
+      source_key: source.key,
+      label: source.label,
+      source_observation_end: end,
+      expected_next: shift(source.expected_after_days),
+      stale_after: shift(source.stale_after_days),
+      automation_state: source.automation_state,
+    };
+  });
 }
 function asset(id, kind, relativePath, size, checksum, source, start, end, version, boundary) {
   return { asset_id:id, kind, relative_path:relativePath, byte_size:size, sha256:checksum, source,
@@ -124,7 +144,7 @@ function tabiaGeometry(payload) {
   if (!payload || payload.type !== "FeatureCollection" || !Array.isArray(payload.features)) fail("Tabia geometry is invalid");
   return {type:"FeatureCollection", schema_version:"tsird-public-tabia-geometry/v1", features:payload.features.map((feature) => {
     if (!feature || !feature.geometry || !feature.properties || typeof feature.properties.tsird_tabia_id !== "string") fail("Tabia geometry feature is invalid");
-    const properties={}; for (const field of ["tsird_tabia_id", "tabia_name_en", "woreda_name_en"]) if (Object.hasOwn(feature.properties,field)) properties[field]=feature.properties[field];
+    const properties={}; for (const field of ["tsird_tabia_id", "tabia_name_en", "tabia_name_ti", "woreda_name_en", "woreda_name_ti"]) if (Object.hasOwn(feature.properties,field)) properties[field]=feature.properties[field];
     return {type:"Feature",geometry:feature.geometry,properties};
   })};
 }
@@ -236,7 +256,7 @@ async function main() {
       const [rasterStart, rasterEnd] = windowFor(payloads[indicator].run);
       assets.push(asset(id, "native_evidence_raster", filename, fs.statSync(target).size, sha256(target), source, rasterStart, rasterEnd, String(payloads[indicator].run.schema_version || payloads[indicator].run.run_id || "unknown"), boundary));
     }
-    const manifest = {schema_version:"tsird-drought-production-release/v1", release_id:releaseId, release_state:"auto-validated", release_channel:"indicator-evidence", prepared_by:"TSIRD automated indicator validation", prepared_at:now(), previous_release_id:null, public_scope:boundary, assets};
+    const manifest = {schema_version:"tsird-drought-production-release/v1", release_id:releaseId, release_state:"auto-validated", release_channel:"indicator-evidence", prepared_by:"TSIRD automated indicator validation", prepared_at:now(), previous_release_id:null, public_scope:boundary, freshness:freshnessFor(payloads), assets};
     writeJson(path.join(releaseDir, "manifest.json"), manifest);
     const runtime = fs.mkdtempSync(path.join(os.tmpdir(), "tsird-indicator-publisher-"));
     try {

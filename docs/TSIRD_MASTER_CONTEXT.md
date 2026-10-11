@@ -149,6 +149,13 @@ streams daily and transfers only a changed, checksum-validated indicator
 package through the existing pinned-host restricted accounts. It must still
 pass a manual end-to-end rehearsal before its schedule is activated; it is not
 evidence that automatic production publication is already occurring.
+The automatic package now carries a versioned per-source freshness contract:
+source observation end, expected next update, staleness deadline and declared
+automation state. Its indicator pointer is forward-only per source: an
+automatic activation that would make any retained source older is refused and
+leaves the existing pointer intact. A separate read-only public freshness
+monitor is designed to run outside n8n and notify only on an alert-state
+change; it has no production activation, source-data, runner or n8n control.
 
 The public-only release viewer is `/map/drought/release/`. It calls only the
 approved-release API, displays neutral C1--C4 retrospective draft codes and

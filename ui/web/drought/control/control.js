@@ -22,7 +22,7 @@
     $('[data-banner]').className = 'control-banner';
     $('[data-banner]').textContent = `Development snapshot generated ${stamp(data.generated_at)}. Runner: ${data.runner && data.runner.status || 'unknown'}; active jobs: ${data.runner && data.runner.active_jobs || 0}.`;
     $('[data-summary]').innerHTML = [
-      card('Managed drought storage', `<span class="control-value">${bytes(storage.total_managed_bytes)}</span><p>Known drought data only</p>`),
+      card('Managed drought storage', `<span class="control-value">${bytes(storage.total_managed_bytes)}</span><p>Known drought data only · ${safe(storage.inventory_state || 'unknown')}</p>`),
       card('Free local filesystem', `<span class="control-value">${bytes(storage.filesystem_free_bytes)}</span><p>Capacity available to the mounted development data store</p>`),
       card('Capacity safeguard', `${badge(capacity.status || 'unknown')}<p>${safe(capacity.free_percent)}% free</p><p>${safe(capacity.operator_action || 'No capacity classification is available.')}</p>`),
       card('Controlled workflows', `<span class="control-value">${(data.workflow_policy || []).length}</span><p>${(data.workflow_policy || []).filter(item => item.policy_state === 'active').length} active local schedules; the rest remain deliberately blocked or manual</p>`)

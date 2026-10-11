@@ -1,0 +1,1587 @@
+{
+  "name": "TSIRD · WaPOR crop water-use refresh v2 (development)",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "2d7aa0ab-2c69-5dc3-80e5-251761173bba",
+      "name": "Manual development run",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        120,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 7 * * *"
+            }
+          ]
+        }
+      },
+      "id": "002ac26c-5144-5173-a78e-9ad02f0fd501",
+      "name": "Scheduled source check",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        120,
+        460
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://tsird-drought-runner:8090/runs/wapor-probe/development-test",
+        "options": {
+          "timeout": 30000,
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "d3748634-316d-53e5-b69c-f3bb0fcd5cef",
+      "name": "Start source probe",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        340,
+        380
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.statusCode }}",
+              "operator": {
+                "type": "number",
+                "operation": "equals"
+              },
+              "rightValue": 202
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "a50ae269-c1e4-5851-8cf0-b9036c54cb24",
+      "name": "Probe accepted?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        560,
+        380
+      ]
+    },
+    {
+      "parameters": {
+        "amount": "={{ Math.min(30, 5 * ($runIndex + 1)) }}",
+        "unit": "seconds"
+      },
+      "id": "13125593-f61d-5e5c-9200-0b51a963b488",
+      "name": "Wait for probe",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        780,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=http://tsird-drought-runner:8090/runs/{{ $('Start source probe').item.json.body.job_id }}",
+        "options": {
+          "timeout": 30000,
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "094dd4ff-5ff0-52ff-b67a-a28f703e772f",
+      "name": "Read probe job",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1000,
+        300
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ [\"queued\",\"running\"].includes($json.body.status) }}",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "fc8f01e3-5178-5f1a-8d6e-2ccacb0fd868",
+      "name": "Probe still running?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1220,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $runIndex }}",
+              "operator": {
+                "type": "number",
+                "operation": "lt"
+              },
+              "rightValue": 14
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "3b73daff-b074-5a89-b201-d81f9d8159da",
+      "name": "Probe poll budget left?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1440,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.body.status }}",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              },
+              "rightValue": "ready"
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "acac4941-965f-5894-bab2-06e3e51e4f25",
+      "name": "Newer data available?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1440,
+        420
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ [\"current\",\"degraded\"].includes($json.body.status) }}",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "c4ea076a-f17c-525c-b053-cfe61d99f113",
+      "name": "Provider state known?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1660,
+        540
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://tsird-drought-runner:8090/runs/wapor-tabia-summary/development-test",
+        "options": {
+          "timeout": 30000,
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "55807e07-5a67-506d-bf9b-3b74868223b1",
+      "name": "Start acquisition",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1660,
+        760
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.statusCode }}",
+              "operator": {
+                "type": "number",
+                "operation": "equals"
+              },
+              "rightValue": 202
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "9340c55e-cdfc-5962-b271-37a9376396a1",
+      "name": "Acquisition accepted?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1880,
+        760
+      ]
+    },
+    {
+      "parameters": {
+        "amount": "={{ Math.min(60, 15 * ($runIndex + 1)) }}",
+        "unit": "seconds"
+      },
+      "id": "27c06640-caf3-59fe-8153-51220eae144a",
+      "name": "Wait for acquisition",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        2100,
+        680
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=http://tsird-drought-runner:8090/runs/{{ $('Start acquisition').item.json.body.job_id }}",
+        "options": {
+          "timeout": 30000,
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "acb8fec6-a9b6-59bb-89fc-8f1d7d3d719e",
+      "name": "Read acquisition job",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2320,
+        680
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ [\"queued\",\"running\"].includes($json.body.status) }}",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "eecc85e6-a5e8-5a32-a455-baef361e966d",
+      "name": "Acquisition still running?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2540,
+        680
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $runIndex }}",
+              "operator": {
+                "type": "number",
+                "operation": "lt"
+              },
+              "rightValue": 75
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "982ba432-2802-5fe2-abdb-409f58226ab4",
+      "name": "Acquisition poll budget left?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2760,
+        580
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ [\"failed\",\"unavailable\",\"error\"].includes($json.body.status) }}",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "ad39f6b1-1083-5d90-8cd9-769bf7d39576",
+      "name": "Acquisition failed?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2760,
+        800
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "2bbb51bd-d843-5550-899d-6a7dd6635ccf",
+              "name": "schema_version",
+              "value": "tsird-drought-source-refresh-receipt/v2",
+              "type": "string"
+            },
+            {
+              "id": "1b90c87e-1872-510b-b779-1f09301ed883",
+              "name": "workflow_key",
+              "value": "wapor",
+              "type": "string"
+            },
+            {
+              "id": "3586b935-04f4-5d0b-b8a0-04c9254ee413",
+              "name": "source_id",
+              "value": "fao-wapor-v3",
+              "type": "string"
+            },
+            {
+              "id": "0223dbeb-fa6b-5f00-b7d8-3bba831ff211",
+              "name": "run_outcome",
+              "value": "no_new_data",
+              "type": "string"
+            },
+            {
+              "id": "ea948bb7-fbce-5ef3-813c-4f3cfef5820c",
+              "name": "outcome_detail",
+              "value": "provider_has_no_newer_item",
+              "type": "string"
+            },
+            {
+              "id": "5c5e4881-ad3d-5a72-8efa-ee866e824511",
+              "name": "provider_state",
+              "value": "={{ $json.body.status }}",
+              "type": "string"
+            },
+            {
+              "id": "3248c590-7b36-5d9e-b581-11079871cc10",
+              "name": "evidence_changed",
+              "value": false,
+              "type": "boolean"
+            },
+            {
+              "id": "67e0e039-307d-5f44-ac70-367033b4b3b1",
+              "name": "action_required",
+              "value": "={{ $json.body.status === \"degraded\" }}",
+              "type": "boolean"
+            },
+            {
+              "id": "88511334-e252-5dcd-b7a1-01e1aca4c6fd",
+              "name": "runner_job_id",
+              "value": "={{ $('Start source probe').item.json.body.job_id }}",
+              "type": "string"
+            },
+            {
+              "id": "6a496a88-6317-54d2-9ee8-a463563b199d",
+              "name": "probe_poll_budget",
+              "value": 14,
+              "type": "number"
+            },
+            {
+              "id": "94a57139-3ccc-50de-a646-1ac691628f3f",
+              "name": "acquisition_poll_budget",
+              "value": 75,
+              "type": "number"
+            },
+            {
+              "id": "648e9546-d1c8-500c-abb7-108047bb9270",
+              "name": "checked_at",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            },
+            {
+              "id": "ad274a64-bec5-5480-9157-dd2feac9e33a",
+              "name": "operator_summary",
+              "value": "=FAO WaPOR T/AETI probe ended {{ $json.body.status }}. No raster was downloaded and no local evidence changed. A 'current' state means the newest provider item is already summarised locally; a 'degraded' state means the newest provider item is older than the declared freshness window.",
+              "type": "string"
+            },
+            {
+              "id": "64ab01e9-7965-553b-9fee-5f927c063003",
+              "name": "next_action",
+              "value": "None while 'current'. While 'degraded', check the provider schedule before the next run; do not force an acquisition.",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "812f2e7b-ab27-5540-98d9-aaacd6db2aaa",
+      "name": "Report no new data",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1880,
+        440
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "6ed23365-0a50-5c20-b382-ce6b088244bc",
+              "name": "schema_version",
+              "value": "tsird-drought-source-refresh-receipt/v2",
+              "type": "string"
+            },
+            {
+              "id": "0b038cbb-9e24-5c35-9ae3-9d643eabcd13",
+              "name": "workflow_key",
+              "value": "wapor",
+              "type": "string"
+            },
+            {
+              "id": "8fc1deb6-1b8e-5e52-a5a6-8e5e447dd037",
+              "name": "source_id",
+              "value": "fao-wapor-v3",
+              "type": "string"
+            },
+            {
+              "id": "97b27d4c-9eb4-5ce8-810c-909f65554299",
+              "name": "run_outcome",
+              "value": "failure",
+              "type": "string"
+            },
+            {
+              "id": "88f36ba9-2b53-5dbc-ab4a-2ae4645bc5e2",
+              "name": "outcome_detail",
+              "value": "probe_failed",
+              "type": "string"
+            },
+            {
+              "id": "f6465a30-3274-52b0-91c2-c764720548e2",
+              "name": "provider_state",
+              "value": "={{ $json.body.status || \"unknown\" }}",
+              "type": "string"
+            },
+            {
+              "id": "00a1fca8-d135-552d-92d7-dcf127caa72c",
+              "name": "evidence_changed",
+              "value": false,
+              "type": "boolean"
+            },
+            {
+              "id": "9df1a466-c23a-5c75-aa7e-a9c06a0ea663",
+              "name": "action_required",
+              "value": true,
+              "type": "boolean"
+            },
+            {
+              "id": "2e17e9ad-d59b-5d99-a99f-93e828f4f721",
+              "name": "runner_job_id",
+              "value": "={{ $('Start source probe').item.json.body.job_id }}",
+              "type": "string"
+            },
+            {
+              "id": "1bf585e4-1286-5c12-919f-85baf2d42679",
+              "name": "probe_poll_budget",
+              "value": 14,
+              "type": "number"
+            },
+            {
+              "id": "51c3910a-c407-5c54-bd45-684c5ac33fa4",
+              "name": "acquisition_poll_budget",
+              "value": 75,
+              "type": "number"
+            },
+            {
+              "id": "1cf93299-577f-507f-9320-6896bdab1529",
+              "name": "checked_at",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            },
+            {
+              "id": "4ec34681-dd53-56fa-ac6a-0b991cc1ba86",
+              "name": "operator_summary",
+              "value": "=FAO WaPOR T/AETI probe did not reach a usable provider state (runner status {{ $json.body.status || 'unknown' }}). No acquisition was attempted and local evidence is unchanged.",
+              "type": "string"
+            },
+            {
+              "id": "afa37267-fe31-5a65-8e53-2ac30e495476",
+              "name": "next_action",
+              "value": "Inspect the runner receipt and provider access before the next scheduled run.",
+              "type": "string"
+            },
+            {
+              "id": "25c00d6e-ca55-5036-b40d-dbedab0e556e",
+              "name": "runner_error",
+              "value": "={{ $json.body.error || $json.body.detail || '' }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "f62ab11b-206e-5d2d-bd3e-99273cec21a9",
+      "name": "Report probe failure",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1880,
+        620
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "ef3aa144-d0d0-5f91-ab1d-f780b4e69ab1",
+              "name": "schema_version",
+              "value": "tsird-drought-source-refresh-receipt/v2",
+              "type": "string"
+            },
+            {
+              "id": "8009fe2a-9efa-5891-9b07-1451872c4bd8",
+              "name": "workflow_key",
+              "value": "wapor",
+              "type": "string"
+            },
+            {
+              "id": "e166723c-8e31-510f-9925-2f009a535eaa",
+              "name": "source_id",
+              "value": "fao-wapor-v3",
+              "type": "string"
+            },
+            {
+              "id": "94c373fa-f29e-5636-9991-fc420387fbfc",
+              "name": "run_outcome",
+              "value": "failure",
+              "type": "string"
+            },
+            {
+              "id": "a581edd8-c165-5f7a-b9ac-9f6c7a14dd3a",
+              "name": "outcome_detail",
+              "value": "probe_poll_budget_exhausted",
+              "type": "string"
+            },
+            {
+              "id": "167e4e93-0d7e-5237-bb85-06b5e86809ea",
+              "name": "provider_state",
+              "value": "unknown",
+              "type": "string"
+            },
+            {
+              "id": "6d77a55b-763d-5ded-8c75-8331b7106fb6",
+              "name": "evidence_changed",
+              "value": false,
+              "type": "boolean"
+            },
+            {
+              "id": "a752fd3f-f04f-591f-a788-de27cf0c7ca8",
+              "name": "action_required",
+              "value": true,
+              "type": "boolean"
+            },
+            {
+              "id": "3f5232d5-74ed-5b8b-bde4-2a611ec6623d",
+              "name": "runner_job_id",
+              "value": "={{ $('Start source probe').item.json.body.job_id }}",
+              "type": "string"
+            },
+            {
+              "id": "338a5440-53d9-5e9f-bdd4-88dd4a2baa3d",
+              "name": "probe_poll_budget",
+              "value": 14,
+              "type": "number"
+            },
+            {
+              "id": "3692ad01-ea78-50c6-9d51-c0fb3cc359d8",
+              "name": "acquisition_poll_budget",
+              "value": 75,
+              "type": "number"
+            },
+            {
+              "id": "735c2d9f-b30f-5efb-a2c4-6e072d6e3365",
+              "name": "checked_at",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            },
+            {
+              "id": "8d746d63-d7bd-5129-9f25-70e3b07291d0",
+              "name": "operator_summary",
+              "value": "=FAO WaPOR T/AETI probe was still running after the bounded poll budget. The run stopped polling; the runner job may still finish on its own.",
+              "type": "string"
+            },
+            {
+              "id": "2312b192-53fb-56dc-ab1d-7bf4fe0da369",
+              "name": "next_action",
+              "value": "Read the runner job once before the next schedule. Do not start a second probe while the first may still be active.",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "c8bff191-10c8-58ac-a0c5-e931661acdca",
+      "name": "Report probe timeout",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1660,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "bac72e7d-cadc-5441-9613-20b986c61094",
+              "name": "schema_version",
+              "value": "tsird-drought-source-refresh-receipt/v2",
+              "type": "string"
+            },
+            {
+              "id": "217a74d2-74bd-5cc9-9a6e-696fc5ee49f6",
+              "name": "workflow_key",
+              "value": "wapor",
+              "type": "string"
+            },
+            {
+              "id": "436441f2-803d-505b-be2f-d028079ffc61",
+              "name": "source_id",
+              "value": "fao-wapor-v3",
+              "type": "string"
+            },
+            {
+              "id": "2a733ab0-728a-5e4b-9c5a-5657456ee030",
+              "name": "run_outcome",
+              "value": "failure",
+              "type": "string"
+            },
+            {
+              "id": "9687a1ad-e1c1-51a5-8cbe-ce7d7772d67c",
+              "name": "outcome_detail",
+              "value": "runner_unavailable_or_busy",
+              "type": "string"
+            },
+            {
+              "id": "166a8e8e-ca66-5249-9584-31309c1542d1",
+              "name": "provider_state",
+              "value": "unknown",
+              "type": "string"
+            },
+            {
+              "id": "6cc476ec-0f86-52c0-a39a-f799a76dd17b",
+              "name": "evidence_changed",
+              "value": false,
+              "type": "boolean"
+            },
+            {
+              "id": "e111f0f0-93f2-53ab-a027-bf249c9b34e0",
+              "name": "action_required",
+              "value": true,
+              "type": "boolean"
+            },
+            {
+              "id": "bcb4a1a3-b077-5aad-b6ac-125247f7c7a2",
+              "name": "runner_job_id",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "9dee51ce-fa62-52f1-b26c-6f23b2d49014",
+              "name": "probe_poll_budget",
+              "value": 14,
+              "type": "number"
+            },
+            {
+              "id": "3926738a-795b-51ed-9e69-862b26ff98c6",
+              "name": "acquisition_poll_budget",
+              "value": 75,
+              "type": "number"
+            },
+            {
+              "id": "b61f228a-c50b-55aa-ba86-69f43474bfca",
+              "name": "checked_at",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            },
+            {
+              "id": "341943e9-3dd2-5420-9a44-5f9e39e357ed",
+              "name": "operator_summary",
+              "value": "=FAO WaPOR T/AETI could not start a probe. The runner answered HTTP {{ $json.statusCode }}. HTTP 409 means another drought job is active and this run was deferred, not lost.",
+              "type": "string"
+            },
+            {
+              "id": "147b227d-69df-53df-b7e4-52fb233afb93",
+              "name": "next_action",
+              "value": "No action for a single 409. For any other status, check that tsird-drought-runner is running and reachable on tsird-network.",
+              "type": "string"
+            },
+            {
+              "id": "5cbc9553-617c-53d5-b502-269184af72e6",
+              "name": "http_status",
+              "value": "={{ $json.statusCode }}",
+              "type": "number"
+            },
+            {
+              "id": "6c75e95b-aea3-53cd-acc4-b2c1b17e22c0",
+              "name": "runner_error",
+              "value": "={{ $json.body.detail || '' }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "d5bb6bea-8404-5efc-a967-9e7ede3141e3",
+      "name": "Report runner unavailable",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        780,
+        520
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "445ff9ce-5adf-517a-b908-0dfc7624b986",
+              "name": "schema_version",
+              "value": "tsird-drought-source-refresh-receipt/v2",
+              "type": "string"
+            },
+            {
+              "id": "5da61332-cde8-5703-a87e-5667a9f28a59",
+              "name": "workflow_key",
+              "value": "wapor",
+              "type": "string"
+            },
+            {
+              "id": "e7cfb5e3-1101-5143-96d6-6cbf40e53b0a",
+              "name": "source_id",
+              "value": "fao-wapor-v3",
+              "type": "string"
+            },
+            {
+              "id": "cf0ce29d-7916-581c-8ff6-29921149b570",
+              "name": "run_outcome",
+              "value": "failure",
+              "type": "string"
+            },
+            {
+              "id": "986b3b27-b708-55c8-9572-fc252d9be97f",
+              "name": "outcome_detail",
+              "value": "acquisition_not_started",
+              "type": "string"
+            },
+            {
+              "id": "329b0a1f-448d-587d-8c95-5b337deb8dba",
+              "name": "provider_state",
+              "value": "ready",
+              "type": "string"
+            },
+            {
+              "id": "0fd9daa4-f8fb-5d3e-aaeb-3709b2da5f83",
+              "name": "evidence_changed",
+              "value": false,
+              "type": "boolean"
+            },
+            {
+              "id": "08122f9e-73da-5b21-aa38-31c423e13cc0",
+              "name": "action_required",
+              "value": true,
+              "type": "boolean"
+            },
+            {
+              "id": "39aa2932-c163-5958-9a95-7ca6c758c0a1",
+              "name": "runner_job_id",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "b3a2ba12-003c-5bee-ba9a-7e149f586b34",
+              "name": "probe_poll_budget",
+              "value": 14,
+              "type": "number"
+            },
+            {
+              "id": "4592bcb4-500b-52cb-b159-72b34b5a5dae",
+              "name": "acquisition_poll_budget",
+              "value": 75,
+              "type": "number"
+            },
+            {
+              "id": "75f38456-4db2-52b3-b04a-9bab5a7d0d5a",
+              "name": "checked_at",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            },
+            {
+              "id": "e3220b51-69fc-5570-8193-33acabbdd4e0",
+              "name": "operator_summary",
+              "value": "=FAO WaPOR T/AETI found newer provider data but the runner refused the acquisition request with HTTP {{ $json.statusCode }}. Local evidence is unchanged and the previous valid artifact remains in place.",
+              "type": "string"
+            },
+            {
+              "id": "3f0a83ba-ef42-52fd-a4d9-ac2f6581827b",
+              "name": "next_action",
+              "value": "HTTP 409 means another job was active; the next scheduled run retries. Any other status needs a runner check.",
+              "type": "string"
+            },
+            {
+              "id": "b3ae54d5-1fc5-5029-bb4f-c689d4a97644",
+              "name": "http_status",
+              "value": "={{ $json.statusCode }}",
+              "type": "number"
+            },
+            {
+              "id": "3182298b-59c4-5fd0-910c-290a68b7872a",
+              "name": "runner_error",
+              "value": "={{ $json.body.detail || '' }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "3a9e6c91-ac58-5617-a69c-a0c606212a83",
+      "name": "Report acquisition rejected",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2100,
+        880
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "6fbdb7ac-54ef-50dc-84b7-e73568712335",
+              "name": "schema_version",
+              "value": "tsird-drought-source-refresh-receipt/v2",
+              "type": "string"
+            },
+            {
+              "id": "850fb1b2-6db2-5d10-bbdf-6f12da320edf",
+              "name": "workflow_key",
+              "value": "wapor",
+              "type": "string"
+            },
+            {
+              "id": "41245ab2-d8b8-5f1c-aca0-d59badccb921",
+              "name": "source_id",
+              "value": "fao-wapor-v3",
+              "type": "string"
+            },
+            {
+              "id": "294bbc71-b458-52f1-b477-862fe6af7f33",
+              "name": "run_outcome",
+              "value": "failure",
+              "type": "string"
+            },
+            {
+              "id": "a46aa9a3-540e-5f51-b81a-675af1340378",
+              "name": "outcome_detail",
+              "value": "acquisition_failed",
+              "type": "string"
+            },
+            {
+              "id": "5b7eb3ec-ced2-5eaf-a2fc-5da1a6a8cbf5",
+              "name": "provider_state",
+              "value": "ready",
+              "type": "string"
+            },
+            {
+              "id": "4f9f480d-1e25-5d69-980b-e13d43bf6d92",
+              "name": "evidence_changed",
+              "value": false,
+              "type": "boolean"
+            },
+            {
+              "id": "aaae8ccc-3a74-57a8-a9e6-056d1a3a7157",
+              "name": "action_required",
+              "value": true,
+              "type": "boolean"
+            },
+            {
+              "id": "39941fac-fa9d-541c-a6a3-a21330f92258",
+              "name": "runner_job_id",
+              "value": "={{ $('Start acquisition').item.json.body.job_id }}",
+              "type": "string"
+            },
+            {
+              "id": "2dddd9bb-29df-5211-bdb8-5f8286d46638",
+              "name": "probe_poll_budget",
+              "value": 14,
+              "type": "number"
+            },
+            {
+              "id": "d0ba6f5e-a0db-5737-9e41-6bf06d852348",
+              "name": "acquisition_poll_budget",
+              "value": 75,
+              "type": "number"
+            },
+            {
+              "id": "072ef881-4272-5ad9-9d32-800b99c65848",
+              "name": "checked_at",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            },
+            {
+              "id": "f94293f1-3ac3-5f68-ad7f-feb10b8720fd",
+              "name": "operator_summary",
+              "value": "=FAO WaPOR T/AETI acquisition job ended {{ $json.body.status }}. Nothing was published and the previous valid artifact remains the current one.",
+              "type": "string"
+            },
+            {
+              "id": "72826c0e-083b-5967-a1d5-6ab32f20008e",
+              "name": "next_action",
+              "value": "Read the runner job output tail, then decide whether to re-run manually. The schedule will retry on its next cycle.",
+              "type": "string"
+            },
+            {
+              "id": "ea737b19-e09d-5a14-a9c4-c5221231e7a2",
+              "name": "runner_error",
+              "value": "={{ $json.body.error || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "454045e4-4ace-5879-9e9a-d264b44ebc61",
+              "name": "runner_run_id",
+              "value": "={{ $json.body.run_id || '' }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "e7ab3c98-830d-5261-8ca3-a18016a01cd4",
+      "name": "Report acquisition failure",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2980,
+        880
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "3fbba05f-7204-5a68-bcaa-bbc34214ed57",
+              "name": "schema_version",
+              "value": "tsird-drought-source-refresh-receipt/v2",
+              "type": "string"
+            },
+            {
+              "id": "77fcb63e-38a6-53aa-a5fa-a52e62043798",
+              "name": "workflow_key",
+              "value": "wapor",
+              "type": "string"
+            },
+            {
+              "id": "ef24a69b-fd54-5825-936b-563228958b3f",
+              "name": "source_id",
+              "value": "fao-wapor-v3",
+              "type": "string"
+            },
+            {
+              "id": "a12f3dc0-d721-5f3c-ab50-205e5e43c43c",
+              "name": "run_outcome",
+              "value": "failure",
+              "type": "string"
+            },
+            {
+              "id": "67d782f1-4507-5f1a-b3e9-2842f09ae487",
+              "name": "outcome_detail",
+              "value": "acquisition_poll_budget_exhausted",
+              "type": "string"
+            },
+            {
+              "id": "a9bf36ed-8f1e-541a-b495-1354f946ad2a",
+              "name": "provider_state",
+              "value": "ready",
+              "type": "string"
+            },
+            {
+              "id": "23b5be2d-d4d9-522e-9036-a77938f2432d",
+              "name": "evidence_changed",
+              "value": false,
+              "type": "boolean"
+            },
+            {
+              "id": "d179a01b-7cb1-510b-aeec-75489fdda011",
+              "name": "action_required",
+              "value": true,
+              "type": "boolean"
+            },
+            {
+              "id": "2a47ba0a-d4dd-5b22-a2b8-885794c8eba4",
+              "name": "runner_job_id",
+              "value": "={{ $('Start acquisition').item.json.body.job_id }}",
+              "type": "string"
+            },
+            {
+              "id": "721067c0-aa35-5583-9a05-47da4232d95e",
+              "name": "probe_poll_budget",
+              "value": 14,
+              "type": "number"
+            },
+            {
+              "id": "ca10a3ff-97bf-5dfe-91b2-fe50814a0ab1",
+              "name": "acquisition_poll_budget",
+              "value": 75,
+              "type": "number"
+            },
+            {
+              "id": "3a350dab-3d51-55f1-b8c5-ef9d8a1ec87d",
+              "name": "checked_at",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            },
+            {
+              "id": "b29be166-59df-53c9-85bf-d9b21b766a3f",
+              "name": "operator_summary",
+              "value": "=FAO WaPOR T/AETI acquisition was still running when the bounded poll budget ended. The job may still complete inside the runner; this run makes no claim about the result.",
+              "type": "string"
+            },
+            {
+              "id": "c19ea2af-a78e-5f87-88a0-45c6801999ac",
+              "name": "next_action",
+              "value": "Read the runner job once, and confirm the artifact before treating the evidence as updated. Do not start a second acquisition for the same period.",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "7d3249c2-134c-5cae-b99b-e411b615ecbb",
+      "name": "Report acquisition timeout",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2980,
+        500
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "734223df-6470-5608-a5a4-ebc0586a1aec",
+              "name": "schema_version",
+              "value": "tsird-drought-source-refresh-receipt/v2",
+              "type": "string"
+            },
+            {
+              "id": "a6147e1a-4c3d-590e-af67-0fce29373097",
+              "name": "workflow_key",
+              "value": "wapor",
+              "type": "string"
+            },
+            {
+              "id": "1873609f-be3e-573e-aae7-9ddec7149278",
+              "name": "source_id",
+              "value": "fao-wapor-v3",
+              "type": "string"
+            },
+            {
+              "id": "0340618e-3863-534e-a8d0-1d1817cbb209",
+              "name": "run_outcome",
+              "value": "data_updated",
+              "type": "string"
+            },
+            {
+              "id": "9c519af6-a308-53cc-9b69-b33980bd1ea8",
+              "name": "outcome_detail",
+              "value": "acquired_validated_loaded",
+              "type": "string"
+            },
+            {
+              "id": "1a4056d6-e576-5983-b603-59a9836b36ca",
+              "name": "provider_state",
+              "value": "ready",
+              "type": "string"
+            },
+            {
+              "id": "2f4d8a75-646e-50fe-88fe-847acb6e7eb4",
+              "name": "evidence_changed",
+              "value": true,
+              "type": "boolean"
+            },
+            {
+              "id": "68303ee2-922e-5f94-90cf-40905c61d590",
+              "name": "action_required",
+              "value": "={{ [\"degraded\",\"failed\"].includes($json.body.status) }}",
+              "type": "boolean"
+            },
+            {
+              "id": "ce624837-9019-562b-a76f-bd9e70defd57",
+              "name": "runner_job_id",
+              "value": "={{ $('Start acquisition').item.json.body.job_id }}",
+              "type": "string"
+            },
+            {
+              "id": "80176718-57af-55af-a5bb-7df51285718f",
+              "name": "probe_poll_budget",
+              "value": 14,
+              "type": "number"
+            },
+            {
+              "id": "af969535-c6ea-55e9-a774-35766e217c0e",
+              "name": "acquisition_poll_budget",
+              "value": 75,
+              "type": "number"
+            },
+            {
+              "id": "9b49f30a-3256-50ca-ad81-1ba4478ed133",
+              "name": "checked_at",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            },
+            {
+              "id": "dabc95ad-7fb8-506d-a4c6-79e7673da723",
+              "name": "operator_summary",
+              "value": "=FAO WaPOR T/AETI acquired a newer provider item, validated it and loaded run {{ $json.body.run_id || 'unknown' }} with artifact status {{ $json.body.status }}. A successful run proves that one provider dekad of transpiration and AETI was clipped, summarised per Tabia, loaded into PostGIS and synchronised to the current WaPOR display raster. It is water-use context, not crop extent, yield or drought status.",
+              "type": "string"
+            },
+            {
+              "id": "398f779c-4ff1-5c49-a5d1-448154cba91f",
+              "name": "next_action",
+              "value": "None when the artifact status is 'development' or 'validated'. A 'degraded' artifact status means the data loaded but its quality gate flagged it; review before using it.",
+              "type": "string"
+            },
+            {
+              "id": "602bc4e2-2adb-501d-855c-90ff72be6e51",
+              "name": "runner_run_id",
+              "value": "={{ $json.body.run_id || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "6bd22ae6-489f-54ab-8a1b-4f46c9c780a2",
+              "name": "artifact_status",
+              "value": "={{ $json.body.status }}",
+              "type": "string"
+            },
+            {
+              "id": "2b5bfc69-169d-5430-b453-af038ddda433",
+              "name": "job_finished_at",
+              "value": "={{ $json.body.finished_at || '' }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "50f3e234-e27c-5c7b-82f1-c7463162a611",
+      "name": "Report data updated",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2980,
+        700
+      ]
+    }
+  ],
+  "connections": {
+    "Manual development run": {
+      "main": [
+        [
+          {
+            "node": "Start source probe",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Scheduled source check": {
+      "main": [
+        [
+          {
+            "node": "Start source probe",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Start source probe": {
+      "main": [
+        [
+          {
+            "node": "Probe accepted?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Probe accepted?": {
+      "main": [
+        [
+          {
+            "node": "Wait for probe",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Report runner unavailable",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait for probe": {
+      "main": [
+        [
+          {
+            "node": "Read probe job",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read probe job": {
+      "main": [
+        [
+          {
+            "node": "Probe still running?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Probe still running?": {
+      "main": [
+        [
+          {
+            "node": "Probe poll budget left?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Newer data available?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Probe poll budget left?": {
+      "main": [
+        [
+          {
+            "node": "Wait for probe",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Report probe timeout",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Newer data available?": {
+      "main": [
+        [
+          {
+            "node": "Start acquisition",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Provider state known?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Provider state known?": {
+      "main": [
+        [
+          {
+            "node": "Report no new data",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Report probe failure",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Start acquisition": {
+      "main": [
+        [
+          {
+            "node": "Acquisition accepted?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Acquisition accepted?": {
+      "main": [
+        [
+          {
+            "node": "Wait for acquisition",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Report acquisition rejected",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait for acquisition": {
+      "main": [
+        [
+          {
+            "node": "Read acquisition job",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read acquisition job": {
+      "main": [
+        [
+          {
+            "node": "Acquisition still running?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Acquisition still running?": {
+      "main": [
+        [
+          {
+            "node": "Acquisition poll budget left?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Acquisition failed?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Acquisition poll budget left?": {
+      "main": [
+        [
+          {
+            "node": "Wait for acquisition",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Report acquisition timeout",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Acquisition failed?": {
+      "main": [
+        [
+          {
+            "node": "Report acquisition failure",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Report data updated",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "saveExecutionProgress": true,
+    "timezone": "Africa/Addis_Ababa"
+  },
+  "versionId": "48b390a5-4e78-5232-9990-6d8f24367713",
+  "meta": {},
+  "tags": []
+}

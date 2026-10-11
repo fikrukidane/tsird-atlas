@@ -1,0 +1,48 @@
+{
+  "schema_version": "tsird-drought-indicator-freshness-contract/v1",
+  "release_deadman_after_days": 45,
+  "sources": [
+    {
+      "key": "observed",
+      "label": "Final rainfall (CHIRPS)",
+      "expected_after_days": 31,
+      "stale_after_days": 50,
+      "automation_state": "automatic"
+    },
+    {
+      "key": "rapid",
+      "label": "Rapid rainfall (CHIRPS preliminary)",
+      "expected_after_days": 10,
+      "stale_after_days": 20,
+      "automation_state": "automatic"
+    },
+    {
+      "key": "vegetation",
+      "label": "Vegetation (Copernicus NDVI)",
+      "expected_after_days": 10,
+      "stale_after_days": 25,
+      "automation_state": "manual-until-acquisition"
+    },
+    {
+      "key": "soil_water",
+      "label": "Soil water (Copernicus SWI)",
+      "expected_after_days": 10,
+      "stale_after_days": 25,
+      "automation_state": "manual-until-acquisition"
+    },
+    {
+      "key": "thermal",
+      "label": "Thermal context (CLMS LST)",
+      "expected_after_days": 10,
+      "stale_after_days": 25,
+      "automation_state": "replacement-required"
+    },
+    {
+      "key": "water_use",
+      "label": "Crop water use (FAO WaPOR)",
+      "expected_after_days": 10,
+      "stale_after_days": 25,
+      "automation_state": "manual-until-acquisition"
+    }
+  ]
+}
