@@ -270,11 +270,13 @@ def run_final_monthly_probe(job_id: str):
     try:
         completed = subprocess.run(["python3", str(WORK_DIR / "chirps_final_monthly_probe.py")], cwd=WORK_DIR,
                                    text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                                   check=True, timeout=180)
+                                   check=True, timeout=90)
         result = json.loads(completed.stdout)
         status, error, output = result.get("status", "unavailable"), None, completed.stdout[-3000:]
     except subprocess.CalledProcessError as exc:
         status, error, output = "unavailable", "CHIRPS final-month probe failed", (exc.stdout or "")[-3000:]
+    except subprocess.TimeoutExpired:
+        status, error, output = "unavailable", "CHIRPS final-month probe exceeded its 90-second cap", ""
     except Exception as exc:
         status, error, output = "unavailable", f"Unexpected final-month probe error: {type(exc).__name__}", ""
     with jobs_lock:
@@ -288,7 +290,7 @@ def run_calendar_final_refresh(job_id: str):
     try:
         completed = subprocess.run(["python3", str(WORK_DIR / "chirps_final_monthly_probe.py")], cwd=WORK_DIR,
                                    text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                                   check=True, timeout=180)
+                                   check=True, timeout=90)
         result = json.loads(completed.stdout)
         if result.get("status") != "ready":
             with jobs_lock:
