@@ -70,6 +70,7 @@ pip install playwright && playwright install chromium
 python3 tools/measure_public_performance.py --dry-run          # validate config only
 python3 tools/measure_public_performance.py --page drought     # measure, print table
 python3 tools/measure_public_performance.py --check --archive  # gate a change and keep the run
+python3 tools/measure_public_performance.py --base-url http://127.0.0.1:18081 --check --archive --label staged
 ```
 
 `--check` exits non-zero when an enforced budget fails or cannot be measured.
@@ -77,6 +78,32 @@ python3 tools/measure_public_performance.py --check --archive  # gate a change a
 declaring a stage complete. Every archived run records the date, commit, browser
 version, viewport, network profile, cache state and the ten largest responses,
 so a regression can be attributed rather than argued about.
+`--label` is optional but should identify a staged target (for example
+`staged`); it is appended to the archive filename and never changes a result's
+measurements.
+
+## Isolated local stage
+
+`docker-compose.performance-stage.yml` starts only `tsird-api-stage`,
+`tsird-web-stage`, and `tsird-edge-stage` on `127.0.0.1:18081`. It does not
+stop, replace, or share writable mounts with the running DEV containers. The
+stage API mounts an ignored, read-only mirror of the already-public initial
+indicator assets and uses the existing internal MapServer only to answer
+browser GETs. Build that mirror from the public release metadata immediately
+before a measurement; never use it as an upload source or substitute it for a
+publisher release:
+
+```bash
+python3 tools/mirror_public_stage_release.py \
+  --output-root data.local/performance-stage-release/indicators
+```
+
+The stage mirror contains only the public dashboard workspace, display
+geometry, and three exposure summaries. It is an ignored local fixture for UI
+and delivery tests, never a release builder or publisher.
+
+Run the harness against `http://127.0.0.1:18081` (or
+`tsird-edge-stage:8080` from a browser container), with `--label staged`.
 
 ## Reading the first run
 

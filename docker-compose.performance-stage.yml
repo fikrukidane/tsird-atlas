@@ -1,0 +1,40 @@
+# Local, isolated performance stage. It never replaces the running DEV stack:
+# it has unique container names and exposes only loopback port 18081. The stage
+# joins the existing TSIRD network to read from its healthy PostGIS/MapServer
+# services, while its own API has a read-only evidence-data mount.
+services:
+  tsird-api-stage:
+    build: ./api
+    container_name: tsird-api-stage
+    env_file:
+      - ../../.env.tsird
+    volumes:
+      # A local, ignored mirror of only the already-public first-load assets.
+      # It is deliberately distinct from the live DEV data directory.
+      - ./data.local/performance-stage-release:/data/drought/production-releases:ro
+    networks:
+      - tsird-stage-network
+
+  tsird-web-stage:
+    build: ./ui/web
+    container_name: tsird-web-stage
+    networks:
+      - tsird-stage-network
+    volumes:
+      - ./infra/production-public-web/data/atlas-registry.json:/usr/share/nginx/html/data/atlas-registry.json:ro
+      - ./infra/production-public-web/drought/index.html:/usr/share/nginx/html/drought/index.html:ro
+
+  tsird-edge-stage:
+    build: ./infra/edge
+    container_name: tsird-edge-stage
+    volumes:
+      - ./infra/edge/nginx.performance-stage.conf:/etc/nginx/nginx.conf:ro
+    networks:
+      - tsird-stage-network
+    ports:
+      - "127.0.0.1:18081:8080"
+
+networks:
+  tsird-stage-network:
+    name: tsird-network
+    external: true

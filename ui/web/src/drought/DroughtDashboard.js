@@ -106,6 +106,10 @@ class DroughtDashboard {
     if (this.publicMode) {
       this.publicFreshness = Array.isArray(this.data.freshness) ? this.data.freshness : [];
       this.publicRelease = this.data.indicator_release || null;
+      // The versioned display geometry is required before a visitor can select
+      // a Tabia. Expose that readiness explicitly for the performance check
+      // and for diagnostic tooling; it is not a data-quality signal.
+      document.body.dataset.tsirdDroughtGeometry = 'loading';
       // Render controls and current retained evidence before the versioned,
       // cacheable display geometry arrives. Redraw once it is ready.
       await this._loadObservedArtifact();
@@ -325,10 +329,12 @@ class DroughtDashboard {
         if (!response.ok || !Array.isArray(payload.features)) throw new Error('invalid public geometry asset');
         this.publicGeometry = payload.features;
         this.publicGeometryReleaseId = pointer.release_id || null;
+        document.body.dataset.tsirdDroughtGeometry = 'ready';
         return this.publicGeometry;
       } catch (error) {
         console.error('[DroughtDashboard] approved public geometry unavailable:', error);
         this.publicGeometry = [];
+        document.body.dataset.tsirdDroughtGeometry = 'unavailable';
         return this.publicGeometry;
       } finally {
         this.publicGeometryPromise = null;
@@ -561,6 +567,7 @@ class DroughtDashboard {
         ? `Latest available analysis is a ${this.publicMode ? 'retained' : 'development'} CHIRPS native-grid rainfall total. Its ten bands show measured totals only—not drought priority. Select Tabia class for the baseline-relative Tabia interpretation.`
         : `Latest available analysis is a ${this.publicMode ? 'retained' : 'development'} CHIRPS Tabia summary. Click a coloured Tabia on the map for its evidence; areas without sufficient grid coverage are not classified.`;
       this._renderObservedArtifact();
+      this._appendPublicEvidenceSelection();
       if (historical) this._showHistoricalObservedMap(); else this._renderSpatialControl();
       this._renderLegend();
       return;
@@ -569,6 +576,7 @@ class DroughtDashboard {
       this._setEvidenceLayer(this._evidenceLayerForMode());
       this.notice.textContent = 'Rapid monitoring uses six completed CHIRPS preliminary pentads. Choose the native grid or Tabia zonal average; it is an observed rainfall total, not a drought class or food-security prediction.';
       this._renderPreliminaryArtifact();
+      this._appendPublicEvidenceSelection();
       this._renderSpatialControl();
       this._renderLegend();
       return;
@@ -809,17 +817,17 @@ class DroughtDashboard {
   _renderExposureMap() {
     const environment = this.publicMode ? 'approved retained baseline' : 'development';
     if (this.exposureMeasure === 'population') {
-      this.content.innerHTML = `<div class="drought-mode-title"><strong>Population baseline</strong><span>WorldPop 2025 · ${environment}</span></div><div class="drought-source-meta"><span>Scope: all 748 Tabias</span><span>Native source: ~100 m</span><span>Status: R2025A v1 alpha</span></div><div class="drought-spatial-control"><span>Display measure</span><div><button type="button" data-exposure-measure="population" class="is-active">People</button><button type="button" data-exposure-measure="cropland">Cropland</button><button type="button" data-exposure-measure="road">Road proximity</button></div><small>Population totals are modeled people-per-pixel estimates summarized to Tabias; they are not an official census or a drought-exposure count.</small></div><div class="drought-map-instruction">Every coloured Tabia has a validated WorldPop population total and coverage record. Click a Tabia to inspect its value.</div>`;
+      this.content.innerHTML = `<div class="drought-mode-title"><strong>Population baseline</strong><span>WorldPop 2025 · ${environment}</span></div><div class="drought-source-meta"><span>Scope: all 748 Tabias</span><span>Native source: ~100 m</span><span>Status: R2025A v1 alpha</span></div><div class="drought-spatial-control"><span>Display measure</span><div><button type="button" data-exposure-measure="population" class="is-active">People</button><button type="button" data-exposure-measure="cropland">Cropland</button><button type="button" data-exposure-measure="road">Road proximity</button></div><small>Population totals are modeled people-per-pixel estimates summarized to Tabias; they are not an official census or a drought-exposure count.</small></div><div class="drought-map-instruction">Every coloured Tabia has a validated WorldPop population total and coverage record. Click a Tabia to inspect its value.</div><div class="drought-map-selection" data-exposure-selection>Select a coloured Tabia to inspect its population baseline.</div>`;
       this.content.querySelectorAll('[data-exposure-measure]').forEach(button => button.addEventListener('click', () => { this.exposureMeasure = button.dataset.exposureMeasure; this._renderMode(); }));
       return;
     }
     if (this.exposureMeasure === 'road') {
-      this.content.innerHTML = `<div class="drought-mode-title"><strong>Federal and Regional road proximity</strong><span>ERA + TRRA · ${environment}</span></div><div class="drought-source-meta"><span>Scope: all 748 Tabias</span><span>Source: 65 mapped ERA/TRRA features</span><span>Method: point-to-nearest-network distance</span></div><div class="drought-spatial-control"><span>Display measure</span><div><button type="button" data-exposure-measure="population">People</button><button type="button" data-exposure-measure="cropland">Cropland</button><button type="button" data-exposure-measure="road" class="is-active">Road proximity</button></div><small>This is a transparent baseline, not a travel-time or humanitarian-access model.</small></div><div class="drought-map-instruction">Every Tabia is classified by straight-line distance from its representative point to the nearest mapped ERA or TRRA feature in Tigray Roads 2006. Click a Tabia to inspect its value.</div>`;
+      this.content.innerHTML = `<div class="drought-mode-title"><strong>Federal and Regional road proximity</strong><span>ERA + TRRA · ${environment}</span></div><div class="drought-source-meta"><span>Scope: all 748 Tabias</span><span>Source: 65 mapped ERA/TRRA features</span><span>Method: point-to-nearest-network distance</span></div><div class="drought-spatial-control"><span>Display measure</span><div><button type="button" data-exposure-measure="population">People</button><button type="button" data-exposure-measure="cropland">Cropland</button><button type="button" data-exposure-measure="road" class="is-active">Road proximity</button></div><small>This is a transparent baseline, not a travel-time or humanitarian-access model.</small></div><div class="drought-map-instruction">Every Tabia is classified by straight-line distance from its representative point to the nearest mapped ERA or TRRA feature in Tigray Roads 2006. Click a Tabia to inspect its value.</div><div class="drought-map-selection" data-exposure-selection>Select a coloured Tabia to inspect its road-proximity baseline.</div>`;
       this.content.querySelectorAll('[data-exposure-measure]').forEach(button => button.addEventListener('click', () => { this.exposureMeasure = button.dataset.exposureMeasure; this._renderMode(); }));
       return;
     }
     if (this.exposureMeasure === 'cropland') {
-      this.content.innerHTML = `<div class="drought-mode-title"><strong>Cropland baseline</strong><span>ESA WorldCover 2021 · ${environment}</span></div><div class="drought-source-meta"><span>Scope: all 748 Tabias</span><span>Native source: 10 m</span><span>Class: cropland (40)</span></div><div class="drought-spatial-control"><span>Display measure</span><div><button type="button" data-exposure-measure="population">People</button><button type="button" data-exposure-measure="cropland" class="is-active">Cropland</button><button type="button" data-exposure-measure="road">Road proximity</button></div><small>This is a 2021 land-cover reference baseline, not a current crop or food-security measure.</small></div><div class="drought-map-instruction">Every coloured Tabia has a valid 2021 cropland-share and cropland-area summary. Click a Tabia to inspect its values.</div>`;
+      this.content.innerHTML = `<div class="drought-mode-title"><strong>Cropland baseline</strong><span>ESA WorldCover 2021 · ${environment}</span></div><div class="drought-source-meta"><span>Scope: all 748 Tabias</span><span>Native source: 10 m</span><span>Class: cropland (40)</span></div><div class="drought-spatial-control"><span>Display measure</span><div><button type="button" data-exposure-measure="population">People</button><button type="button" data-exposure-measure="cropland" class="is-active">Cropland</button><button type="button" data-exposure-measure="road">Road proximity</button></div><small>This is a 2021 land-cover reference baseline, not a current crop or food-security measure.</small></div><div class="drought-map-instruction">Every coloured Tabia has a valid 2021 cropland-share and cropland-area summary. Click a Tabia to inspect its values.</div><div class="drought-map-selection" data-exposure-selection>Select a coloured Tabia to inspect its cropland baseline.</div>`;
       this.content.querySelectorAll('[data-exposure-measure]').forEach(button => button.addEventListener('click', () => { this.exposureMeasure = button.dataset.exposureMeasure; this._renderMode(); }));
       return;
     }
@@ -903,6 +911,7 @@ class DroughtDashboard {
     this._setEvidenceLayer(this._evidenceLayerForMode());
     this.notice.textContent = currentNotice;
     renderCurrentArtifact();
+    this._appendPublicEvidenceSelection();
     this._renderSpatialControl();
     this._renderIndicatorSnapshotControl();
     this._renderLegend();
@@ -1084,6 +1093,13 @@ class DroughtDashboard {
     if (!layer) return;
     const token = ++this.exposureMapToken;
     const measure = this.exposureMeasure;
+    const target = this.content && this.content.querySelector('[data-exposure-selection]');
+    // Do not leave the prior measure selectable while the next summary is
+    // loading: a click in that interval would present fields from the wrong
+    // exposure source under the newly selected label.
+    layer.getSource().clear();
+    layer.setVisible(false);
+    if (target) target.textContent = `Loading approved Tabia ${measure === 'road' ? 'road-proximity' : measure} records…`;
     try {
       const response = await fetch(`${this.exposureUrl}/${encodeURIComponent(measure)}/features`, { cache: 'no-store' });
       const collection = await response.json();
@@ -1096,14 +1112,12 @@ class DroughtDashboard {
       layer.getSource().clear();
       layer.getSource().addFeatures(features);
       layer.setVisible(true);
-      const target = this.content && this.content.querySelector('[data-exposure-selection]');
       if (target) target.textContent = `Showing ${features.length} Tabia ${measure === 'road' ? 'road-proximity' : measure} records. Select a coloured Tabia to inspect its value.`;
     } catch (error) {
       console.error('[DroughtDashboard] Tabia exposure map unavailable:', error);
       if (token === this.exposureMapToken) {
         layer.setVisible(false);
         layer.getSource().clear();
-        const target = this.content && this.content.querySelector('[data-exposure-selection]');
         if (target) target.textContent = 'The active Tabia exposure measure is unavailable.';
       }
     }
@@ -1159,10 +1173,25 @@ class DroughtDashboard {
   _handleFixtureMapClick(event) {
     const historicalObserved = this.mode === 'observed' && this.observedSnapshotId !== 'latest';
     if (this.publicMode && this.mode !== 'priority' && this.publicEvidenceLayer && this.publicEvidenceLayer.getVisible()) {
-      const feature = this.map.forEachFeatureAtPixel(event.pixel, candidate => candidate, { layerFilter: layer => layer === this.publicEvidenceLayer });
+      performance.clearMarks('tsird-public-evidence-selection-ready');
+      // Canvas hit detection redraws the full Tabia vector layer on every
+      // click. On a constrained phone that can make a simple selection feel
+      // stalled. The released display geometries already live in this source,
+      // so locate the clicked coordinate directly without a second canvas pass.
+      const source = this.publicEvidenceLayer.getSource();
+      const feature = source && source.getFeatures().find(candidate => {
+        const geometry = candidate && candidate.getGeometry && candidate.getGeometry();
+        return geometry && geometry.intersectsCoordinate(event.coordinate);
+      });
       const tabiaId = feature && feature.get('tsird_tabia_id');
       if (tabiaId) {
         this.selectBoundary({ type: 'tabia', id: tabiaId, label: feature.get('tabia_name_en') || 'Selected Tabia' });
+        this._showPublicEvidenceSelection(feature.getProperties());
+        // Two frames place the mark after the changed selection card has had
+        // a browser paint opportunity, rather than merely after its DOM write.
+        requestAnimationFrame(() => requestAnimationFrame(() => {
+          performance.mark('tsird-public-evidence-selection-ready');
+        }));
         if (this.mode === 'history') this._handleBoundarySelection({ detail: { type: 'tabia', id: tabiaId, name_en: feature.get('tabia_name_en'), parent_name_en: feature.get('woreda_name_en') } });
       }
       return;
@@ -1841,6 +1870,7 @@ class DroughtDashboard {
         : null;
       if (releasedFeature && releasedFeature.geometry) {
         this._showBoundary({ geometry: releasedFeature.geometry }, boundary.type);
+        this._showPublicEvidenceSelection(this._publicEvidenceForTabia(boundary.id, releasedFeature.properties));
         return;
       }
       if (this.publicMode && boundary.type === 'tabia') {
@@ -1939,6 +1969,56 @@ class DroughtDashboard {
       waterUse: this.waporArtifact && this.waporArtifact.summaries
     }[this.mode];
     return Array.isArray(artifact) ? artifact : [];
+  }
+
+  _publicEvidenceForTabia(tabiaId, fallback = {}) {
+    return this._publicEvidenceRows().find(row => row && row.tsird_tabia_id === tabiaId) || fallback || {};
+  }
+
+  _appendPublicEvidenceSelection() {
+    if (!this.publicMode || !['observed', 'rapid', 'vegetation', 'soilWater', 'thermal', 'waterUse'].includes(this.mode)) return;
+    const target = document.createElement('div');
+    target.className = 'drought-map-selection';
+    target.dataset.publicEvidenceSelection = '';
+    target.textContent = this.spatialViews[this.mode] === 'raw'
+      ? 'Search for a Tabia to inspect its approved zonal summary.'
+      : 'Select a coloured Tabia to inspect its approved evidence summary.';
+    this.content.appendChild(target);
+  }
+
+  _showPublicEvidenceSelection(value) {
+    const target = this.content && this.content.querySelector('[data-public-evidence-selection]');
+    if (!target || !value) return;
+    // On narrow screens the user may hide the evidence panel to reach the
+    // map. A selected Tabia must bring it back so the result is not hidden.
+    const root = document.getElementById(this.containerId);
+    if (root) root.classList.remove('is-hidden');
+    // A real selection gets a stable, machine-readable marker. This lets the
+    // performance gate distinguish evidence shown for a clicked Tabia from
+    // explanatory text that happens to mention the same terms.
+    target.dataset.selectedTabia = String(value.tsird_tabia_id || 'selected');
+    const title = `${value.tabia_name_en || 'Selected Tabia'}${value.woreda_name_en ? ` — ${value.woreda_name_en}` : ''}`;
+    const finite = number => number !== null && number !== undefined && number !== '' && Number.isFinite(Number(number));
+    const number = (raw, places = 1, unit = '') => finite(raw) ? `${Number(raw).toFixed(places)}${unit}` : 'not available';
+    const coverage = finite(value.coverage_pct) ? `${Number(value.coverage_pct).toFixed(0)}%` : 'not recorded';
+    const quality = String(value.quality_status || 'not recorded').replaceAll('_', ' ');
+    const summaries = {
+      observed: `Rainfall ${number(value.rainfall_mm, 1, ' mm')} · baseline median ${number(value.baseline_median_mm, 1, ' mm')} · ${finite(value.percentile) ? `${number(value.percentile)}th percentile` : 'baseline percentile unavailable'}`,
+      rapid: `Rainfall ${number(value.rainfall_mm, 1, ' mm')}${finite(value.provisional_percentile) ? ` · provisional final-history percentile ${number(value.provisional_percentile)}th` : ''}`,
+      vegetation: `NDVI mean ${number(value.ndvi_mean, 3)}`,
+      soilWater: `SWI-040 mean ${number(value.swi040_mean, 1, '%')}`,
+      thermal: `Land-surface temperature mean ${number(value.lst_c_mean, 1, ' °C')}`,
+      waterUse: `Transpiration ${number(value.transpiration_mm, 3, ' mm/day')} · AETI ${number(value.aeti_mm, 3, ' mm/day')}`
+    };
+    const descriptions = {
+      observed: 'Retained CHIRPS Tabia zonal mean; this is observed rainfall evidence, not a drought class or priority.',
+      rapid: 'Retained preliminary-rainfall Tabia zonal mean; it is observed rainfall evidence, not a drought class or priority.',
+      vegetation: 'Retained Copernicus NDVI zonal mean; it is vegetation context, not a drought or food-security classification.',
+      soilWater: 'Retained Copernicus SWI zonal mean; the coarse source grid does not create Tabia-scale precision.',
+      thermal: 'Retained land-surface-temperature zonal mean; it is not an air-temperature observation or drought class.',
+      waterUse: 'Retained WaPOR zonal mean; it is vegetation water-use context, not crop extent, yield, or food-security status.'
+    };
+    target.innerHTML = `<strong>Tabia detail · ${title}</strong><span>${summaries[this.mode] || 'Approved evidence value unavailable'}</span><small>Coverage ${coverage} · quality ${quality}. ${descriptions[this.mode] || ''}</small>`;
   }
 
   _publicEvidenceValue(row) {

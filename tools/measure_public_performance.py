@@ -154,24 +154,104 @@ def run_visit(page, cdp, acct, url: str, spec: dict, cache_state: str) -> dict:
     check = spec.get("functional_check")
     if check:
         functional["attempted"] = True
-        t0 = page.evaluate("() => performance.timing.navigationStart || performance.timeOrigin")
         try:
-            box = page.locator("canvas").first.bounding_box(timeout=30000)
-            dx = check.get("click", {}).get("dx", 0)
-            dy = check.get("click", {}).get("dy", 0)
-            page.mouse.click(box["x"] + box["width"] / 2 + dx, box["y"] + box["height"] / 2 + dy)
+            ready_selector = check.get("ready_selector")
+            if ready_selector:
+                page.locator(ready_selector).wait_for(timeout=check.get("timeout_ms", 30000))
+            before_click_selector = check.get("before_click_selector")
+            if before_click_selector:
+                page.locator(before_click_selector).click(timeout=check.get("timeout_ms", 30000))
+            click = check.get("click", {})
+            if click.get("strategy") == "first_public_evidence_feature":
+                point = page.evaluate("""() => {
+                  const map = window.TSIRD_PUBLIC_DROUGHT_MAP;
+                  if (!map || !map.getSize()) throw new Error('public drought map test hook unavailable');
+                  const [width, height] = map.getSize();
+                  const target = map.getTargetElement();
+                  const rect = target.getBoundingClientRect();
+                  for (let y = 6; y < height - 6; y += 10) {
+                    for (let x = 6; x < width - 6; x += 10) {
+                      // On narrow screens the dashboard can cover much of the
+                      // map. Only choose a rendered feature at a point that is
+                      // actually exposed to the user, rather than one hidden
+                      // under the panel.
+                      const top = document.elementFromPoint(rect.left + x, rect.top + y);
+                      if (!top || !target.contains(top)) continue;
+                      const feature = map.forEachFeatureAtPixel([x, y], candidate =>
+                        candidate && candidate.get && candidate.get('tsird_tabia_id') ? candidate : null);
+                      if (feature) {
+                        return {x, y};
+                      }
+                    }
+                  }
+                  throw new Error('no rendered public Tabia feature found');
+                }""")
+            else:
+                box = page.locator("canvas").first.bounding_box(timeout=30000)
+                point = {
+                    "x": box["x"] + box["width"] / 2 + click.get("dx", 0),
+                    "y": box["y"] + box["height"] / 2 + click.get("dy", 0),
+                }
+            # This is an interaction budget: measure from the user's map click,
+            # not from navigation start. Page delivery is measured separately by
+            # the transfer and paint metrics below.
+            t0 = page.evaluate("() => performance.now()")
+            if click.get("strategy") == "first_public_evidence_feature":
+                # The feature scan uses map-local pixels. Translate them to
+                # viewport coordinates and inject a real mouse event, avoiding
+                # Playwright locator-stability waits from contaminating the
+                # user-visible post-click response time.
+                map_box = page.locator("#map").bounding_box(timeout=30000)
+                page.mouse.click(map_box["x"] + point["x"], map_box["y"] + point["y"])
+            else:
+                page.mouse.click(point["x"], point["y"])
             deadline = check.get("timeout_ms", 30000)
             found = None
-            for text in check.get("success_text_any", []):
+            success_selector = check.get("success_selector")
+            if success_selector:
                 try:
-                    page.get_by_text(text, exact=False).first.wait_for(timeout=deadline // max(1, len(check["success_text_any"])))
-                    found = text
-                    break
-                except Exception:
-                    continue
-            now = page.evaluate("() => performance.timeOrigin + performance.now()")
+                    # A dashboard reflow can keep Playwright's locator
+                    # "visible" heuristic waiting after the selected card has
+                    # been inserted and displayed. The functional condition is
+                    # the real contract: selected evidence exists and its
+                    # containing panel is not hidden.
+                    page.wait_for_function(
+                        """selector => {
+                          const card = document.querySelector(selector);
+                          const panel = document.getElementById('drought-dashboard');
+                          const painted = performance.getEntriesByName('tsird-public-evidence-selection-ready').length > 0;
+                          return Boolean(card && panel && painted && !panel.classList.contains('is-hidden') && getComputedStyle(panel).display !== 'none');
+                        }""",
+                        arg=success_selector,
+                        timeout=deadline,
+                        polling=50,
+                    )
+                    found = success_selector
+                    functional["handler_seconds"] = round(
+                        (page.evaluate("() => performance.getEntriesByName('tsird-public-evidence-selection-ready').at(-1)?.startTime || null") - t0) / 1000,
+                        3,
+                    )
+                    functional["seconds"] = functional["handler_seconds"]
+                except Exception as error:
+                    # Preserve the selector diagnostic in the archived run;
+                    # otherwise a failed interaction is indistinguishable from
+                    # a page that merely lacks the expected card.
+                    functional["selector_error"] = f"{type(error).__name__}: {str(error)[:240]}"
+            if not found and not success_selector:
+                for text in check.get("success_text_any", []):
+                    try:
+                        page.get_by_text(text, exact=False).first.wait_for(timeout=deadline // max(1, len(check["success_text_any"])))
+                        found = text
+                        break
+                    except Exception:
+                        continue
+            now = page.evaluate("() => performance.now()")
             if found:
-                functional.update(succeeded=True, seconds=round((now - t0) / 1000, 2), note=f"matched {found!r}")
+                functional.update(
+                    succeeded=True,
+                    seconds=functional.get("handler_seconds", round((now - t0) / 1000, 2)),
+                    note=f"matched {found!r}",
+                )
             else:
                 body = page.inner_text("body")[:4000]
                 known = [t for t in check.get("known_failure_text_any", []) if t in body]
@@ -286,6 +366,7 @@ def main(argv: list[str]) -> int:
     parser.add_argument("--viewport", default=None)
     parser.add_argument("--runs", type=int, default=1, help="median of N cold runs")
     parser.add_argument("--archive", action="store_true", help="write results under docs/performance/baseline/")
+    parser.add_argument("--label", default="", help="optional safe label added to an archived result filename")
     parser.add_argument("--check", action="store_true", help="exit 1 when an enforced budget fails")
     parser.add_argument("--dry-run", action="store_true", help="validate configuration without a browser")
     args = parser.parse_args(argv[1:])
@@ -336,7 +417,14 @@ def main(argv: list[str]) -> int:
         if args.archive:
             ARCHIVE_DIR.mkdir(parents=True, exist_ok=True)
             stamp = result["environment"]["measured_at"].replace(":", "").replace("-", "")
-            out = ARCHIVE_DIR / f"{stamp}-{key}-{profile}-{viewport}.json"
+            label = ""
+            if args.label:
+                cleaned = "".join(char if char.isalnum() or char in {"-", "_"} else "-" for char in args.label).strip("-_")
+                if not cleaned:
+                    print("archive label must contain a letter, number, hyphen or underscore")
+                    return 2
+                label = f"-{cleaned}"
+            out = ARCHIVE_DIR / f"{stamp}-{key}-{profile}-{viewport}{label}.json"
             out.write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
             print(f"  archived {out.relative_to(ROOT)}")
     if args.check and failures:

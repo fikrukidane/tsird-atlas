@@ -1,0 +1,239 @@
+{
+  "page": "drought",
+  "url": "http://host.docker.internal:18081/map/drought/",
+  "environment": {
+    "measured_at": "2026-10-11T20:00:20+00:00",
+    "harness_version": "1.1.0",
+    "git_commit": "unknown",
+    "browser": "136.0.7103.25",
+    "viewport": "phone",
+    "viewport_px": {
+      "width": 390,
+      "height": 844,
+      "device_scale_factor": 2
+    },
+    "network_profile": "slow-4g",
+    "network_profile_values": {
+      "description": "Fixed benchmark profile used for stage targets.",
+      "download_kbps": 1600,
+      "upload_kbps": 750,
+      "latency_ms": 150,
+      "cpu_slowdown": 4
+    },
+    "method": "playwright + cdp network accounting",
+    "runs": 3
+  },
+  "cold": {
+    "total_kb": 590.9,
+    "application_kb": 171.7,
+    "third_party_kb": 212.5,
+    "basemap_kb": 131.1,
+    "critical_path_kb": 171.7,
+    "critical_total_kb": 515.3,
+    "requests": 28,
+    "app_requests": 14,
+    "basemap_tile_requests": 12,
+    "largest_responses": [
+      {
+        "kb": 210.4,
+        "status": 200,
+        "url": "https://cdn.jsdelivr.net/npm/ol@8.1.0/dist/ol.js"
+      },
+      {
+        "kb": 69.0,
+        "status": 200,
+        "url": "api/drought/public/indicators/releases/2026-10-11T062936Z-indicators/assets/tabia-geometry"
+      },
+      {
+        "kb": 42.5,
+        "status": 200,
+        "url": "http://host.docker.internal:18081/map/src/drought/DroughtDashboard.js"
+      },
+      {
+        "kb": 35.6,
+        "status": 200,
+        "url": "http://host.docker.internal:18081/map/api/drought/public/dashboard/indicator/observed"
+      },
+      {
+        "kb": 18.7,
+        "status": 200,
+        "url": "https://tile.openstreetmap.org/7/76/60.png"
+      },
+      {
+        "kb": 14.2,
+        "status": 200,
+        "url": "https://tile.openstreetmap.org/7/77/58.png"
+      },
+      {
+        "kb": 12.9,
+        "status": 200,
+        "url": "https://tile.openstreetmap.org/7/78/58.png"
+      },
+      {
+        "kb": 12.8,
+        "status": 200,
+        "url": "https://tile.openstreetmap.org/7/77/60.png"
+      },
+      {
+        "kb": 10.9,
+        "status": 200,
+        "url": "https://tile.openstreetmap.org/7/76/59.png"
+      },
+      {
+        "kb": 10.8,
+        "status": 200,
+        "url": "https://tile.openstreetmap.org/7/78/59.png"
+      }
+    ],
+    "cache_state": "cold",
+    "first_contentful_paint_ms": 2108,
+    "navigation": {
+      "ttfb": 128,
+      "load": 4203
+    },
+    "functional_check": {
+      "attempted": true,
+      "succeeded": true,
+      "seconds": 1.885,
+      "note": "matched '[data-public-evidence-selection][data-selected-tabia]'",
+      "handler_seconds": 0.852
+    },
+    "critical_path_cutoff": "functional-success"
+  },
+  "repeat": {
+    "total_kb": 116.9,
+    "application_kb": 39.5,
+    "third_party_kb": 0.0,
+    "basemap_kb": 77.4,
+    "critical_path_kb": 39.5,
+    "critical_total_kb": 116.9,
+    "requests": 56,
+    "app_requests": 14,
+    "basemap_tile_requests": 40,
+    "largest_responses": [
+      {
+        "kb": 35.6,
+        "status": 200,
+        "url": "http://host.docker.internal:18081/map/api/drought/public/dashboard/indicator/observed"
+      },
+      {
+        "kb": 13.3,
+        "status": 200,
+        "url": "https://tile.openstreetmap.org/11/1238/937.png"
+      },
+      {
+        "kb": 9.7,
+        "status": 200,
+        "url": "https://tile.openstreetmap.org/11/1238/938.png"
+      },
+      {
+        "kb": 9.6,
+        "status": 200,
+        "url": "https://tile.openstreetmap.org/11/1239/938.png"
+      },
+      {
+        "kb": 8.0,
+        "status": 200,
+        "url": "https://tile.openstreetmap.org/11/1238/940.png"
+      },
+      {
+        "kb": 6.3,
+        "status": 200,
+        "url": "https://tile.openstreetmap.org/11/1240/938.png"
+      },
+      {
+        "kb": 5.5,
+        "status": 200,
+        "url": "https://tile.openstreetmap.org/11/1239/939.png"
+      },
+      {
+        "kb": 5.4,
+        "status": 200,
+        "url": "https://tile.openstreetmap.org/11/1240/940.png"
+      },
+      {
+        "kb": 5.0,
+        "status": 200,
+        "url": "https://tile.openstreetmap.org/11/1240/939.png"
+      },
+      {
+        "kb": 4.6,
+        "status": 200,
+        "url": "https://tile.openstreetmap.org/11/1238/939.png"
+      }
+    ],
+    "cache_state": "repeat",
+    "first_contentful_paint_ms": 1644,
+    "navigation": {
+      "ttfb": 40,
+      "load": 2085
+    },
+    "functional_check": {
+      "attempted": true,
+      "succeeded": true,
+      "seconds": 2.257,
+      "note": "matched '[data-public-evidence-selection][data-selected-tabia]'",
+      "handler_seconds": 2.257
+    },
+    "critical_path_cutoff": "functional-success",
+    "note": "repeat visit in the same browser context"
+  },
+  "verdicts": [
+    {
+      "measure": "critical_path_kb",
+      "observed": 171.7,
+      "target": 400,
+      "mode": "enforce",
+      "verdict": "pass"
+    },
+    {
+      "measure": "critical_total_kb",
+      "observed": 515.3,
+      "target": 650,
+      "mode": "enforce",
+      "verdict": "pass"
+    },
+    {
+      "measure": "total_cold_kb",
+      "observed": 171.7,
+      "target": 1500,
+      "mode": "enforce",
+      "verdict": "pass"
+    },
+    {
+      "measure": "app_requests",
+      "observed": 14,
+      "target": 15,
+      "mode": "enforce",
+      "verdict": "pass"
+    },
+    {
+      "measure": "functional_seconds",
+      "observed": 1.885,
+      "target": 3.0,
+      "mode": "enforce",
+      "verdict": "pass"
+    },
+    {
+      "measure": "basemap_tile_requests",
+      "observed": 12,
+      "target": null,
+      "mode": "record",
+      "verdict": "record"
+    },
+    {
+      "measure": "repeat_total_kb",
+      "observed": 39.5,
+      "target": null,
+      "mode": "record",
+      "verdict": "record"
+    },
+    {
+      "measure": "repeat_functional_seconds",
+      "observed": 2.257,
+      "target": null,
+      "mode": "record",
+      "verdict": "record"
+    }
+  ]
+}

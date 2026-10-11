@@ -50,8 +50,11 @@
       "ready_signal": { "text": "Drought intelligence", "timeout_ms": 90000 },
       "functional_check": {
         "description": "Select a visible Tabia and read back its indicator values.",
-        "click": { "strategy": "map_center_offset", "dx": -60, "dy": 60 },
-        "success_text_any": ["Baseline percentile", "Coverage", "rainfall_mm", "Tabia detail"],
+        "ready_selector": "body[data-tsird-drought-geometry='ready']",
+        "before_click_selector": "#drought-dashboard .drought-close",
+        "click": { "strategy": "first_public_evidence_feature" },
+        "success_selector": "[data-public-evidence-selection][data-selected-tabia]",
+        "success_text_any": ["Baseline percentile", "Coverage", "Tabia detail", "rainfall_mm"],
         "known_failure_text_any": ["Boundary unavailable", "unavailable for"],
         "timeout_ms": 30000,
         "selectors_verified_on_production": false

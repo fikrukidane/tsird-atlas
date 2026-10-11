@@ -44,6 +44,8 @@ AUTO_INDICATOR_RASTERS = {
 }
 FRESHNESS_CONTRACT_PATH = Path(__file__).resolve().parents[1] / "n8n" / "publisher" / "drought-indicator-freshness-contract.json"
 GZIP_REQUIRED_MIN_BYTES = 64 * 1024
+DISPLAY_GEOMETRY_ENGINE = "mapshaper@0.7.83"
+DISPLAY_GEOMETRY_RETAIN_VERTICES = "0.5%"
 
 
 def fail(message: str) -> None:
@@ -125,6 +127,29 @@ def validate_indicator_freshness(manifest: dict[str, Any]) -> None:
             fail(f"freshness[{key}] expected_next does not match the contract")
         if stale_after != ended + timedelta(days=int(source["stale_after_days"])):
             fail(f"freshness[{key}] stale_after does not match the contract")
+
+
+def validate_display_geometry(release_dir: Path, assets: list[Any]) -> None:
+    """Keep release-only display geometry compact without changing analysis data."""
+    geometry_asset = next((asset for asset in assets if isinstance(asset, dict) and asset.get("asset_id") == "tabia-geometry"), None)
+    if geometry_asset is None:
+        fail("auto-validated indicator release lacks tabia-geometry")
+    relative_path = safe_relative_path(geometry_asset.get("relative_path"), "tabia-geometry.relative_path")
+    try:
+        geometry = json.loads((release_dir / relative_path).read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as error:
+        fail(f"tabia-geometry is not readable JSON: {error}")
+    if not isinstance(geometry, dict) or geometry.get("type") != "FeatureCollection" or not isinstance(geometry.get("features"), list):
+        fail("tabia-geometry must be a GeoJSON FeatureCollection")
+    if geometry.get("display_coordinate_precision") != 5:
+        fail("tabia-geometry must use five-decimal display coordinates")
+    simplification = geometry.get("display_simplification")
+    if not isinstance(simplification, dict) or simplification.get("engine") != DISPLAY_GEOMETRY_ENGINE:
+        fail("tabia-geometry must declare the required topology-preserving display simplifier")
+    if simplification.get("retain_vertices") != DISPLAY_GEOMETRY_RETAIN_VERTICES:
+        fail("tabia-geometry must declare the required display simplification level")
+    if "keep-shapes" not in str(simplification.get("topology", "")):
+        fail("tabia-geometry must declare shared-boundary topology preservation")
 
 
 def safe_relative_path(value: Any, field: str) -> PurePosixPath:
@@ -300,6 +325,7 @@ def validate_release(
         if any(not allowed_history.fullmatch(name) for name in unexpected):
             fail("auto-validated indicator release contains an unapproved asset")
         validate_indicator_freshness(manifest)
+        validate_display_geometry(release_dir, assets)
     return manifest
 
 
