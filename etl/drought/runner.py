@@ -31,6 +31,11 @@ inventory_snapshot: dict | None = None
 inventory_snapshot_at = 0.0
 inventory_refreshing = False
 INVENTORY_CACHE_SECONDS = 300
+readiness_lock = threading.Lock()
+readiness_snapshot: dict | None = None
+readiness_snapshot_at = 0.0
+readiness_refreshing = False
+READINESS_CACHE_SECONDS = 300
 
 CONTROL_WORKFLOWS = (
     {"key": "chirps-final", "label": "CHIRPS final monthly rainfall refresh", "cadence": "Daily 08:00 Addis discovery; refresh only when a completed final month is new", "policy_state": "active"},
@@ -140,6 +145,47 @@ def control_inventory_snapshot() -> dict:
             result["inventory_state"] = "refreshing" if inventory_refreshing else "current"
             return result
     return inventory_placeholder()
+
+
+def readiness_placeholder() -> dict:
+    """Keep the control endpoint responsive while readiness is inspected."""
+    return {
+        "status": "refreshing",
+        "read_only": True,
+        "reason": "Local model-readiness inspection is running in the background.",
+    }
+
+
+def refresh_readiness_snapshot() -> None:
+    """Build the expensive read-only readiness report off the request path."""
+    global readiness_snapshot, readiness_snapshot_at, readiness_refreshing
+    try:
+        snapshot = build_readiness_report()
+    except Exception:
+        # The dashboard should make a failed readiness inspection visible, but
+        # never expose connection details or an implementation traceback.
+        snapshot = {
+            "status": "unavailable",
+            "read_only": True,
+            "reason": "Local model-readiness inspection is unavailable.",
+        }
+    with readiness_lock:
+        readiness_snapshot = snapshot
+        readiness_snapshot_at = time.monotonic()
+        readiness_refreshing = False
+
+
+def control_readiness_snapshot() -> dict:
+    """Return cached readiness and schedule a bounded background refresh."""
+    global readiness_refreshing
+    with readiness_lock:
+        stale = readiness_snapshot is None or time.monotonic() - readiness_snapshot_at >= READINESS_CACHE_SECONDS
+        if stale and not readiness_refreshing:
+            readiness_refreshing = True
+            threading.Thread(target=refresh_readiness_snapshot, daemon=True).start()
+        if readiness_snapshot is not None:
+            return dict(readiness_snapshot)
+    return readiness_placeholder()
 
 
 def require_token(value: str | None):
@@ -723,13 +769,7 @@ def control():
                                                         "requested_at", "started_at", "finished_at", "error")}
                        for job in list(jobs.values())[-12:]]
         active_jobs = sum(job["status"] in {"queued", "running"} for job in jobs.values())
-    try:
-        readiness = build_readiness_report()
-    except Exception:
-        # The dashboard should make a failed readiness inspection visible, but
-        # never expose connection details or an implementation traceback.
-        readiness = {"status": "unavailable", "read_only": True,
-                     "reason": "Local model-readiness inspection is unavailable."}
+    readiness = control_readiness_snapshot()
     return {
         "environment": "development",
         "generated_at": now(),
