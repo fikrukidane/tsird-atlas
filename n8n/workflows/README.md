@@ -21,3 +21,23 @@ guide](../../docs/drought/n8n-production-publisher-setup.md).
 
 The LST v2 definition remains a development reference only. It is not
 scheduleable because the upstream product has been superseded by CLMS LST v3.
+
+## v2 source-refresh templates
+
+`*-v2.development.json` definitions replace the probe-only v1 behaviour for the
+four recurring sources (CHIRPS rapid, NDVI, SWI, WaPOR). Each one distinguishes
+"no newer data", "data acquired, validated and loaded", and "failure", and polls
+asynchronous runner jobs with bounded backoff instead of a single fixed wait.
+
+- They carry no workflow `id`, so an import creates a new workflow rather than
+  overwriting the live v1 definition.
+- They are inactive, call only existing runner endpoints, and contain no
+  credential material.
+- Their contract, schedules, poll budgets, freshness expectations and required
+  live rehearsal are documented in
+  [`docs/drought/n8n-source-refresh-reliability.md`](../../docs/drought/n8n-source-refresh-reliability.md).
+- Validate every tracked definition statically with
+  `python3 tools/validate_n8n_workflows.py`.
+
+The v1 files stay tracked and unchanged as the record of what ran until
+2026-09; retiring one is a deliberate operator step after its v2 rehearsal.

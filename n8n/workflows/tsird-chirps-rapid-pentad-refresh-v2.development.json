@@ -1,0 +1,1587 @@
+{
+  "name": "TSIRD · CHIRPS rapid pentad refresh v2 (development)",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "44598ad3-2297-56f8-86af-dc2dc2dc1b77",
+      "name": "Manual development run",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        120,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "30 6 * * *"
+            }
+          ]
+        }
+      },
+      "id": "cfde46ae-340c-507c-b510-2359d8c23e3f",
+      "name": "Scheduled source check",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        120,
+        460
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://tsird-drought-runner:8090/runs/chirps-preliminary-pentad/development-test",
+        "options": {
+          "timeout": 30000,
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "553b0054-40d7-5d00-aaa9-63162973a038",
+      "name": "Start source probe",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        340,
+        380
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.statusCode }}",
+              "operator": {
+                "type": "number",
+                "operation": "equals"
+              },
+              "rightValue": 202
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "e3bb0774-c3ca-5a57-9dab-5ee0c761c933",
+      "name": "Probe accepted?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        560,
+        380
+      ]
+    },
+    {
+      "parameters": {
+        "amount": "={{ Math.min(30, 5 * ($runIndex + 1)) }}",
+        "unit": "seconds"
+      },
+      "id": "673b19e8-5ac0-5e83-a375-e0f5d824fd01",
+      "name": "Wait for probe",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        780,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=http://tsird-drought-runner:8090/runs/{{ $('Start source probe').item.json.body.job_id }}",
+        "options": {
+          "timeout": 30000,
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "81ed9417-e745-5849-9e56-56dd92e76f0b",
+      "name": "Read probe job",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1000,
+        300
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ [\"queued\",\"running\"].includes($json.body.status) }}",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "39b4ab7f-deab-540a-9513-96638b746f07",
+      "name": "Probe still running?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1220,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $runIndex }}",
+              "operator": {
+                "type": "number",
+                "operation": "lt"
+              },
+              "rightValue": 25
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "4f6d4741-bb3d-524a-ba7e-8465027df1b3",
+      "name": "Probe poll budget left?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1440,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.body.status }}",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              },
+              "rightValue": "ready"
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "3eeb6d5b-a684-58c5-a7cb-dceab91d8bf6",
+      "name": "Newer data available?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1440,
+        420
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ [\"current\",\"degraded\"].includes($json.body.status) }}",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "151f03df-924b-5756-8f10-64b80ed0682c",
+      "name": "Provider state known?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1660,
+        540
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://tsird-drought-runner:8090/runs/chirps-preliminary-pentad-summary/development-test",
+        "options": {
+          "timeout": 30000,
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "ce73c1ae-0f95-5c5c-82a9-a534cf13eb75",
+      "name": "Start acquisition",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1660,
+        760
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.statusCode }}",
+              "operator": {
+                "type": "number",
+                "operation": "equals"
+              },
+              "rightValue": 202
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "34959ffd-3e1c-520e-81a9-cdbbddac853e",
+      "name": "Acquisition accepted?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1880,
+        760
+      ]
+    },
+    {
+      "parameters": {
+        "amount": "={{ Math.min(60, 15 * ($runIndex + 1)) }}",
+        "unit": "seconds"
+      },
+      "id": "ddcdfc1f-dd16-5d34-8b4d-63866866dd96",
+      "name": "Wait for acquisition",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        2100,
+        680
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=http://tsird-drought-runner:8090/runs/{{ $('Start acquisition').item.json.body.job_id }}",
+        "options": {
+          "timeout": 30000,
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "65a5dc34-6168-5107-8619-0be22930503b",
+      "name": "Read acquisition job",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2320,
+        680
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ [\"queued\",\"running\"].includes($json.body.status) }}",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "3ee267dd-96f7-5481-81b8-d389bdd03b04",
+      "name": "Acquisition still running?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2540,
+        680
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $runIndex }}",
+              "operator": {
+                "type": "number",
+                "operation": "lt"
+              },
+              "rightValue": 75
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "a99c33b4-2d4d-5f01-a7eb-9e232fd40cc2",
+      "name": "Acquisition poll budget left?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2760,
+        580
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ [\"failed\",\"unavailable\",\"error\"].includes($json.body.status) }}",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "9c970dcb-d918-5c4b-94e5-aa5cb4bafabc",
+      "name": "Acquisition failed?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2760,
+        800
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "71b8744c-3c57-50fb-b338-79408c072895",
+              "name": "schema_version",
+              "value": "tsird-drought-source-refresh-receipt/v2",
+              "type": "string"
+            },
+            {
+              "id": "595298df-a7a6-51de-82a8-859ce67beb50",
+              "name": "workflow_key",
+              "value": "chirps-rapid",
+              "type": "string"
+            },
+            {
+              "id": "8d7cebe8-93da-5b04-a547-c552ca986ed7",
+              "name": "source_id",
+              "value": "chc-chirps-v3-preliminary",
+              "type": "string"
+            },
+            {
+              "id": "99d23813-8f1a-5ca8-b63f-dabf75118197",
+              "name": "run_outcome",
+              "value": "no_new_data",
+              "type": "string"
+            },
+            {
+              "id": "70cd8f16-feff-5305-8af5-18ad816b2e49",
+              "name": "outcome_detail",
+              "value": "provider_has_no_newer_item",
+              "type": "string"
+            },
+            {
+              "id": "b42cb860-59b1-56ea-8702-004990175f48",
+              "name": "provider_state",
+              "value": "={{ $json.body.status }}",
+              "type": "string"
+            },
+            {
+              "id": "42181f7c-a1fa-5d31-b299-25a97ac4a773",
+              "name": "evidence_changed",
+              "value": false,
+              "type": "boolean"
+            },
+            {
+              "id": "ea998dec-8ddf-5829-a84a-dd1b5111ebd1",
+              "name": "action_required",
+              "value": "={{ $json.body.status === \"degraded\" }}",
+              "type": "boolean"
+            },
+            {
+              "id": "c92542c4-bb97-5ec8-8f78-c8e462c4e41c",
+              "name": "runner_job_id",
+              "value": "={{ $('Start source probe').item.json.body.job_id }}",
+              "type": "string"
+            },
+            {
+              "id": "efa6deef-e2fc-50af-84e2-78fdd2b83a81",
+              "name": "probe_poll_budget",
+              "value": 25,
+              "type": "number"
+            },
+            {
+              "id": "a2b526bc-9bc5-5343-b8aa-1cb3eb532291",
+              "name": "acquisition_poll_budget",
+              "value": 75,
+              "type": "number"
+            },
+            {
+              "id": "02bdefaa-97e2-5695-9a97-50ab64593a4b",
+              "name": "checked_at",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            },
+            {
+              "id": "8c75664d-93bf-59fe-897e-c72b290210ef",
+              "name": "operator_summary",
+              "value": "=CHIRPS preliminary pentad probe ended {{ $json.body.status }}. No raster was downloaded and no local evidence changed. A 'current' state means the newest provider item is already summarised locally; a 'degraded' state means the newest provider item is older than the declared freshness window.",
+              "type": "string"
+            },
+            {
+              "id": "5a79e792-d355-5ca9-be68-8aa95b709c0a",
+              "name": "next_action",
+              "value": "None while 'current'. While 'degraded', check the provider schedule before the next run; do not force an acquisition.",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "89d6d23f-058a-5bd1-bd46-45c361bbd3e2",
+      "name": "Report no new data",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1880,
+        440
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "01f89628-f679-5671-adaf-5935df2bc3eb",
+              "name": "schema_version",
+              "value": "tsird-drought-source-refresh-receipt/v2",
+              "type": "string"
+            },
+            {
+              "id": "365a7071-720f-5b7a-a6d1-7547faeb30fb",
+              "name": "workflow_key",
+              "value": "chirps-rapid",
+              "type": "string"
+            },
+            {
+              "id": "af3f36c9-35b6-5575-b9ce-42db5f590937",
+              "name": "source_id",
+              "value": "chc-chirps-v3-preliminary",
+              "type": "string"
+            },
+            {
+              "id": "f8848136-ad41-5b9e-967e-6c02a2fc3ae2",
+              "name": "run_outcome",
+              "value": "failure",
+              "type": "string"
+            },
+            {
+              "id": "dc2735ad-f9bf-559b-be45-e4527a6b9fb8",
+              "name": "outcome_detail",
+              "value": "probe_failed",
+              "type": "string"
+            },
+            {
+              "id": "73bdf82e-b81f-534e-aa71-ce2b319ce8b9",
+              "name": "provider_state",
+              "value": "={{ $json.body.status || \"unknown\" }}",
+              "type": "string"
+            },
+            {
+              "id": "3a7f4e69-9c13-5c70-98c6-ede8fa9aaf43",
+              "name": "evidence_changed",
+              "value": false,
+              "type": "boolean"
+            },
+            {
+              "id": "83fc142d-7d73-5dca-ad8c-5f6b138b5de2",
+              "name": "action_required",
+              "value": true,
+              "type": "boolean"
+            },
+            {
+              "id": "980bc664-1a26-5cb8-84d9-bd7391727cf5",
+              "name": "runner_job_id",
+              "value": "={{ $('Start source probe').item.json.body.job_id }}",
+              "type": "string"
+            },
+            {
+              "id": "f1558ac7-3436-501c-9058-f0dd036e6f1a",
+              "name": "probe_poll_budget",
+              "value": 25,
+              "type": "number"
+            },
+            {
+              "id": "d8f82204-4d71-5c27-b032-642cd626d49b",
+              "name": "acquisition_poll_budget",
+              "value": 75,
+              "type": "number"
+            },
+            {
+              "id": "2b929ab9-87aa-5a65-b4d8-c434aed2bf99",
+              "name": "checked_at",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            },
+            {
+              "id": "8b0be751-241b-5749-96df-4c3247165191",
+              "name": "operator_summary",
+              "value": "=CHIRPS preliminary pentad probe did not reach a usable provider state (runner status {{ $json.body.status || 'unknown' }}). No acquisition was attempted and local evidence is unchanged.",
+              "type": "string"
+            },
+            {
+              "id": "0a8a7979-d797-583a-a5e4-30cebcb2d203",
+              "name": "next_action",
+              "value": "Inspect the runner receipt and provider access before the next scheduled run.",
+              "type": "string"
+            },
+            {
+              "id": "0ffbe9b6-9683-52c5-b685-e01baf6cbd15",
+              "name": "runner_error",
+              "value": "={{ $json.body.error || $json.body.detail || '' }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "db8115a3-3a0b-51f9-8740-bc676db1c3e3",
+      "name": "Report probe failure",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1880,
+        620
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "b8f32a43-da4b-5554-941f-72c77ae3ee33",
+              "name": "schema_version",
+              "value": "tsird-drought-source-refresh-receipt/v2",
+              "type": "string"
+            },
+            {
+              "id": "89af269d-295b-53c5-b265-4065e76184e0",
+              "name": "workflow_key",
+              "value": "chirps-rapid",
+              "type": "string"
+            },
+            {
+              "id": "89a41eee-97a8-53ee-ac3c-d93b5f69bf27",
+              "name": "source_id",
+              "value": "chc-chirps-v3-preliminary",
+              "type": "string"
+            },
+            {
+              "id": "0f919f53-dfa4-574c-8a24-3a24118b9899",
+              "name": "run_outcome",
+              "value": "failure",
+              "type": "string"
+            },
+            {
+              "id": "b04838ca-3bcf-5934-ac24-f361a485232f",
+              "name": "outcome_detail",
+              "value": "probe_poll_budget_exhausted",
+              "type": "string"
+            },
+            {
+              "id": "f391f850-ca87-51e1-911f-16188d092716",
+              "name": "provider_state",
+              "value": "unknown",
+              "type": "string"
+            },
+            {
+              "id": "b13e31fb-b404-5173-af58-22a3600a59e5",
+              "name": "evidence_changed",
+              "value": false,
+              "type": "boolean"
+            },
+            {
+              "id": "96a02dc2-5614-5fa0-9e55-84167d2dad8c",
+              "name": "action_required",
+              "value": true,
+              "type": "boolean"
+            },
+            {
+              "id": "4db2d5ab-4942-5a9e-9285-7dc9d501be8c",
+              "name": "runner_job_id",
+              "value": "={{ $('Start source probe').item.json.body.job_id }}",
+              "type": "string"
+            },
+            {
+              "id": "af42d472-4c89-5891-93d6-aca549212d45",
+              "name": "probe_poll_budget",
+              "value": 25,
+              "type": "number"
+            },
+            {
+              "id": "e87dc0ea-6c44-5259-9cc2-b10c075dffb5",
+              "name": "acquisition_poll_budget",
+              "value": 75,
+              "type": "number"
+            },
+            {
+              "id": "ecde3889-6bdd-5753-bf39-b9683e161455",
+              "name": "checked_at",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            },
+            {
+              "id": "5b3ecde6-a5b8-5bba-8d8f-d94f7aac597c",
+              "name": "operator_summary",
+              "value": "=CHIRPS preliminary pentad probe was still running after the bounded poll budget. The run stopped polling; the runner job may still finish on its own.",
+              "type": "string"
+            },
+            {
+              "id": "b8914978-aec8-5f20-8c37-e29c09fb9533",
+              "name": "next_action",
+              "value": "Read the runner job once before the next schedule. Do not start a second probe while the first may still be active.",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "a5713dec-74a2-5cb9-afaa-fab2dd2496d0",
+      "name": "Report probe timeout",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1660,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "bacf6ba9-a509-51cc-89b0-eb2f2a5cc8d1",
+              "name": "schema_version",
+              "value": "tsird-drought-source-refresh-receipt/v2",
+              "type": "string"
+            },
+            {
+              "id": "ea2df73e-3ec6-5dc6-a9dd-a197d761c037",
+              "name": "workflow_key",
+              "value": "chirps-rapid",
+              "type": "string"
+            },
+            {
+              "id": "9d70a594-f53b-5393-aace-fb337096c9b0",
+              "name": "source_id",
+              "value": "chc-chirps-v3-preliminary",
+              "type": "string"
+            },
+            {
+              "id": "13b7f130-f5a4-5c32-b721-c2e7fe368ee3",
+              "name": "run_outcome",
+              "value": "failure",
+              "type": "string"
+            },
+            {
+              "id": "455f8ab0-636d-58e0-8f0c-ce1542160900",
+              "name": "outcome_detail",
+              "value": "runner_unavailable_or_busy",
+              "type": "string"
+            },
+            {
+              "id": "091af0b9-bc30-5dfb-8951-98b899552167",
+              "name": "provider_state",
+              "value": "unknown",
+              "type": "string"
+            },
+            {
+              "id": "152f467a-6120-560d-964f-d1cdc9ec6395",
+              "name": "evidence_changed",
+              "value": false,
+              "type": "boolean"
+            },
+            {
+              "id": "e04b62e5-4ba5-5f03-807b-0de663d8423c",
+              "name": "action_required",
+              "value": true,
+              "type": "boolean"
+            },
+            {
+              "id": "071f44f6-8faf-5998-9e04-38b611ca1d7c",
+              "name": "runner_job_id",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "f82985e4-d9e1-5bde-abb4-a931b5fd9c35",
+              "name": "probe_poll_budget",
+              "value": 25,
+              "type": "number"
+            },
+            {
+              "id": "6cebe433-39e7-54f7-9429-b610177ba637",
+              "name": "acquisition_poll_budget",
+              "value": 75,
+              "type": "number"
+            },
+            {
+              "id": "d7c406e5-2ba1-5f40-a9f7-788e165024d5",
+              "name": "checked_at",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            },
+            {
+              "id": "82d592c0-5383-5f24-98da-5785019ec9ce",
+              "name": "operator_summary",
+              "value": "=CHIRPS preliminary pentad could not start a probe. The runner answered HTTP {{ $json.statusCode }}. HTTP 409 means another drought job is active and this run was deferred, not lost.",
+              "type": "string"
+            },
+            {
+              "id": "fae96220-2496-5cc4-8b72-5ffc70035182",
+              "name": "next_action",
+              "value": "No action for a single 409. For any other status, check that tsird-drought-runner is running and reachable on tsird-network.",
+              "type": "string"
+            },
+            {
+              "id": "b29173d4-1eab-5f25-9145-0ffbaa451d44",
+              "name": "http_status",
+              "value": "={{ $json.statusCode }}",
+              "type": "number"
+            },
+            {
+              "id": "4604e180-fc66-5c10-b369-5d57ece9494a",
+              "name": "runner_error",
+              "value": "={{ $json.body.detail || '' }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "f1529ab3-660e-557b-9b55-517d816b1bc3",
+      "name": "Report runner unavailable",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        780,
+        520
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "2adefadb-9c51-510d-8da3-f26384960bdc",
+              "name": "schema_version",
+              "value": "tsird-drought-source-refresh-receipt/v2",
+              "type": "string"
+            },
+            {
+              "id": "e846c62a-5814-5915-848d-6f0813634f2c",
+              "name": "workflow_key",
+              "value": "chirps-rapid",
+              "type": "string"
+            },
+            {
+              "id": "279cf0b0-0f28-592f-ae71-49b7bf998f0f",
+              "name": "source_id",
+              "value": "chc-chirps-v3-preliminary",
+              "type": "string"
+            },
+            {
+              "id": "3f52399b-34f3-5a9b-9d4e-da24a203a8bc",
+              "name": "run_outcome",
+              "value": "failure",
+              "type": "string"
+            },
+            {
+              "id": "b1195bd9-33b7-5392-a850-6b971f405b6b",
+              "name": "outcome_detail",
+              "value": "acquisition_not_started",
+              "type": "string"
+            },
+            {
+              "id": "f73414b7-2a15-5881-bd69-b6b023985c4c",
+              "name": "provider_state",
+              "value": "ready",
+              "type": "string"
+            },
+            {
+              "id": "ffd17bd1-439a-5a97-86f6-3dbbedf18886",
+              "name": "evidence_changed",
+              "value": false,
+              "type": "boolean"
+            },
+            {
+              "id": "bfd1ca7f-9e9c-5813-87f4-1b2da053428e",
+              "name": "action_required",
+              "value": true,
+              "type": "boolean"
+            },
+            {
+              "id": "b5d492f2-c65d-5d3d-9ee5-b51358bd99af",
+              "name": "runner_job_id",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "da3d08d5-44a5-5f9f-b7f1-1d6d1161098b",
+              "name": "probe_poll_budget",
+              "value": 25,
+              "type": "number"
+            },
+            {
+              "id": "522bfc96-581d-516d-88f7-9fd1a8b839ab",
+              "name": "acquisition_poll_budget",
+              "value": 75,
+              "type": "number"
+            },
+            {
+              "id": "c3d50c1e-48e0-5179-bf51-25db44c96eae",
+              "name": "checked_at",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            },
+            {
+              "id": "2922d2f1-2404-5ffe-9e3e-1adcf96e725d",
+              "name": "operator_summary",
+              "value": "=CHIRPS preliminary pentad found newer provider data but the runner refused the acquisition request with HTTP {{ $json.statusCode }}. Local evidence is unchanged and the previous valid artifact remains in place.",
+              "type": "string"
+            },
+            {
+              "id": "b58e11f2-9be6-5440-9562-1ef59c545c2c",
+              "name": "next_action",
+              "value": "HTTP 409 means another job was active; the next scheduled run retries. Any other status needs a runner check.",
+              "type": "string"
+            },
+            {
+              "id": "64f01594-2bf7-57a1-b1a2-2db5b5ff4813",
+              "name": "http_status",
+              "value": "={{ $json.statusCode }}",
+              "type": "number"
+            },
+            {
+              "id": "e08aa40d-2064-5253-b690-3ad3380e2ae8",
+              "name": "runner_error",
+              "value": "={{ $json.body.detail || '' }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "dc145b8c-25fe-540b-9b04-b54d82649744",
+      "name": "Report acquisition rejected",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2100,
+        880
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "124c9ffb-c18a-5a4e-baeb-925019ca7f5d",
+              "name": "schema_version",
+              "value": "tsird-drought-source-refresh-receipt/v2",
+              "type": "string"
+            },
+            {
+              "id": "bbeb08ed-ec24-59f7-8ac2-7bf6710de793",
+              "name": "workflow_key",
+              "value": "chirps-rapid",
+              "type": "string"
+            },
+            {
+              "id": "129ba281-b9b4-5711-9eaa-5d5f8436f15a",
+              "name": "source_id",
+              "value": "chc-chirps-v3-preliminary",
+              "type": "string"
+            },
+            {
+              "id": "e6116921-07af-574c-9ff7-b77d4a079e3e",
+              "name": "run_outcome",
+              "value": "failure",
+              "type": "string"
+            },
+            {
+              "id": "830e9f9d-09c8-5f0b-9ade-15d9ce73b802",
+              "name": "outcome_detail",
+              "value": "acquisition_failed",
+              "type": "string"
+            },
+            {
+              "id": "9512269a-cea1-5d5c-85a3-b6d58278fdf5",
+              "name": "provider_state",
+              "value": "ready",
+              "type": "string"
+            },
+            {
+              "id": "53ad0369-ce8a-55f5-974c-e4317a19c0b6",
+              "name": "evidence_changed",
+              "value": false,
+              "type": "boolean"
+            },
+            {
+              "id": "f4529bf5-e97f-5f6c-bae6-8be2fb63aab9",
+              "name": "action_required",
+              "value": true,
+              "type": "boolean"
+            },
+            {
+              "id": "1706214f-1d85-5f8e-9632-ae0b9a0d6db5",
+              "name": "runner_job_id",
+              "value": "={{ $('Start acquisition').item.json.body.job_id }}",
+              "type": "string"
+            },
+            {
+              "id": "012bda94-6d99-566b-87f5-28fa37bf7777",
+              "name": "probe_poll_budget",
+              "value": 25,
+              "type": "number"
+            },
+            {
+              "id": "732ce085-9801-5cc5-a95f-faf1b4bb0123",
+              "name": "acquisition_poll_budget",
+              "value": 75,
+              "type": "number"
+            },
+            {
+              "id": "0652ad2b-8355-51ad-8035-093cd2fff954",
+              "name": "checked_at",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            },
+            {
+              "id": "93e8c8a3-4c74-5f75-93ce-992961969a26",
+              "name": "operator_summary",
+              "value": "=CHIRPS preliminary pentad acquisition job ended {{ $json.body.status }}. Nothing was published and the previous valid artifact remains the current one.",
+              "type": "string"
+            },
+            {
+              "id": "c5a39e19-a265-578e-9df6-84a25b37c1ca",
+              "name": "next_action",
+              "value": "Read the runner job output tail, then decide whether to re-run manually. The schedule will retry on its next cycle.",
+              "type": "string"
+            },
+            {
+              "id": "dab38208-15e3-5189-a939-9ddf09c1289a",
+              "name": "runner_error",
+              "value": "={{ $json.body.error || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "31289336-54b7-51b0-af9f-04ea014be51c",
+              "name": "runner_run_id",
+              "value": "={{ $json.body.run_id || '' }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "eb86647b-0a41-5b4b-8086-1e90993b8d8d",
+      "name": "Report acquisition failure",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2980,
+        880
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "9a8e6749-1069-5377-98aa-cb1f1f14c92a",
+              "name": "schema_version",
+              "value": "tsird-drought-source-refresh-receipt/v2",
+              "type": "string"
+            },
+            {
+              "id": "04902011-dc5b-55f4-9e30-17bebdee76d0",
+              "name": "workflow_key",
+              "value": "chirps-rapid",
+              "type": "string"
+            },
+            {
+              "id": "e4986cb2-4190-59f8-81a2-77cfdf591b7c",
+              "name": "source_id",
+              "value": "chc-chirps-v3-preliminary",
+              "type": "string"
+            },
+            {
+              "id": "15042d20-1760-59b0-ae1a-a8950b55b787",
+              "name": "run_outcome",
+              "value": "failure",
+              "type": "string"
+            },
+            {
+              "id": "68f84666-8ae0-5897-b19a-22f802b5cabc",
+              "name": "outcome_detail",
+              "value": "acquisition_poll_budget_exhausted",
+              "type": "string"
+            },
+            {
+              "id": "f26e939a-8f44-5bac-9c8c-0d217d852715",
+              "name": "provider_state",
+              "value": "ready",
+              "type": "string"
+            },
+            {
+              "id": "82b916bf-7c97-5ca0-af76-8264bdc389c7",
+              "name": "evidence_changed",
+              "value": false,
+              "type": "boolean"
+            },
+            {
+              "id": "375a2ecc-1ca4-5a82-8c76-c5298e2bf53e",
+              "name": "action_required",
+              "value": true,
+              "type": "boolean"
+            },
+            {
+              "id": "a4dacea1-cd4a-55ad-a7cf-4359ea60f93a",
+              "name": "runner_job_id",
+              "value": "={{ $('Start acquisition').item.json.body.job_id }}",
+              "type": "string"
+            },
+            {
+              "id": "fe4a2ef6-809f-5f69-b210-d15514c1ce16",
+              "name": "probe_poll_budget",
+              "value": 25,
+              "type": "number"
+            },
+            {
+              "id": "7c5efab2-7743-5826-b185-dff277881b8b",
+              "name": "acquisition_poll_budget",
+              "value": 75,
+              "type": "number"
+            },
+            {
+              "id": "876f53eb-b333-5c40-99e0-d1c1187a7aba",
+              "name": "checked_at",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            },
+            {
+              "id": "fec4afdb-e50f-5a5c-8c96-111aba8b781c",
+              "name": "operator_summary",
+              "value": "=CHIRPS preliminary pentad acquisition was still running when the bounded poll budget ended. The job may still complete inside the runner; this run makes no claim about the result.",
+              "type": "string"
+            },
+            {
+              "id": "71496eb7-2e6c-551c-a5d9-dfc8d0dbebaa",
+              "name": "next_action",
+              "value": "Read the runner job once, and confirm the artifact before treating the evidence as updated. Do not start a second acquisition for the same period.",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "5253f82e-2af7-54fe-b9fa-b2f1e94f52ce",
+      "name": "Report acquisition timeout",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2980,
+        500
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "0c5a12e4-129d-596b-8733-d49d2885adb9",
+              "name": "schema_version",
+              "value": "tsird-drought-source-refresh-receipt/v2",
+              "type": "string"
+            },
+            {
+              "id": "f649fa04-cf47-51e4-86d9-b0d0c940c75e",
+              "name": "workflow_key",
+              "value": "chirps-rapid",
+              "type": "string"
+            },
+            {
+              "id": "4de294d8-af0d-5729-9236-8b9815dd471d",
+              "name": "source_id",
+              "value": "chc-chirps-v3-preliminary",
+              "type": "string"
+            },
+            {
+              "id": "4290d468-56f1-543b-935d-0a8193c49a7b",
+              "name": "run_outcome",
+              "value": "data_updated",
+              "type": "string"
+            },
+            {
+              "id": "a0e2bb32-b9e8-518f-ba0c-4d67e630e1e7",
+              "name": "outcome_detail",
+              "value": "acquired_validated_loaded",
+              "type": "string"
+            },
+            {
+              "id": "871e11e4-974c-54f2-bfe9-357df6ee747e",
+              "name": "provider_state",
+              "value": "ready",
+              "type": "string"
+            },
+            {
+              "id": "155261de-a1d5-564e-be18-3c01bbbf08e8",
+              "name": "evidence_changed",
+              "value": true,
+              "type": "boolean"
+            },
+            {
+              "id": "061aadca-2f60-5f36-9d05-85a3d5800882",
+              "name": "action_required",
+              "value": "={{ [\"degraded\",\"failed\"].includes($json.body.status) }}",
+              "type": "boolean"
+            },
+            {
+              "id": "c10e8a41-df3a-5861-90ca-084b9082599d",
+              "name": "runner_job_id",
+              "value": "={{ $('Start acquisition').item.json.body.job_id }}",
+              "type": "string"
+            },
+            {
+              "id": "1a718ac7-d106-5ce9-aa02-495a3b61420d",
+              "name": "probe_poll_budget",
+              "value": 25,
+              "type": "number"
+            },
+            {
+              "id": "cdcac783-383f-5d3d-8d74-7a028e86fcd0",
+              "name": "acquisition_poll_budget",
+              "value": 75,
+              "type": "number"
+            },
+            {
+              "id": "62b5ce97-29b1-5d78-9db6-aa4de7d3b15f",
+              "name": "checked_at",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            },
+            {
+              "id": "e565cae7-86ae-5bb7-8814-22d595602f31",
+              "name": "operator_summary",
+              "value": "=CHIRPS preliminary pentad acquired a newer provider item, validated it and loaded run {{ $json.body.run_id || 'unknown' }} with artifact status {{ $json.body.status }}. A successful run proves that one six-pentad preliminary window was retrieved, summarised per Tabia, loaded into PostGIS and synchronised to the current rapid display raster.",
+              "type": "string"
+            },
+            {
+              "id": "cadbe03e-5846-5368-b812-d6e3150620f4",
+              "name": "next_action",
+              "value": "None when the artifact status is 'development' or 'validated'. A 'degraded' artifact status means the data loaded but its quality gate flagged it; review before using it.",
+              "type": "string"
+            },
+            {
+              "id": "62e9735f-78a2-5060-ac0f-058c85d18c81",
+              "name": "runner_run_id",
+              "value": "={{ $json.body.run_id || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "9434bf1a-eb52-5486-80fa-895953148d0a",
+              "name": "artifact_status",
+              "value": "={{ $json.body.status }}",
+              "type": "string"
+            },
+            {
+              "id": "6f45075e-bd5b-59a4-aafa-201674dddda5",
+              "name": "job_finished_at",
+              "value": "={{ $json.body.finished_at || '' }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "f4e5223d-581d-5fda-9be4-67ccbce2693a",
+      "name": "Report data updated",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2980,
+        700
+      ]
+    }
+  ],
+  "connections": {
+    "Manual development run": {
+      "main": [
+        [
+          {
+            "node": "Start source probe",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Scheduled source check": {
+      "main": [
+        [
+          {
+            "node": "Start source probe",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Start source probe": {
+      "main": [
+        [
+          {
+            "node": "Probe accepted?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Probe accepted?": {
+      "main": [
+        [
+          {
+            "node": "Wait for probe",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Report runner unavailable",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait for probe": {
+      "main": [
+        [
+          {
+            "node": "Read probe job",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read probe job": {
+      "main": [
+        [
+          {
+            "node": "Probe still running?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Probe still running?": {
+      "main": [
+        [
+          {
+            "node": "Probe poll budget left?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Newer data available?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Probe poll budget left?": {
+      "main": [
+        [
+          {
+            "node": "Wait for probe",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Report probe timeout",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Newer data available?": {
+      "main": [
+        [
+          {
+            "node": "Start acquisition",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Provider state known?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Provider state known?": {
+      "main": [
+        [
+          {
+            "node": "Report no new data",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Report probe failure",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Start acquisition": {
+      "main": [
+        [
+          {
+            "node": "Acquisition accepted?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Acquisition accepted?": {
+      "main": [
+        [
+          {
+            "node": "Wait for acquisition",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Report acquisition rejected",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait for acquisition": {
+      "main": [
+        [
+          {
+            "node": "Read acquisition job",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read acquisition job": {
+      "main": [
+        [
+          {
+            "node": "Acquisition still running?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Acquisition still running?": {
+      "main": [
+        [
+          {
+            "node": "Acquisition poll budget left?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Acquisition failed?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Acquisition poll budget left?": {
+      "main": [
+        [
+          {
+            "node": "Wait for acquisition",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Report acquisition timeout",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Acquisition failed?": {
+      "main": [
+        [
+          {
+            "node": "Report acquisition failure",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Report data updated",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "saveExecutionProgress": true,
+    "timezone": "Africa/Addis_Ababa"
+  },
+  "versionId": "d48105e1-15d7-5dd2-aa3d-0d72dd07521b",
+  "meta": {},
+  "tags": []
+}

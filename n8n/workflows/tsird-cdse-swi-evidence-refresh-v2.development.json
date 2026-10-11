@@ -1,0 +1,1587 @@
+{
+  "name": "TSIRD · CDSE SWI evidence refresh v2 (development)",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "c35ca90d-1f04-570b-b8c5-04f997a189c9",
+      "name": "Manual development run",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        120,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "50 6 * * *"
+            }
+          ]
+        }
+      },
+      "id": "b45a6226-6e3a-507d-aecf-4bb1db381b3e",
+      "name": "Scheduled source check",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        120,
+        460
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://tsird-drought-runner:8090/runs/swi-source-probe/development-test",
+        "options": {
+          "timeout": 30000,
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "37135e24-dc24-5623-912b-127c26fb3964",
+      "name": "Start source probe",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        340,
+        380
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.statusCode }}",
+              "operator": {
+                "type": "number",
+                "operation": "equals"
+              },
+              "rightValue": 202
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "d026e541-469c-51b4-87d2-b4e05a5680b5",
+      "name": "Probe accepted?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        560,
+        380
+      ]
+    },
+    {
+      "parameters": {
+        "amount": "={{ Math.min(30, 5 * ($runIndex + 1)) }}",
+        "unit": "seconds"
+      },
+      "id": "cd538ff6-f93b-55fd-98db-1d7be77a148c",
+      "name": "Wait for probe",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        780,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=http://tsird-drought-runner:8090/runs/{{ $('Start source probe').item.json.body.job_id }}",
+        "options": {
+          "timeout": 30000,
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "2c584869-021a-5fac-b5d5-857a7349fc3c",
+      "name": "Read probe job",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1000,
+        300
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ [\"queued\",\"running\"].includes($json.body.status) }}",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "a88ee812-398e-5b73-b8ce-4af3d850f68a",
+      "name": "Probe still running?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1220,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $runIndex }}",
+              "operator": {
+                "type": "number",
+                "operation": "lt"
+              },
+              "rightValue": 8
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "c7cfd50c-1f73-5a0c-b71d-5b8823ccb422",
+      "name": "Probe poll budget left?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1440,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.body.status }}",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              },
+              "rightValue": "ready"
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "258f1db1-5fa5-5a2c-ac61-0d0c51712d96",
+      "name": "Newer data available?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1440,
+        420
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ [\"current\",\"degraded\"].includes($json.body.status) }}",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "d80096a7-70a1-50ef-b501-b7ca445365f1",
+      "name": "Provider state known?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1660,
+        540
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://tsird-drought-runner:8090/runs/swi-tabia-summary/development-test",
+        "options": {
+          "timeout": 30000,
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "4a32df3b-340b-5c5e-b52e-3f7d5c111a1b",
+      "name": "Start acquisition",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1660,
+        760
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.statusCode }}",
+              "operator": {
+                "type": "number",
+                "operation": "equals"
+              },
+              "rightValue": 202
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "b5923bb8-9ff8-528a-a629-eade77420666",
+      "name": "Acquisition accepted?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1880,
+        760
+      ]
+    },
+    {
+      "parameters": {
+        "amount": "={{ Math.min(60, 15 * ($runIndex + 1)) }}",
+        "unit": "seconds"
+      },
+      "id": "1642c2f1-9336-5557-8975-addcc1ea5588",
+      "name": "Wait for acquisition",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        2100,
+        680
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=http://tsird-drought-runner:8090/runs/{{ $('Start acquisition').item.json.body.job_id }}",
+        "options": {
+          "timeout": 30000,
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "f768f655-72e1-543e-b7b9-0566336ed67b",
+      "name": "Read acquisition job",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2320,
+        680
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ [\"queued\",\"running\"].includes($json.body.status) }}",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "ca074152-910d-5f41-b898-e8eef4486a38",
+      "name": "Acquisition still running?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2540,
+        680
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $runIndex }}",
+              "operator": {
+                "type": "number",
+                "operation": "lt"
+              },
+              "rightValue": 45
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "cf43412a-09a1-5a70-882f-778ef9c06ce2",
+      "name": "Acquisition poll budget left?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2760,
+        580
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ [\"failed\",\"unavailable\",\"error\"].includes($json.body.status) }}",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "c6039141-6aed-556b-8a01-9d363b6db0f5",
+      "name": "Acquisition failed?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2760,
+        800
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "90a69a3d-4363-539f-8d76-82dd3f4b5dc3",
+              "name": "schema_version",
+              "value": "tsird-drought-source-refresh-receipt/v2",
+              "type": "string"
+            },
+            {
+              "id": "ac27d9ee-e439-535a-baa3-d10701ca08c2",
+              "name": "workflow_key",
+              "value": "swi",
+              "type": "string"
+            },
+            {
+              "id": "2496eae2-e920-5109-b2a8-fe47d13b63a1",
+              "name": "source_id",
+              "value": "cdse-clms-swi-v4",
+              "type": "string"
+            },
+            {
+              "id": "3f4cb9ee-482b-54c2-a293-8bbaba8b0a22",
+              "name": "run_outcome",
+              "value": "no_new_data",
+              "type": "string"
+            },
+            {
+              "id": "6e57c7eb-25d9-51cb-896d-3d9ff0411bf5",
+              "name": "outcome_detail",
+              "value": "provider_has_no_newer_item",
+              "type": "string"
+            },
+            {
+              "id": "2653645d-731f-5578-9d2d-9ec0eadd8243",
+              "name": "provider_state",
+              "value": "={{ $json.body.status }}",
+              "type": "string"
+            },
+            {
+              "id": "7be67fd6-3f84-57a8-b1dd-c54a9729a391",
+              "name": "evidence_changed",
+              "value": false,
+              "type": "boolean"
+            },
+            {
+              "id": "65befa47-62d8-5c0f-b097-eb6573cc63f4",
+              "name": "action_required",
+              "value": "={{ $json.body.status === \"degraded\" }}",
+              "type": "boolean"
+            },
+            {
+              "id": "073679b2-7b40-5cf4-9bae-3878a8beb325",
+              "name": "runner_job_id",
+              "value": "={{ $('Start source probe').item.json.body.job_id }}",
+              "type": "string"
+            },
+            {
+              "id": "44122fd1-9008-5468-b1ba-7ca435936053",
+              "name": "probe_poll_budget",
+              "value": 8,
+              "type": "number"
+            },
+            {
+              "id": "cd158688-4cc0-5c67-89d8-3565ef721719",
+              "name": "acquisition_poll_budget",
+              "value": 45,
+              "type": "number"
+            },
+            {
+              "id": "bfa50666-1d7e-5ecf-b3db-04b2fe182ff8",
+              "name": "checked_at",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            },
+            {
+              "id": "ecd55ca9-a314-5ca8-acc9-393ee978bb12",
+              "name": "operator_summary",
+              "value": "=Copernicus SWI probe ended {{ $json.body.status }}. No raster was downloaded and no local evidence changed. A 'current' state means the newest provider item is already summarised locally; a 'degraded' state means the newest provider item is older than the declared freshness window.",
+              "type": "string"
+            },
+            {
+              "id": "197491e8-a9e3-5f69-b4c9-5d9f8d49e7c9",
+              "name": "next_action",
+              "value": "None while 'current'. While 'degraded', check the provider schedule before the next run; do not force an acquisition.",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "48f626b0-ad4d-5e7d-9686-0ac05869d086",
+      "name": "Report no new data",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1880,
+        440
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "e3e2cc0b-b10a-5085-9af1-e5ab206adfd5",
+              "name": "schema_version",
+              "value": "tsird-drought-source-refresh-receipt/v2",
+              "type": "string"
+            },
+            {
+              "id": "82aa5e3b-a60c-540d-b7d4-0ac2703c17a1",
+              "name": "workflow_key",
+              "value": "swi",
+              "type": "string"
+            },
+            {
+              "id": "161df0a1-f5c5-5a98-8400-5c6af5986d45",
+              "name": "source_id",
+              "value": "cdse-clms-swi-v4",
+              "type": "string"
+            },
+            {
+              "id": "041ac70c-ecbe-57f1-bc75-4ed4d38ef981",
+              "name": "run_outcome",
+              "value": "failure",
+              "type": "string"
+            },
+            {
+              "id": "20793413-458c-582e-83ab-9fd27066ac1f",
+              "name": "outcome_detail",
+              "value": "probe_failed",
+              "type": "string"
+            },
+            {
+              "id": "f1d4180a-a6f7-5936-b480-74710030168d",
+              "name": "provider_state",
+              "value": "={{ $json.body.status || \"unknown\" }}",
+              "type": "string"
+            },
+            {
+              "id": "fffd96cb-b258-544e-b450-0c23e2ebb5d4",
+              "name": "evidence_changed",
+              "value": false,
+              "type": "boolean"
+            },
+            {
+              "id": "97dde291-6048-5087-8aa2-4bcc8e586382",
+              "name": "action_required",
+              "value": true,
+              "type": "boolean"
+            },
+            {
+              "id": "0b38f6a8-49bc-5372-88b1-0da42073bd32",
+              "name": "runner_job_id",
+              "value": "={{ $('Start source probe').item.json.body.job_id }}",
+              "type": "string"
+            },
+            {
+              "id": "4c4b8ad4-3d81-5e6a-bce9-045061bf50e0",
+              "name": "probe_poll_budget",
+              "value": 8,
+              "type": "number"
+            },
+            {
+              "id": "9faa239e-f6ae-5400-9c93-120f978c2ef2",
+              "name": "acquisition_poll_budget",
+              "value": 45,
+              "type": "number"
+            },
+            {
+              "id": "1c1284bc-fa0d-53ec-b757-38f2fd7a6c0a",
+              "name": "checked_at",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            },
+            {
+              "id": "f9316a21-fcdc-5fb6-a5b4-318f7727a8ca",
+              "name": "operator_summary",
+              "value": "=Copernicus SWI probe did not reach a usable provider state (runner status {{ $json.body.status || 'unknown' }}). No acquisition was attempted and local evidence is unchanged.",
+              "type": "string"
+            },
+            {
+              "id": "b6e7a534-ced2-507b-b9a6-e7f65da59fdf",
+              "name": "next_action",
+              "value": "Inspect the runner receipt and provider access before the next scheduled run.",
+              "type": "string"
+            },
+            {
+              "id": "7a1237c2-2452-5b90-adb2-43849caf1d11",
+              "name": "runner_error",
+              "value": "={{ $json.body.error || $json.body.detail || '' }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "127065f2-f17c-59af-bce8-4b95b289ba65",
+      "name": "Report probe failure",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1880,
+        620
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "f3df418f-c43c-5803-bff3-ad2ed7158bae",
+              "name": "schema_version",
+              "value": "tsird-drought-source-refresh-receipt/v2",
+              "type": "string"
+            },
+            {
+              "id": "ccd7f28e-afba-5caf-8a92-665f95dcb793",
+              "name": "workflow_key",
+              "value": "swi",
+              "type": "string"
+            },
+            {
+              "id": "eeadf908-a09d-51ad-b889-2fe11c9ede13",
+              "name": "source_id",
+              "value": "cdse-clms-swi-v4",
+              "type": "string"
+            },
+            {
+              "id": "b4d1e73b-2c71-5729-9b2f-5403f872ae1e",
+              "name": "run_outcome",
+              "value": "failure",
+              "type": "string"
+            },
+            {
+              "id": "39f9fd46-2e1c-5377-9297-974641422c21",
+              "name": "outcome_detail",
+              "value": "probe_poll_budget_exhausted",
+              "type": "string"
+            },
+            {
+              "id": "1f68e1a1-5bcd-57d1-abb9-7be252457b90",
+              "name": "provider_state",
+              "value": "unknown",
+              "type": "string"
+            },
+            {
+              "id": "0bc5b1ac-b498-5682-aee1-c04b2943be6c",
+              "name": "evidence_changed",
+              "value": false,
+              "type": "boolean"
+            },
+            {
+              "id": "72b48755-6fcf-506e-839c-2d953dda467f",
+              "name": "action_required",
+              "value": true,
+              "type": "boolean"
+            },
+            {
+              "id": "cc566be2-00f2-5f70-9acf-5a9b5fc7659d",
+              "name": "runner_job_id",
+              "value": "={{ $('Start source probe').item.json.body.job_id }}",
+              "type": "string"
+            },
+            {
+              "id": "b6917507-816d-5dd2-9839-ac8a38c8b4ba",
+              "name": "probe_poll_budget",
+              "value": 8,
+              "type": "number"
+            },
+            {
+              "id": "9d063d91-a088-54a1-b317-ccecc82c5198",
+              "name": "acquisition_poll_budget",
+              "value": 45,
+              "type": "number"
+            },
+            {
+              "id": "abd67cfa-663b-50ef-95f6-e63642e8acfc",
+              "name": "checked_at",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            },
+            {
+              "id": "c3ca4767-b677-560e-be59-37316d61f313",
+              "name": "operator_summary",
+              "value": "=Copernicus SWI probe was still running after the bounded poll budget. The run stopped polling; the runner job may still finish on its own.",
+              "type": "string"
+            },
+            {
+              "id": "3440dd5f-2204-52a2-9ec0-20191137cfbe",
+              "name": "next_action",
+              "value": "Read the runner job once before the next schedule. Do not start a second probe while the first may still be active.",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "251db4b6-bc24-523f-918d-efe0bd83edc3",
+      "name": "Report probe timeout",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1660,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "0cb8db68-5d25-531b-b717-fa2afba6aeb5",
+              "name": "schema_version",
+              "value": "tsird-drought-source-refresh-receipt/v2",
+              "type": "string"
+            },
+            {
+              "id": "a5e116bb-fd18-52a1-8fe3-b8c926400637",
+              "name": "workflow_key",
+              "value": "swi",
+              "type": "string"
+            },
+            {
+              "id": "2ef84195-7aea-54f4-b44f-abfcc6449f72",
+              "name": "source_id",
+              "value": "cdse-clms-swi-v4",
+              "type": "string"
+            },
+            {
+              "id": "3efbb5e7-676a-5d38-8fee-c241431b648c",
+              "name": "run_outcome",
+              "value": "failure",
+              "type": "string"
+            },
+            {
+              "id": "7484a1a8-ee46-5d26-96f3-7c149ca5965d",
+              "name": "outcome_detail",
+              "value": "runner_unavailable_or_busy",
+              "type": "string"
+            },
+            {
+              "id": "f9dd98f3-c33c-53f4-af09-c9a22489c083",
+              "name": "provider_state",
+              "value": "unknown",
+              "type": "string"
+            },
+            {
+              "id": "b7003c0b-2dfd-5ca8-a6af-01b2202500b7",
+              "name": "evidence_changed",
+              "value": false,
+              "type": "boolean"
+            },
+            {
+              "id": "7aa279fd-8712-5d0a-aa67-876ee9abb20c",
+              "name": "action_required",
+              "value": true,
+              "type": "boolean"
+            },
+            {
+              "id": "f6ba5ab2-c92d-5fc3-9fa3-8a1b96a7b5ea",
+              "name": "runner_job_id",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "d6912af8-e7c1-5d0c-93d0-6d221e540111",
+              "name": "probe_poll_budget",
+              "value": 8,
+              "type": "number"
+            },
+            {
+              "id": "4e2213d0-7c1b-50fa-9424-8c452369c2c2",
+              "name": "acquisition_poll_budget",
+              "value": 45,
+              "type": "number"
+            },
+            {
+              "id": "ea554eb1-0414-5b2f-8244-4c737db8f8b2",
+              "name": "checked_at",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            },
+            {
+              "id": "57df9893-8b3d-5ad0-8643-6108d62925ec",
+              "name": "operator_summary",
+              "value": "=Copernicus SWI could not start a probe. The runner answered HTTP {{ $json.statusCode }}. HTTP 409 means another drought job is active and this run was deferred, not lost.",
+              "type": "string"
+            },
+            {
+              "id": "077659e8-a261-5eda-8740-300aaae25a88",
+              "name": "next_action",
+              "value": "No action for a single 409. For any other status, check that tsird-drought-runner is running and reachable on tsird-network.",
+              "type": "string"
+            },
+            {
+              "id": "d3547443-7fdb-5740-b62f-6968e40f04f7",
+              "name": "http_status",
+              "value": "={{ $json.statusCode }}",
+              "type": "number"
+            },
+            {
+              "id": "66ce806a-e711-5622-b49a-d7368d978a67",
+              "name": "runner_error",
+              "value": "={{ $json.body.detail || '' }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "b1bac47e-ab8e-50c5-b9c5-eb3b0f5a13ba",
+      "name": "Report runner unavailable",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        780,
+        520
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "01189967-92db-5d0f-a75e-815fe8a7b800",
+              "name": "schema_version",
+              "value": "tsird-drought-source-refresh-receipt/v2",
+              "type": "string"
+            },
+            {
+              "id": "1d8606a5-0863-5879-be5b-eb6a2d11ce2f",
+              "name": "workflow_key",
+              "value": "swi",
+              "type": "string"
+            },
+            {
+              "id": "1d871e97-8e28-5cd7-b4e6-dfe5649c1217",
+              "name": "source_id",
+              "value": "cdse-clms-swi-v4",
+              "type": "string"
+            },
+            {
+              "id": "b78320f7-093a-5c20-8dfa-fc3b5e642d21",
+              "name": "run_outcome",
+              "value": "failure",
+              "type": "string"
+            },
+            {
+              "id": "a039c3d3-5ff5-5088-91f7-79c266ff314f",
+              "name": "outcome_detail",
+              "value": "acquisition_not_started",
+              "type": "string"
+            },
+            {
+              "id": "65c9c6fc-6c34-54fa-a358-21d095d36cba",
+              "name": "provider_state",
+              "value": "ready",
+              "type": "string"
+            },
+            {
+              "id": "ffc9aa7b-bb26-580d-a955-449a1e49e665",
+              "name": "evidence_changed",
+              "value": false,
+              "type": "boolean"
+            },
+            {
+              "id": "41407051-a604-52bf-8b10-c3447aef7f28",
+              "name": "action_required",
+              "value": true,
+              "type": "boolean"
+            },
+            {
+              "id": "ebbb91e9-af1e-5c58-930d-9665d1867d29",
+              "name": "runner_job_id",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "35b71955-5ec3-5f68-a71f-37a029240c44",
+              "name": "probe_poll_budget",
+              "value": 8,
+              "type": "number"
+            },
+            {
+              "id": "279ced36-20ee-5511-bf22-b7df212e969f",
+              "name": "acquisition_poll_budget",
+              "value": 45,
+              "type": "number"
+            },
+            {
+              "id": "6aad56ad-306b-54cd-9f01-d2300894cc70",
+              "name": "checked_at",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            },
+            {
+              "id": "8b29b543-c639-5c81-9971-c6ce7a39fb3e",
+              "name": "operator_summary",
+              "value": "=Copernicus SWI found newer provider data but the runner refused the acquisition request with HTTP {{ $json.statusCode }}. Local evidence is unchanged and the previous valid artifact remains in place.",
+              "type": "string"
+            },
+            {
+              "id": "8d37989f-0f30-547f-b5cb-99cf4acd5178",
+              "name": "next_action",
+              "value": "HTTP 409 means another job was active; the next scheduled run retries. Any other status needs a runner check.",
+              "type": "string"
+            },
+            {
+              "id": "427c3c6f-1199-597c-bed0-d64b59f10b89",
+              "name": "http_status",
+              "value": "={{ $json.statusCode }}",
+              "type": "number"
+            },
+            {
+              "id": "645f8bb1-87ae-5748-a5c6-5f44aba8e7d4",
+              "name": "runner_error",
+              "value": "={{ $json.body.detail || '' }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "88fa3c20-4ad5-50ef-b023-37146bd27ce7",
+      "name": "Report acquisition rejected",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2100,
+        880
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a9c7c832-28f3-520c-a944-75c21f7a1935",
+              "name": "schema_version",
+              "value": "tsird-drought-source-refresh-receipt/v2",
+              "type": "string"
+            },
+            {
+              "id": "07953917-92a6-5271-820e-1c7f6d9bb213",
+              "name": "workflow_key",
+              "value": "swi",
+              "type": "string"
+            },
+            {
+              "id": "4bd8569c-5c65-521e-9711-f1ea06d73af0",
+              "name": "source_id",
+              "value": "cdse-clms-swi-v4",
+              "type": "string"
+            },
+            {
+              "id": "2fc307d7-cb50-59ae-a5ba-b6095079096f",
+              "name": "run_outcome",
+              "value": "failure",
+              "type": "string"
+            },
+            {
+              "id": "ae439e0e-2018-5f20-bd33-4bc1e2f80795",
+              "name": "outcome_detail",
+              "value": "acquisition_failed",
+              "type": "string"
+            },
+            {
+              "id": "254c85b2-716c-510c-91b0-41ebaf51b540",
+              "name": "provider_state",
+              "value": "ready",
+              "type": "string"
+            },
+            {
+              "id": "b4bc70c2-81f6-57b7-a440-769c842c124e",
+              "name": "evidence_changed",
+              "value": false,
+              "type": "boolean"
+            },
+            {
+              "id": "6091aae7-0490-52b3-8de3-5cb83717eef9",
+              "name": "action_required",
+              "value": true,
+              "type": "boolean"
+            },
+            {
+              "id": "b9cbd272-8b47-58fa-a88d-a2a846285b7b",
+              "name": "runner_job_id",
+              "value": "={{ $('Start acquisition').item.json.body.job_id }}",
+              "type": "string"
+            },
+            {
+              "id": "fdcb8ffd-1a9e-56f5-bb6c-ce4727dab4a0",
+              "name": "probe_poll_budget",
+              "value": 8,
+              "type": "number"
+            },
+            {
+              "id": "39f71a7b-5948-51c5-834b-3d7f042d7f02",
+              "name": "acquisition_poll_budget",
+              "value": 45,
+              "type": "number"
+            },
+            {
+              "id": "1c047fc5-c2ac-52e7-8bde-08e3c928fa44",
+              "name": "checked_at",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            },
+            {
+              "id": "6f4e9b10-300b-5cf3-8bf6-b61c50167bdf",
+              "name": "operator_summary",
+              "value": "=Copernicus SWI acquisition job ended {{ $json.body.status }}. Nothing was published and the previous valid artifact remains the current one.",
+              "type": "string"
+            },
+            {
+              "id": "080d7f35-fc4b-5e6a-860f-1c03430e1e40",
+              "name": "next_action",
+              "value": "Read the runner job output tail, then decide whether to re-run manually. The schedule will retry on its next cycle.",
+              "type": "string"
+            },
+            {
+              "id": "dc8273e2-4a96-5b32-942d-fcd13087bccb",
+              "name": "runner_error",
+              "value": "={{ $json.body.error || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "e792c220-bd8e-5df0-b881-84f6374465d6",
+              "name": "runner_run_id",
+              "value": "={{ $json.body.run_id || '' }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "a6398715-59f4-545f-bcfa-f20e88c9d065",
+      "name": "Report acquisition failure",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2980,
+        880
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "899a2d72-5dd3-5750-b5bb-75aaaa475a95",
+              "name": "schema_version",
+              "value": "tsird-drought-source-refresh-receipt/v2",
+              "type": "string"
+            },
+            {
+              "id": "913de85c-d2e7-5d77-b4a6-a8a2d19ab3e9",
+              "name": "workflow_key",
+              "value": "swi",
+              "type": "string"
+            },
+            {
+              "id": "9fad8395-9ecb-55b3-94ac-f950cac127c4",
+              "name": "source_id",
+              "value": "cdse-clms-swi-v4",
+              "type": "string"
+            },
+            {
+              "id": "fe288ead-4f97-5169-90f8-8e30ce20b4d2",
+              "name": "run_outcome",
+              "value": "failure",
+              "type": "string"
+            },
+            {
+              "id": "2fc5a5eb-8c05-5fb4-9f81-ce2125df6e50",
+              "name": "outcome_detail",
+              "value": "acquisition_poll_budget_exhausted",
+              "type": "string"
+            },
+            {
+              "id": "89660956-2aa8-59b6-9ae6-48f9d12710a1",
+              "name": "provider_state",
+              "value": "ready",
+              "type": "string"
+            },
+            {
+              "id": "5b6973d4-f9f3-5b3d-9c38-158cee40561b",
+              "name": "evidence_changed",
+              "value": false,
+              "type": "boolean"
+            },
+            {
+              "id": "c03472e9-5a3c-5de2-ae09-082787fee3e9",
+              "name": "action_required",
+              "value": true,
+              "type": "boolean"
+            },
+            {
+              "id": "e0b5dfbc-07d5-5d24-9b39-ac4c806150a7",
+              "name": "runner_job_id",
+              "value": "={{ $('Start acquisition').item.json.body.job_id }}",
+              "type": "string"
+            },
+            {
+              "id": "f109bbea-978e-5434-89e1-f6efab497a65",
+              "name": "probe_poll_budget",
+              "value": 8,
+              "type": "number"
+            },
+            {
+              "id": "8a7a0f7a-ed1f-525b-b187-2a8d1f2e8331",
+              "name": "acquisition_poll_budget",
+              "value": 45,
+              "type": "number"
+            },
+            {
+              "id": "0b1a8ac8-60ac-55c7-9222-8b6e143b888f",
+              "name": "checked_at",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            },
+            {
+              "id": "53ef28fb-f6b4-5894-9e17-4d9e55af2c73",
+              "name": "operator_summary",
+              "value": "=Copernicus SWI acquisition was still running when the bounded poll budget ended. The job may still complete inside the runner; this run makes no claim about the result.",
+              "type": "string"
+            },
+            {
+              "id": "faa9d1e5-c155-57b6-9db1-efe9863e5753",
+              "name": "next_action",
+              "value": "Read the runner job once, and confirm the artifact before treating the evidence as updated. Do not start a second acquisition for the same period.",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "ce1783ea-c6b5-53b9-85cb-87210171baf0",
+      "name": "Report acquisition timeout",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2980,
+        500
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "f835ffe3-ef33-58b7-b385-589cf0ea5e51",
+              "name": "schema_version",
+              "value": "tsird-drought-source-refresh-receipt/v2",
+              "type": "string"
+            },
+            {
+              "id": "62d46e14-83ea-528f-9754-96dab605f4d9",
+              "name": "workflow_key",
+              "value": "swi",
+              "type": "string"
+            },
+            {
+              "id": "301a4885-a45d-5d9a-a674-38e6dc22a18c",
+              "name": "source_id",
+              "value": "cdse-clms-swi-v4",
+              "type": "string"
+            },
+            {
+              "id": "22001a6a-defe-59c3-aa73-2eb62877d27e",
+              "name": "run_outcome",
+              "value": "data_updated",
+              "type": "string"
+            },
+            {
+              "id": "9f004972-83d7-5ba3-aec1-9e958f4bbc6b",
+              "name": "outcome_detail",
+              "value": "acquired_validated_loaded",
+              "type": "string"
+            },
+            {
+              "id": "2d83370a-a7a9-5b1b-a0b5-5e321519a9bc",
+              "name": "provider_state",
+              "value": "ready",
+              "type": "string"
+            },
+            {
+              "id": "5c82b63d-7bf8-54f2-82a9-f5ceb9c6a771",
+              "name": "evidence_changed",
+              "value": true,
+              "type": "boolean"
+            },
+            {
+              "id": "7395b13f-62d9-5600-8f43-702270b8f46b",
+              "name": "action_required",
+              "value": "={{ [\"degraded\",\"failed\"].includes($json.body.status) }}",
+              "type": "boolean"
+            },
+            {
+              "id": "f38739fb-17a2-5984-8c36-e99f7b37805e",
+              "name": "runner_job_id",
+              "value": "={{ $('Start acquisition').item.json.body.job_id }}",
+              "type": "string"
+            },
+            {
+              "id": "f63ecf8d-ca37-56de-8598-d2c0157e5178",
+              "name": "probe_poll_budget",
+              "value": 8,
+              "type": "number"
+            },
+            {
+              "id": "9d88235f-1a9c-5571-80a9-a09af0e0521f",
+              "name": "acquisition_poll_budget",
+              "value": 45,
+              "type": "number"
+            },
+            {
+              "id": "5d5d443d-a0dc-5e1d-999d-3b9c739a9173",
+              "name": "checked_at",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            },
+            {
+              "id": "a4fb305f-3944-5f57-bc58-ed06196d1a68",
+              "name": "operator_summary",
+              "value": "=Copernicus SWI acquired a newer provider item, validated it and loaded run {{ $json.body.run_id || 'unknown' }} with artifact status {{ $json.body.status }}. A successful run proves that one bounded SWI raster was retrieved, summarised per Tabia, loaded into PostGIS and synchronised to the current SWI display raster. SWI remains coarse context, not a Tabia-scale observation.",
+              "type": "string"
+            },
+            {
+              "id": "be6a5195-c3f9-56b9-a26f-ef700d2d77e9",
+              "name": "next_action",
+              "value": "None when the artifact status is 'development' or 'validated'. A 'degraded' artifact status means the data loaded but its quality gate flagged it; review before using it.",
+              "type": "string"
+            },
+            {
+              "id": "60963f80-c510-53fd-b22d-6974aa358fbc",
+              "name": "runner_run_id",
+              "value": "={{ $json.body.run_id || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "63232290-a26c-53a9-b2b8-2be580c892e2",
+              "name": "artifact_status",
+              "value": "={{ $json.body.status }}",
+              "type": "string"
+            },
+            {
+              "id": "8216982e-31e1-556a-981b-f5917a3591b5",
+              "name": "job_finished_at",
+              "value": "={{ $json.body.finished_at || '' }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "a0d121bf-728f-585a-a3fd-065bd56468b5",
+      "name": "Report data updated",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2980,
+        700
+      ]
+    }
+  ],
+  "connections": {
+    "Manual development run": {
+      "main": [
+        [
+          {
+            "node": "Start source probe",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Scheduled source check": {
+      "main": [
+        [
+          {
+            "node": "Start source probe",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Start source probe": {
+      "main": [
+        [
+          {
+            "node": "Probe accepted?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Probe accepted?": {
+      "main": [
+        [
+          {
+            "node": "Wait for probe",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Report runner unavailable",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait for probe": {
+      "main": [
+        [
+          {
+            "node": "Read probe job",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read probe job": {
+      "main": [
+        [
+          {
+            "node": "Probe still running?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Probe still running?": {
+      "main": [
+        [
+          {
+            "node": "Probe poll budget left?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Newer data available?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Probe poll budget left?": {
+      "main": [
+        [
+          {
+            "node": "Wait for probe",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Report probe timeout",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Newer data available?": {
+      "main": [
+        [
+          {
+            "node": "Start acquisition",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Provider state known?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Provider state known?": {
+      "main": [
+        [
+          {
+            "node": "Report no new data",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Report probe failure",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Start acquisition": {
+      "main": [
+        [
+          {
+            "node": "Acquisition accepted?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Acquisition accepted?": {
+      "main": [
+        [
+          {
+            "node": "Wait for acquisition",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Report acquisition rejected",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait for acquisition": {
+      "main": [
+        [
+          {
+            "node": "Read acquisition job",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read acquisition job": {
+      "main": [
+        [
+          {
+            "node": "Acquisition still running?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Acquisition still running?": {
+      "main": [
+        [
+          {
+            "node": "Acquisition poll budget left?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Acquisition failed?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Acquisition poll budget left?": {
+      "main": [
+        [
+          {
+            "node": "Wait for acquisition",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Report acquisition timeout",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Acquisition failed?": {
+      "main": [
+        [
+          {
+            "node": "Report acquisition failure",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Report data updated",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "saveExecutionProgress": true,
+    "timezone": "Africa/Addis_Ababa"
+  },
+  "versionId": "0ada0351-117a-51ba-9aa5-84402c74b50b",
+  "meta": {},
+  "tags": []
+}
