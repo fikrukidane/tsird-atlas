@@ -58,6 +58,7 @@
       },
       "budgets": {
         "critical_path_kb": { "target": 400, "mode": "enforce" },
+        "critical_total_kb": { "target": 650, "mode": "enforce" },
         "total_cold_kb": { "target": 1500, "mode": "enforce" },
         "app_requests": { "target": 15, "mode": "enforce" },
         "functional_seconds": { "target": 3.0, "mode": "enforce" },
@@ -74,6 +75,7 @@
         "total_cold_kb": { "target": 600, "mode": "enforce" },
         "app_requests": { "target": 20, "mode": "enforce" },
         "critical_path_kb": { "target": null, "mode": "record" },
+        "critical_total_kb": { "target": null, "mode": "record" },
         "basemap_tile_requests": { "target": null, "mode": "record" },
         "repeat_total_kb": { "target": null, "mode": "record" }
       }

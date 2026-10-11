@@ -13,7 +13,7 @@ import urllib.request
 from pathlib import Path
 from fastapi import Body, FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 import asyncpg
 
 app = FastAPI(title="TSIRD Gazetteer API")
@@ -867,7 +867,7 @@ def _immutable_public_asset_response(path: Path, request: Request) -> FileRespon
 async def public_drought_release():
     """Return redacted metadata for the selected approved public release only."""
     pointer, manifest, asset_map = _read_approved_public_drought_release()
-    return {
+    return JSONResponse({
         "schema_version": "tsird-drought-public-release.v1",
         "release_id": manifest["release_id"],
         "activated_at": pointer.get("activated_at"),
@@ -889,7 +889,7 @@ async def public_drought_release():
             }
             for asset_id, (asset, _) in asset_map.items()
         ],
-    }
+    }, headers={"Cache-Control": "no-cache, max-age=0, must-revalidate"})
 
 
 @app.get("/drought/public/release/assets/{asset_id}")
@@ -921,7 +921,7 @@ async def public_drought_indicators_release():
     )
     if manifest.get("release_channel") != "indicator-evidence":
         raise HTTPException(status_code=503, detail="Indicator release channel is invalid")
-    return {
+    return JSONResponse({
         "schema_version": "tsird-drought-public-indicator-release.v1",
         "release_id": manifest["release_id"],
         "activated_at": pointer.get("activated_at"),
@@ -943,7 +943,7 @@ async def public_drought_indicators_release():
             }
             for asset_id, (asset, _) in asset_map.items()
         ],
-    }
+    }, headers={"Cache-Control": "no-cache, max-age=0, must-revalidate"})
 
 
 @app.get("/drought/public/indicators/assets/{asset_id}")
@@ -1177,13 +1177,17 @@ def _public_quality_summary(rows: list[dict]) -> dict:
 @app.get("/drought/public/dashboard/overview")
 async def public_drought_dashboard_overview():
     observed = _public_workspace_indicator("observed")
+    pointer, manifest, _ = _read_approved_public_drought_release(
+        PUBLIC_DROUGHT_INDICATOR_RELEASE_ROOT,
+        {"auto-validated"},
+    )
     areas = []
     for row in observed["summaries"][:3]:
         if not isinstance(row, dict) or not isinstance(row.get("tsird_tabia_id"), str) or not isinstance(row.get("tabia_name_en"), str):
             continue
         boundary = {"type": "tabia", "id": row["tsird_tabia_id"], "label": row["tabia_name_en"]}
         areas.append({"id": row["tsird_tabia_id"], "name_en": row["tabia_name_en"], "name_ti": "", "context_en": row.get("woreda_name_en") or "Tigray", "observed": {"boundary": boundary}, "vulnerability": {"boundary": boundary}})
-    return {"schema_version": "tsird-public-drought-dashboard/v1", "status": "approved_release", "title": "TSIRD Drought Intelligence", "geographic_note": "Approved retained evidence workspace. Indicators remain separate and exploratory; this page is not an official forecast, food-security classification, allocation recommendation, or operational decision product.", "sources": [{"id": "approved-release", "label": "Approved retained evidence", "role": "evidence", "provider": "TSIRD", "resolution": "Tabia summaries", "note": "Released evidence is read-only in production."}], "areas": areas}
+    return JSONResponse({"schema_version": "tsird-public-drought-dashboard/v1", "status": "approved_release", "title": "TSIRD Drought Intelligence", "geographic_note": "Approved retained evidence workspace. Indicators remain separate and exploratory; this page is not an official forecast, food-security classification, allocation recommendation, or operational decision product.", "sources": [{"id": "approved-release", "label": "Approved retained evidence", "role": "evidence", "provider": "TSIRD", "resolution": "Tabia summaries", "note": "Released evidence is read-only in production."}], "areas": areas, "indicator_release": {"release_id": manifest["release_id"], "activated_at": pointer.get("activated_at")}, "freshness": manifest.get("freshness", [])}, headers={"Cache-Control": "no-cache, max-age=0, must-revalidate"})
 
 
 @app.get("/drought/public/dashboard/indicator/{indicator}")
@@ -1306,13 +1310,13 @@ async def public_drought_dashboard_geometry():
     if manifest.get("release_channel") != "indicator-evidence" or "tabia-geometry" not in asset_map:
         raise HTTPException(status_code=404, detail="Approved public Tabia geometry is unavailable")
     asset, _ = asset_map["tabia-geometry"]
-    return {
+    return JSONResponse({
         "schema_version": "tsird-public-display-geometry-pointer/v1",
         "release_id": manifest["release_id"],
         "asset_id": "tabia-geometry",
         "feature_count": asset.get("feature_count"),
         "url": f"/map/api/drought/public/indicators/releases/{manifest['release_id']}/assets/tabia-geometry",
-    }
+    }, headers={"Cache-Control": "no-cache, max-age=0, must-revalidate"})
 
 
 @app.get("/drought/public/dashboard/exposure/{measure}/features")

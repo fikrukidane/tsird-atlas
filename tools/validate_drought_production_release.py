@@ -43,6 +43,7 @@ AUTO_INDICATOR_RASTERS = {
     "native-raster-wapor": "wapor-transpiration-current.tif",
 }
 FRESHNESS_CONTRACT_PATH = Path(__file__).resolve().parents[1] / "n8n" / "publisher" / "drought-indicator-freshness-contract.json"
+GZIP_REQUIRED_MIN_BYTES = 64 * 1024
 
 
 def fail(message: str) -> None:
@@ -184,6 +185,8 @@ def validate_asset(release_dir: Path, asset: Any, index: int, names: set[str]) -
     if not file_path.is_file():
         fail(f"assets[{index}] referenced file is missing: {relative_path}")
     gzip_path = file_path.with_name(f"{file_path.name}.gz")
+    if file_path.suffix.lower() == ".json" and file_path.stat().st_size >= GZIP_REQUIRED_MIN_BYTES and not gzip_path.exists():
+        fail(f"assets[{index}] large JSON asset is missing its required compressed sidecar")
     if gzip_path.exists():
         if file_path.suffix.lower() != ".json" or gzip_path.is_symlink() or not gzip_path.is_file():
             fail(f"assets[{index}] has an invalid compressed JSON sidecar")

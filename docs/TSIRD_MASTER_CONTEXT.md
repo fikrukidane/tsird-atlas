@@ -156,6 +156,11 @@ automatic activation that would make any retained source older is refused and
 leaves the existing pointer intact. A separate read-only public freshness
 monitor is designed to run outside n8n and notify only on an alert-state
 change; it has no production activation, source-data, runner or n8n control.
+The pending Stage-1 delivery serves pointer documents with revalidation and
+release-ID assets with immutable cache headers. Release builders emit verified
+gzip sidecars for large JSON; edge gzip remains the fallback for dynamic API
+and frontend responses. These are implementation-branch contracts until a
+browser measurement and a controlled production release prove them live.
 
 The public-only release viewer is `/map/drought/release/`. It calls only the
 approved-release API, displays neutral C1--C4 retrospective draft codes and

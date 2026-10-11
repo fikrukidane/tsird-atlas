@@ -85,6 +85,10 @@ class DroughtDashboard {
     this.publicGeometry = [];
     this.publicGeometryPromise = null;
     this.publicGeometryReleaseId = null;
+    this.publicFreshness = [];
+    this.publicRelease = null;
+    this.publicLoaded = new Set();
+    this.publicLoadPromises = {};
     this.publicEvidenceLayer = null;
     this.publicRasterLayer = null;
   }
@@ -99,18 +103,29 @@ class DroughtDashboard {
     // display boundary copy only. Other independent streams load on demand
     // when their control is selected, instead of delaying the first usable
     // map behind every history, outlook and provider-context request.
-    const initialLoads = this.publicMode
-      ? [this._loadObservedArtifact(), this._loadPublicGeometry()]
-      : [
+    if (this.publicMode) {
+      this.publicFreshness = Array.isArray(this.data.freshness) ? this.data.freshness : [];
+      this.publicRelease = this.data.indicator_release || null;
+      // Render controls and current retained evidence before the versioned,
+      // cacheable display geometry arrives. Redraw once it is ready.
+      await this._loadObservedArtifact();
+      this._createBoundaryLayer();
+      this._renderShell();
+      this._renderMode();
+      void this._loadPublicGeometry().then(() => {
+        if (this.publicMode) this._renderMode();
+      });
+    } else {
+      await Promise.all([
         this._loadObservedArtifact(), this._loadObservedRuns(), this._loadPreliminaryArtifact(),
         this._loadNdviArtifact(), this._loadSwiArtifact(), this._loadLstArtifact(),
         this._loadWaporArtifact(), this._loadOutlookArtifact(), this._loadPriorityFoundation(),
         this._loadFewsNetContext(), this._loadHistoryRuns(), this._loadPublicGeometry()
-      ];
-    await Promise.all(initialLoads);
-    this._createBoundaryLayer();
-    this._renderShell();
-    this._renderMode();
+      ]);
+      this._createBoundaryLayer();
+      this._renderShell();
+      this._renderMode();
+    }
     window.addEventListener('tsird:boundary-selected', event => this._handleBoundarySelection(event));
     return this;
   }
@@ -322,17 +337,28 @@ class DroughtDashboard {
     return this.publicGeometryPromise;
   }
 
+  _loadPublicOnce(key, loader) {
+    if (this.publicLoaded.has(key)) return Promise.resolve();
+    if (this.publicLoadPromises[key]) return this.publicLoadPromises[key];
+    const load = Promise.resolve().then(loader).finally(() => {
+      this.publicLoaded.add(key);
+      delete this.publicLoadPromises[key];
+    });
+    this.publicLoadPromises[key] = load;
+    return load;
+  }
+
   async _activateMode(mode) {
     this.mode = mode;
     if (this.publicMode) {
       const loaders = {
-        rapid: () => this._loadPreliminaryArtifact(),
-        vegetation: () => this._loadNdviArtifact(),
-        soilWater: () => this._loadSwiArtifact(),
-        thermal: () => this._loadLstArtifact(),
-        waterUse: () => this._loadWaporArtifact(),
-        history: () => Promise.all([this._loadObservedRuns(), this._loadHistoryRuns()]),
-        outlook: () => this._loadOutlookArtifact(),
+        rapid: () => this._loadPublicOnce('rapid', () => this._loadPreliminaryArtifact()),
+        vegetation: () => this._loadPublicOnce('vegetation', () => this._loadNdviArtifact()),
+        soilWater: () => this._loadPublicOnce('soilWater', () => this._loadSwiArtifact()),
+        thermal: () => this._loadPublicOnce('thermal', () => this._loadLstArtifact()),
+        waterUse: () => this._loadPublicOnce('waterUse', () => this._loadWaporArtifact()),
+        history: () => this._loadPublicOnce('history', () => Promise.all([this._loadObservedRuns(), this._loadHistoryRuns()])),
+        outlook: () => this._loadPublicOnce('outlook', () => this._loadOutlookArtifact()),
       };
       const load = loaders[mode];
       if (load) await load();
@@ -438,6 +464,7 @@ class DroughtDashboard {
     close.title = 'Hide drought intelligence';
     close.addEventListener('click', () => root.classList.toggle('is-hidden'));
     heading.appendChild(close);
+    this.freshnessElement = heading.querySelector('.drought-freshness');
     root.appendChild(heading);
 
     const notice = document.createElement('div');
@@ -471,20 +498,32 @@ class DroughtDashboard {
     footer.className = 'drought-footer';
     footer.textContent = this.priorityOnly
       ? (this.priorityReplays.length ? `${this.publicMode ? 'Approved' : 'Development'} retrospective replay · draft only; no forecast or publication` : `${this.publicMode ? 'Approved' : 'Development'} retrospective calibration review · no priority score or forecast`)
-      : `${this.publicMode ? 'Approved retained-evidence workspace' : 'Development workspace'} · no composite risk score`;
+      : `${this.publicMode ? 'Approved retained-evidence workspace' : 'Development workspace'}${this.publicMode && this.publicRelease && this.publicRelease.activated_at ? ` · released ${String(this.publicRelease.activated_at).slice(0, 10)}` : ''} · no composite risk score`;
     root.appendChild(footer);
   }
 
+  _activeFreshnessKey() {
+    const keys = {
+      observed: 'observed', rapid: 'rapid', vegetation: 'vegetation', soilWater: 'soil_water',
+      thermal: 'thermal', waterUse: 'water_use',
+      history: { rainfall: 'observed', rapid: 'rapid', ndvi: 'vegetation', swi: 'soil_water', lst: 'thermal', wapor: 'water_use' }[this.historyIndicator]
+    };
+    return keys[this.mode] || 'observed';
+  }
+
   _publicFreshnessLabel() {
-    if (!this.publicMode || !this.observedArtifact || !this.observedArtifact.run) return '';
-    const run = this.observedArtifact.run;
-    const observed = run.observation_end || run.source_period_end || run.source_latest_month;
-    if (!observed) return '';
-    const status = run.status === 'degraded' ? ' · stale/degraded' : '';
-    return `Rainfall observation: ${String(observed).slice(0, 10)}${status}`;
+    if (!this.publicMode) return '';
+    const record = this.publicFreshness.find(item => item && item.source_key === this._activeFreshnessKey());
+    if (!record || !record.source_observation_end) return '';
+    const today = new Date().toISOString().slice(0, 10);
+    let status = 'current';
+    if (record.stale_after && today > record.stale_after) status = `stale after ${record.stale_after}`;
+    else if (record.expected_next && today >= record.expected_next) status = `awaiting update since ${record.expected_next}`;
+    return `${record.label || 'Evidence'}: ${String(record.source_observation_end).slice(0, 10)} · ${status}`;
   }
 
   _renderMode() {
+    if (this.freshnessElement) this.freshnessElement.textContent = this._publicFreshnessLabel();
     document.body.dataset.tsirdDroughtMode = this.mode;
     document.querySelectorAll('#drought-dashboard [data-mode]').forEach(button => {
       button.classList.toggle('is-active', button.dataset.mode === this.mode);

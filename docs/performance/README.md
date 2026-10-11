@@ -27,6 +27,7 @@ never used for pass or fail.
 | Measure | Baseline, 11 Oct 2026 | Stage-1 target | Mode |
 | --- | --- | --- | --- |
 | Critical application path before first usable interaction | not separable; whole load was 9.54 MB | **≤ 400 KB** | enforce |
+| Critical total path, including render-blocking third-party assets | not separable | **≤ 650 KB** | enforce |
 | Functional check: select a visible Tabia and read back its values | **fails**, the boundary route returns HTTP 503 | **≤ 3 s** on `slow-4g` | enforce |
 | Total cold application transfer | 9.54 MB | **≤ 1.5 MB** | enforce |
 | Application requests, excluding basemap tiles | 47 of 72 | **≤ 15** | enforce |
@@ -49,10 +50,11 @@ Two constraints that sit outside the measured numbers:
   against, is never simplified. Display changes must not change evidence.
 
 The application-byte measures include first-party TSIRD responses and exclude
-basemap tiles and third-party library hosts. The harness records those two
-categories separately (including total critical transfer) so visible user cost
-remains inspectable without turning a viewport-dependent tile count into a
-pass/fail target.
+basemap tiles and third-party library hosts. The separately enforced critical
+total includes third-party responses that finish before the first successful
+Tabia interaction, so a render-blocking library cannot disappear from the
+budget simply because it is hosted elsewhere. Basemap tiles remain recorded,
+not enforced, because their count depends on viewport and provider behavior.
 
 Production MapServer uses a generated public-only include and Atlas registry;
 both omit development-only drought layers. After any production deployment,
@@ -84,10 +86,9 @@ Two things will look wrong on the first run, and both are expected.
    click target and success text in the budget file were written from
    observation of the live page, not from a passing run. Confirm them once and
    set `selectors_verified_on_production` to true.
-2. The functional check cannot pass at all until the Tabia detail panel stops
-   calling the database-backed boundary route and falls back to packaged release
-   geometry. Until then the harness records a failure with that reason, which is
-   the honest state of the public product rather than a harness defect.
+2. The functional selectors begin as unverified even after the packaged-geometry
+   fallback is implemented. Run the browser check against the staged build,
+   confirm the target and success text, then set the flag only with that evidence.
 
 ## Scope
 
