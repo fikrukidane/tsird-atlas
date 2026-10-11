@@ -11,6 +11,7 @@ const crypto = require("crypto");
 const fs = require("fs");
 const os = require("os");
 const path = require("path");
+const zlib = require("zlib");
 const FRESHNESS_CONTRACT = require("./drought-indicator-freshness-contract.json");
 
 const API_BASE = "http://tsird-edge:8080";
@@ -58,7 +59,14 @@ const now = () => new Date().toISOString().replace(/\.\d{3}Z$/, "Z");
 const compactId = () => now().replace(/:/g, "").replace("Z", "Z-indicators");
 const sha256 = (filename) => crypto.createHash("sha256").update(fs.readFileSync(filename)).digest("hex");
 const jsonBytes = (data) => Buffer.from(`${JSON.stringify(data)}\n`, "utf8");
-const writeJson = (filename, data) => { const bytes = jsonBytes(data); fs.writeFileSync(filename, bytes); return [bytes.length, sha256(filename)]; };
+const writeJson = (filename, data) => {
+  const bytes = jsonBytes(data);
+  fs.writeFileSync(filename, bytes);
+  // The release-ID route serves this prebuilt sidecar directly. Keep the
+  // compression work off the constrained VPS and preserve deterministic bytes.
+  fs.writeFileSync(`${filename}.gz`, zlib.gzipSync(bytes, {mtime: 0}));
+  return [bytes.length, sha256(filename)];
+};
 const fail = (message) => { throw new Error(message); };
 function windowFor(run) {
   const start = run.observation_start || run.source_period_start || run.period_start || run.source_latest_month;
@@ -140,12 +148,16 @@ function historySnapshot(source, run, payload) {
   const publicRun={}; for (const field of ["run_id", "observation_start", "observation_end", "native_resolution", "status"]) if (run[field] != null) publicRun[field]=run[field];
   return {schema_version:"tsird-public-evidence-snapshot/v1", indicator:source, run:publicRun, rows:payload.rows.filter((row) => row && typeof row === "object").map((row) => { const safe={}; for (const field of HISTORY_FIELDS) if (Object.hasOwn(row,field)) safe[field]=row[field]; return safe; })};
 }
+function roundDisplayCoordinates(value, precision = 5) {
+  if (typeof value === "number") return Number(value.toFixed(precision));
+  return Array.isArray(value) ? value.map((item) => roundDisplayCoordinates(item, precision)) : value;
+}
 function tabiaGeometry(payload) {
   if (!payload || payload.type !== "FeatureCollection" || !Array.isArray(payload.features)) fail("Tabia geometry is invalid");
   return {type:"FeatureCollection", schema_version:"tsird-public-tabia-geometry/v1", features:payload.features.map((feature) => {
     if (!feature || !feature.geometry || !feature.properties || typeof feature.properties.tsird_tabia_id !== "string") fail("Tabia geometry feature is invalid");
     const properties={}; for (const field of ["tsird_tabia_id", "tabia_name_en", "tabia_name_ti", "woreda_name_en", "woreda_name_ti"]) if (Object.hasOwn(feature.properties,field)) properties[field]=feature.properties[field];
-    return {type:"Feature",geometry:feature.geometry,properties};
+    return {type:"Feature",geometry:{...feature.geometry, coordinates:roundDisplayCoordinates(feature.geometry.coordinates)},properties};
   })};
 }
 function publicExposure(measure, payload, expectedTabiaIds) {
@@ -263,7 +275,11 @@ async function main() {
       const uploadKey = path.join(runtime,"upload_key"), activateKey = path.join(runtime,"activate_key"), knownHosts = path.join(runtime,"known_hosts");
       fs.copyFileSync(path.join(KEY_ROOT,"tsird-drought-release-upload"), uploadKey); fs.copyFileSync(path.join(KEY_ROOT,"tsird-drought-release-activate"), activateKey); fs.copyFileSync(path.join(KEY_ROOT,"known_hosts"), knownHosts);
       for (const item of [uploadKey, activateKey, knownHosts]) fs.chmodSync(item,0o600);
-      const filenames = ["manifest.json", ...assets.map((item) => item.relative_path)].sort();
+      const filenames = ["manifest.json", "manifest.json.gz", ...assets.flatMap((item) => (
+        item.relative_path.endsWith(".json")
+          ? [item.relative_path, `${item.relative_path}.gz`]
+          : [item.relative_path]
+      ))].sort();
       const batch = [`mkdir /incoming/${releaseId}`, ...filenames.map((filename) => `put ${path.join(releaseDir, filename)} /incoming/${releaseId}/${filename}`)].join("\n") + "\n";
       const batchFile = path.join(runtime,"upload.batch"); fs.writeFileSync(batchFile,batch,{mode:0o600});
       const options = ["-o","BatchMode=yes","-o","IdentitiesOnly=yes","-o","StrictHostKeyChecking=yes","-o",`UserKnownHostsFile=${knownHosts}`,"-o","GlobalKnownHostsFile=/dev/null"];

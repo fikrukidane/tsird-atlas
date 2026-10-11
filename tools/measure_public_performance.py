@@ -33,7 +33,7 @@ import subprocess
 import sys
 from urllib.parse import urlparse
 
-HARNESS_VERSION = "1.0.0"
+HARNESS_VERSION = "1.1.0"
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 BUDGET_FILE = ROOT / "tools" / "performance-budget.json"
 ARCHIVE_DIR = ROOT / "docs" / "performance" / "baseline"
@@ -98,13 +98,15 @@ class Accounting:
         basemap = [r for r in rows if r["kind"] == "basemap"]
         third = [r for r in rows if r["kind"] == "third_party"]
         critical = [r for r in rows if cutoff_ts is None or r["ts"] <= cutoff_ts]
+        critical_app = [r for r in critical if r["kind"] == "application"]
         biggest = sorted(rows, key=lambda r: r["bytes"], reverse=True)[:10]
         return {
             "total_kb": round(sum(r["bytes"] for r in rows) / 1024, 1),
             "application_kb": round(sum(r["bytes"] for r in app) / 1024, 1),
             "third_party_kb": round(sum(r["bytes"] for r in third) / 1024, 1),
             "basemap_kb": round(sum(r["bytes"] for r in basemap) / 1024, 1),
-            "critical_path_kb": round(sum(r["bytes"] for r in critical) / 1024, 1),
+            "critical_path_kb": round(sum(r["bytes"] for r in critical_app) / 1024, 1),
+            "critical_total_kb": round(sum(r["bytes"] for r in critical) / 1024, 1),
             "requests": len(rows),
             "app_requests": len(app),
             "basemap_tile_requests": len(basemap),
@@ -125,6 +127,16 @@ def apply_profile(cdp, profile: dict) -> None:
         "uploadThroughput": up if up else -1,
     })
     cdp.send("Emulation.setCPUThrottlingRate", {"rate": profile.get("cpu_slowdown", 1)})
+
+
+def cdp_timestamp(cdp) -> float | None:
+    """Read the CDP monotonic timestamp at an interaction boundary."""
+    try:
+        metrics = cdp.send("Performance.getMetrics").get("metrics", [])
+        value = next((item.get("value") for item in metrics if item.get("name") == "Timestamp"), None)
+        return float(value) if value is not None else None
+    except Exception:  # pragma: no cover - browser-version dependent
+        return None
 
 
 def run_visit(page, cdp, acct, url: str, spec: dict, cache_state: str) -> dict:
@@ -169,7 +181,7 @@ def run_visit(page, cdp, acct, url: str, spec: dict, cache_state: str) -> dict:
             functional["note"] = f"{type(exc).__name__}: {str(exc)[:160]}"
     cutoff = None
     if functional.get("succeeded"):
-        cutoff = max((r["ts"] for r in acct.finished), default=None)
+        cutoff = cdp_timestamp(cdp)
     paint = page.evaluate(
         "() => { const p = performance.getEntriesByType('paint')"
         ".find(e => e.name === 'first-contentful-paint'); return p ? Math.round(p.startTime) : null; }")
@@ -201,6 +213,7 @@ def measure(budget: dict, page_key: str, profile_name: str, viewport_name: str,
         page = context.new_page()
         cdp = context.new_cdp_session(page)
         cdp.send("Network.enable")
+        cdp.send("Performance.enable")
         apply_profile(cdp, profile)
         cold_acct = Accounting(cdp, budget.get("classification", {}))
         cold = run_visit(page, cdp, cold_acct, url, spec, "cold")
@@ -226,11 +239,11 @@ def evaluate(budget: dict, result: dict) -> list[dict]:
     cold, repeat = result["cold"], result["repeat"]
     observed = {
         "critical_path_kb": cold["critical_path_kb"],
-        "total_cold_kb": cold["total_kb"],
+        "total_cold_kb": cold["application_kb"],
         "app_requests": cold["app_requests"],
         "functional_seconds": (cold.get("functional_check") or {}).get("seconds"),
         "basemap_tile_requests": cold["basemap_tile_requests"],
-        "repeat_total_kb": repeat["total_kb"],
+        "repeat_total_kb": repeat["application_kb"],
         "repeat_functional_seconds": (repeat.get("functional_check") or {}).get("seconds"),
     }
     rows = []
@@ -308,7 +321,7 @@ def main(argv: list[str]) -> int:
         runs = [measure(budget, key, profile, viewport, base_url) for _ in range(max(1, args.runs))]
         result = runs[0]
         if len(runs) > 1:
-            for field in ("total_kb", "critical_path_kb", "app_requests"):
+            for field in ("total_kb", "application_kb", "critical_path_kb", "app_requests"):
                 result["cold"][field] = statistics.median(r["cold"][field] for r in runs)
             secs = [(r["cold"].get("functional_check") or {}).get("seconds") for r in runs]
             secs = [s for s in secs if s is not None]

@@ -10,6 +10,7 @@ future publisher can stage it.
 from __future__ import annotations
 
 import argparse
+import gzip
 import hashlib
 import json
 import re
@@ -77,6 +78,12 @@ def request_json(api_base: str, path: str) -> dict[str, Any]:
 def write_json(path: Path, data: dict[str, Any]) -> tuple[int, str]:
     encoded = (json.dumps(data, ensure_ascii=False, separators=(",", ":"), sort_keys=True) + "\n").encode("utf-8")
     path.write_bytes(encoded)
+    # Immutable release assets are compressed during the build. Production can
+    # then serve the sidecar rather than compressing multi-megabyte JSON on a
+    # constrained VPS. A zero mtime keeps a given JSON payload reproducible.
+    with (path.parent / f"{path.name}.gz").open("wb") as handle:
+        with gzip.GzipFile(filename="", mode="wb", fileobj=handle, mtime=0) as compressed:
+            compressed.write(encoded)
     return len(encoded), hashlib.sha256(encoded).hexdigest()
 
 

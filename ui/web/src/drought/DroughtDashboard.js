@@ -83,6 +83,8 @@ class DroughtDashboard {
     this.publicMode = Boolean(options.publicMode);
     this.publicGeometryUrl = options.publicGeometryUrl || null;
     this.publicGeometry = [];
+    this.publicGeometryPromise = null;
+    this.publicGeometryReleaseId = null;
     this.publicEvidenceLayer = null;
     this.publicRasterLayer = null;
   }
@@ -93,20 +95,19 @@ class DroughtDashboard {
     if (!response.ok) throw new Error(`Drought data unavailable (${response.status})`);
     this.data = await response.json();
     this._validateData();
-    await Promise.all([
-      this._loadObservedArtifact(),
-      this._loadObservedRuns(),
-      this._loadPreliminaryArtifact(),
-      this._loadNdviArtifact(),
-      this._loadSwiArtifact(),
-      this._loadLstArtifact(),
-      this._loadWaporArtifact(),
-      this._loadOutlookArtifact(),
-      this._loadPriorityFoundation(),
-      this._loadFewsNetContext(),
-      this._loadHistoryRuns(),
-      this._loadPublicGeometry()
-    ]);
+    // The public workspace starts with the current rainfall evidence and the
+    // display boundary copy only. Other independent streams load on demand
+    // when their control is selected, instead of delaying the first usable
+    // map behind every history, outlook and provider-context request.
+    const initialLoads = this.publicMode
+      ? [this._loadObservedArtifact(), this._loadPublicGeometry()]
+      : [
+        this._loadObservedArtifact(), this._loadObservedRuns(), this._loadPreliminaryArtifact(),
+        this._loadNdviArtifact(), this._loadSwiArtifact(), this._loadLstArtifact(),
+        this._loadWaporArtifact(), this._loadOutlookArtifact(), this._loadPriorityFoundation(),
+        this._loadFewsNetContext(), this._loadHistoryRuns(), this._loadPublicGeometry()
+      ];
+    await Promise.all(initialLoads);
     this._createBoundaryLayer();
     this._renderShell();
     this._renderMode();
@@ -294,16 +295,49 @@ class DroughtDashboard {
   }
 
   async _loadPublicGeometry() {
-    if (!this.publicMode || !this.publicGeometryUrl) return;
-    try {
-      const response = await fetch(this.publicGeometryUrl, { cache: 'no-store' });
-      const payload = await response.json();
-      if (!response.ok || !Array.isArray(payload.features)) throw new Error('invalid public geometry');
-      this.publicGeometry = payload.features;
-    } catch (error) {
-      console.error('[DroughtDashboard] approved public geometry unavailable:', error);
-      this.publicGeometry = [];
+    if (!this.publicMode || !this.publicGeometryUrl) return [];
+    if (this.publicGeometry.length) return this.publicGeometry;
+    if (this.publicGeometryPromise) return this.publicGeometryPromise;
+    this.publicGeometryPromise = (async () => {
+      try {
+        // The short pointer is revalidated; the returned release-ID URL is
+        // immutable and can safely use the browser cache across visits.
+        const pointerResponse = await fetch(this.publicGeometryUrl, { cache: 'no-store' });
+        const pointer = await pointerResponse.json();
+        if (!pointerResponse.ok || typeof pointer.url !== 'string') throw new Error('invalid public geometry pointer');
+        const response = await fetch(pointer.url, { cache: 'default' });
+        const payload = await response.json();
+        if (!response.ok || !Array.isArray(payload.features)) throw new Error('invalid public geometry asset');
+        this.publicGeometry = payload.features;
+        this.publicGeometryReleaseId = pointer.release_id || null;
+        return this.publicGeometry;
+      } catch (error) {
+        console.error('[DroughtDashboard] approved public geometry unavailable:', error);
+        this.publicGeometry = [];
+        return this.publicGeometry;
+      } finally {
+        this.publicGeometryPromise = null;
+      }
+    })();
+    return this.publicGeometryPromise;
+  }
+
+  async _activateMode(mode) {
+    this.mode = mode;
+    if (this.publicMode) {
+      const loaders = {
+        rapid: () => this._loadPreliminaryArtifact(),
+        vegetation: () => this._loadNdviArtifact(),
+        soilWater: () => this._loadSwiArtifact(),
+        thermal: () => this._loadLstArtifact(),
+        waterUse: () => this._loadWaporArtifact(),
+        history: () => Promise.all([this._loadObservedRuns(), this._loadHistoryRuns()]),
+        outlook: () => this._loadOutlookArtifact(),
+      };
+      const load = loaders[mode];
+      if (load) await load();
     }
+    this._renderMode();
   }
 
   _validateData() {
@@ -393,9 +427,10 @@ class DroughtDashboard {
     root.innerHTML = '';
     const heading = document.createElement('div');
     heading.className = 'drought-heading';
+    const freshness = this._publicFreshnessLabel();
     heading.innerHTML = this.priorityOnly
       ? `<div><strong>Retrospective Evidence Replay</strong><span>Tigray · ${this.priorityReplays.length ? 'retained draft evidence' : 'retrospective calibration review'}</span></div>`
-      : `<div><strong>Drought intelligence</strong><span>Tigray · ${this.publicMode ? 'approved retained evidence' : 'development view'}</span></div>`;
+      : `<div><strong>Drought intelligence</strong><span>Tigray · ${this.publicMode ? 'approved retained evidence' : 'development view'}</span>${freshness ? `<small class="drought-freshness">${freshness}</small>` : ''}</div>`;
     const close = document.createElement('button');
     close.className = 'drought-close';
     close.type = 'button';
@@ -421,10 +456,7 @@ class DroughtDashboard {
       button.type = 'button';
       button.dataset.mode = mode;
       button.textContent = label;
-      button.addEventListener('click', () => {
-        this.mode = mode;
-        this._renderMode();
-      });
+      button.addEventListener('click', () => this._activateMode(mode));
       controls.appendChild(button);
     });
     root.appendChild(controls);
@@ -441,6 +473,15 @@ class DroughtDashboard {
       ? (this.priorityReplays.length ? `${this.publicMode ? 'Approved' : 'Development'} retrospective replay · draft only; no forecast or publication` : `${this.publicMode ? 'Approved' : 'Development'} retrospective calibration review · no priority score or forecast`)
       : `${this.publicMode ? 'Approved retained-evidence workspace' : 'Development workspace'} · no composite risk score`;
     root.appendChild(footer);
+  }
+
+  _publicFreshnessLabel() {
+    if (!this.publicMode || !this.observedArtifact || !this.observedArtifact.run) return '';
+    const run = this.observedArtifact.run;
+    const observed = run.observation_end || run.source_period_end || run.source_latest_month;
+    if (!observed) return '';
+    const status = run.status === 'degraded' ? ' · stale/degraded' : '';
+    return `Rainfall observation: ${String(observed).slice(0, 10)}${status}`;
   }
 
   _renderMode() {
@@ -1753,11 +1794,21 @@ class DroughtDashboard {
       row.classList.toggle('is-selected', rowId === boundary.id);
     });
     try {
+      if (this.publicMode && boundary.type === 'tabia' && !this.publicGeometry.length) {
+        await this._loadPublicGeometry();
+      }
       const releasedFeature = this.publicMode && boundary.type === 'tabia'
         ? this.publicGeometry.find(feature => feature && feature.properties && feature.properties.tsird_tabia_id === boundary.id)
         : null;
       if (releasedFeature && releasedFeature.geometry) {
         this._showBoundary({ geometry: releasedFeature.geometry }, boundary.type);
+        return;
+      }
+      if (this.publicMode && boundary.type === 'tabia') {
+        // Production intentionally has no development boundary-table API.
+        // Never fall through to it: a missing published feature is a release
+        // packaging error, not a reason to expose a development dependency.
+        this._showSelectionError('This Tabia boundary is not available in the approved display release.');
         return;
       }
       const response = await fetch(`${this.boundaryUrl}/${boundary.type}/${boundary.id}`, { cache: 'no-store' });

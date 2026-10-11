@@ -26,7 +26,7 @@ never used for pass or fail.
 
 | Measure | Baseline, 11 Oct 2026 | Stage-1 target | Mode |
 | --- | --- | --- | --- |
-| Critical path before first usable interaction | not separable; whole load was 9.54 MB | **≤ 400 KB** | enforce |
+| Critical application path before first usable interaction | not separable; whole load was 9.54 MB | **≤ 400 KB** | enforce |
 | Functional check: select a visible Tabia and read back its values | **fails**, the boundary route returns HTTP 503 | **≤ 3 s** on `slow-4g` | enforce |
 | Total cold application transfer | 9.54 MB | **≤ 1.5 MB** | enforce |
 | Application requests, excluding basemap tiles | 47 of 72 | **≤ 15** | enforce |
@@ -47,6 +47,18 @@ Two constraints that sit outside the measured numbers:
   that immutable caching stays correct.
 - The analytical geometry in PostGIS, which the Tabia zonal statistics run
   against, is never simplified. Display changes must not change evidence.
+
+The application-byte measures include first-party TSIRD responses and exclude
+basemap tiles and third-party library hosts. The harness records those two
+categories separately (including total critical transfer) so visible user cost
+remains inspectable without turning a viewport-dependent tile count into a
+pass/fail target.
+
+Production MapServer uses a generated public-only include and Atlas registry;
+both omit development-only drought layers. After any production deployment,
+run `python3 tools/check_public_wms_layers.py --url https://lab.tigrayinsights.net/map/ogc`
+to make every advertised WMS layer return a PNG before declaring the release
+healthy.
 
 ## Running it
 

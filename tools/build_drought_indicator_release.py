@@ -76,6 +76,42 @@ def observation_window(run: dict[str, Any]) -> tuple[str, str]:
     return start[:10], end[:10]
 
 
+def _round_display_coordinates(value: Any, precision: int = 5) -> Any:
+    """Round only the public display copy; analytical PostGIS geometry stays intact."""
+    if isinstance(value, float):
+        return round(value, precision)
+    if isinstance(value, list):
+        return [_round_display_coordinates(item, precision) for item in value]
+    return value
+
+
+def compact_display_geometry(payload: dict[str, Any]) -> dict[str, Any]:
+    """Remove unnecessary coordinate precision from published display geometry.
+
+    Rings and vertices are deliberately unchanged. Deterministic rounding keeps
+    shared source coordinates shared, while the analytical geometry used for
+    zonal statistics remains exclusively in PostGIS. A later topology-aware
+    simplifier must operate on this release-only copy, never the source table.
+    """
+    if payload.get("type") != "FeatureCollection" or not isinstance(payload.get("features"), list):
+        raise RuntimeError("public Tabia geometry is not a FeatureCollection")
+    compact = dict(payload)
+    compact["features"] = []
+    for feature in payload["features"]:
+        geometry = feature.get("geometry") if isinstance(feature, dict) else None
+        if not isinstance(geometry, dict) or "coordinates" not in geometry:
+            raise RuntimeError("public Tabia geometry contains an invalid feature")
+        compact["features"].append({
+            **feature,
+            "geometry": {**geometry, "coordinates": _round_display_coordinates(geometry["coordinates"])},
+        })
+    compact["display_coordinate_precision"] = 5
+    compact["display_geometry_note"] = (
+        "Display-only coordinates rounded to five decimal places; analytical PostGIS boundaries are unchanged."
+    )
+    return compact
+
+
 def copy_native_rasters(source_root: Path, release_dir: Path, payloads: dict[str, dict[str, Any]], boundary: str) -> list[dict[str, Any]]:
     """Copy only display-ready physical-value rasters into the immutable package.
 
@@ -185,7 +221,9 @@ def main() -> int:
             observed_asset_ids[run_id] = asset_id
             history_payloads[f"{asset_id}.json"] = public_observed_snapshot(request_json(args.api_base, OBSERVED_RUN_PATH.format(run_id=run_id)))
             if index == 0:
-                history_payloads["tabia-geometry.json"] = public_tabia_geometry(request_json(args.api_base, OBSERVED_FEATURE_PATH.format(run_id=run_id)))
+                history_payloads["tabia-geometry.json"] = compact_display_geometry(
+                    public_tabia_geometry(request_json(args.api_base, OBSERVED_FEATURE_PATH.format(run_id=run_id)))
+                )
         history_payloads["observed-rainfall-runs.json"] = public_observed_run_index(observed_runs_payload)
         for source in HISTORY_SOURCES:
             index_payload = request_json(args.api_base, EVIDENCE_RUNS_PATH.format(source=source))

@@ -210,6 +210,13 @@ The query depends on `geometry`, `WEREDA`/`TABIA`, and `woreda_tig`/`tabia_tig`.
 
 The active mapfile is [infra/mapserver/mapfiles/tsird.map](../infra/mapserver/mapfiles/tsird.map). It includes [includes/vectors_gold.map](../infra/mapserver/mapfiles/includes/vectors_gold.map) and defines additional layers directly. Do not assume `layers_published.map` or `layers_published_all.map` is active merely because it exists.
 
+The production Compose overlay replaces that one include with the generated
+[vectors_public.map](../infra/mapserver/mapfiles/includes/vectors_public.map)
+and mounts a matching generated public Atlas registry. This is the production
+boundary that removes development-only drought layers from both capabilities
+and the public layer list; regenerate both files after any intentional change
+to the source mapfile or registry.
+
 Rendering combines OGR/file-backed vectors, PostGIS layers, and rasters. Mapfile classes define styles, raster classification, labels, and legends. The UI uses WMS; older broad WFS/WCS claims do not establish verified WFS/WCS functionality in this checkout.
 
 Current cartography includes zone-based muted fills and bilingual labels for Tigray Woredas, boundary-only bilingual Tabias, Ethiopia administrative hierarchy, Eritrea admin0/admin1/admin2, and classified DEM/slope rasters. NotoSansEthiopic and Arial supply Tigrinya and English labels. The bilingual Woreda/Tabia TOC entries suppress legends via registry options. External entries include NASA FIRMS, NASA GIBS, and ESA WorldCover; XYZ basemaps include OSM and Esri. Registry entries do not guarantee upstream availability or successful rendering.

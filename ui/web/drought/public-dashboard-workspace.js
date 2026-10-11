@@ -1,7 +1,7 @@
 /* Production uses the same Atlas and DroughtDashboard components as development.
  * Only its data URLs are switched to the approved-release adapter. */
 function bootPublicDroughtWorkspace() {
-  initializeApplication('../data/atlas-registry.json?v=20260909b', {
+  initializeApplication('../data/atlas-registry.json?v=20261011a', {
     droughtWorkspace: true,
     droughtPublicMode: true,
     droughtDataUrl: '../api/drought/public/dashboard/overview',

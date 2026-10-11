@@ -15,6 +15,12 @@ services:
     # production-only HTML overlays keep the familiar route names while
     # preventing public pages from calling development APIs or controls.
     volumes:
+      # Production must not offer development-only WMS layers that the
+      # production MapServer intentionally omits.
+      - type: bind
+        source: ./infra/production-public-web/data/atlas-registry.json
+        target: /usr/share/nginx/html/data/atlas-registry.json
+        read_only: true
       - type: bind
         source: ./infra/production-public-web/drought/index.html
         target: /usr/share/nginx/html/drought/index.html
@@ -56,6 +62,13 @@ services:
   # without a container restart and never exposes development source archives.
   tsird-mapserver:
     volumes:
+      # The base mapfile includes vectors_gold.map for development. Override
+      # that one include in production so GetCapabilities cannot advertise
+      # development-only tables or raw-raster paths that do not exist here.
+      - type: bind
+        source: ./infra/mapserver/mapfiles/includes/vectors_public.map
+        target: /etc/mapserver/includes/vectors_gold.map
+        read_only: true
       - type: bind
         source: /opt/tigrayinsights/apps/tsird/releases/drought/indicators
         # /data is already an immutable bind mount in the base Compose file.

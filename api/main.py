@@ -11,7 +11,7 @@ import re
 import urllib.error
 import urllib.request
 from pathlib import Path
-from fastapi import Body, FastAPI, HTTPException, Query
+from fastapi import Body, FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 import asyncpg
@@ -802,6 +802,67 @@ def _read_approved_public_drought_release(
         raise HTTPException(status_code=503, detail="Approved public drought release is unavailable")
 
 
+def _read_public_drought_release_by_id(
+    release_root: Path,
+    release_id: str,
+    allowed_states: set[str],
+):
+    """Read one immutable public package by its validated release ID.
+
+    The current pointer is deliberately *not* consulted here. A release-ID URL
+    remains cache-safe after a later pointer activation, while retaining the
+    same traversal and state checks as the current-pointer reader.
+    """
+    if not PUBLIC_RELEASE_ID_PATTERN.fullmatch(release_id):
+        raise HTTPException(status_code=404, detail="Unknown public release")
+    try:
+        root = release_root.resolve()
+        release_dir = (root / release_id).resolve(strict=True)
+        if release_dir.parent != root:
+            raise ValueError("release directory is outside the configured root")
+        manifest = json.loads((release_dir / "manifest.json").read_text(encoding="utf-8"))
+        if (
+            manifest.get("schema_version") != "tsird-drought-production-release/v1"
+            or manifest.get("release_id") != release_id
+            or manifest.get("release_state") not in allowed_states
+        ):
+            raise ValueError("release manifest is not permitted for this public route")
+        assets = manifest.get("assets")
+        if not isinstance(assets, list):
+            raise ValueError("release assets are invalid")
+        asset_map = {}
+        for asset in assets:
+            if not isinstance(asset, dict):
+                raise ValueError("release asset is invalid")
+            asset_id = asset.get("asset_id")
+            relative_path = asset.get("relative_path")
+            if not isinstance(asset_id, str) or not isinstance(relative_path, str) or asset_id in asset_map:
+                raise ValueError("release asset metadata is invalid")
+            candidate = (release_dir / relative_path).resolve(strict=True)
+            if candidate.parent != release_dir or not candidate.is_file():
+                raise ValueError("release asset path is unsafe or missing")
+            asset_map[asset_id] = (asset, candidate)
+        return manifest, asset_map
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="Public release asset is unavailable")
+    except (OSError, ValueError, json.JSONDecodeError):
+        logging.exception("Public immutable release read error")
+        raise HTTPException(status_code=503, detail="Public release asset is unavailable")
+
+
+def _immutable_public_asset_response(path: Path, request: Request) -> FileResponse:
+    """Serve build-time gzip JSON when the client accepts it."""
+    headers = {
+        "Cache-Control": "public, max-age=31536000, immutable",
+        "Vary": "Accept-Encoding",
+    }
+    media_type = "application/geo+json" if path.suffix == ".geojson" else "application/json"
+    gzip_path = path.with_name(f"{path.name}.gz")
+    if "gzip" in request.headers.get("accept-encoding", "").lower() and gzip_path.is_file() and not gzip_path.is_symlink():
+        return FileResponse(gzip_path, media_type=media_type, headers={**headers, "Content-Encoding": "gzip"})
+    return FileResponse(path, media_type=media_type, headers=headers)
+
+
 @app.get("/drought/public/release")
 async def public_drought_release():
     """Return redacted metadata for the selected approved public release only."""
@@ -900,6 +961,27 @@ async def public_drought_indicator_release_asset(asset_id: str):
         media_type="application/geo+json" if path.suffix == ".geojson" else "application/json",
         headers={"Cache-Control": "no-cache, max-age=0, must-revalidate"},
     )
+
+
+@app.get("/drought/public/indicators/releases/{release_id}/assets/{asset_id}")
+async def public_drought_indicator_release_versioned_asset(
+    release_id: str, asset_id: str, request: Request
+):
+    """Serve an immutable, pointer-independent indicator asset.
+
+    Current-pointer endpoints remain revalidated. This route is only returned
+    by those small descriptors, so automatic activation changes the URL rather
+    than relying on browser or proxy cache invalidation.
+    """
+    manifest, asset_map = _read_public_drought_release_by_id(
+        PUBLIC_DROUGHT_INDICATOR_RELEASE_ROOT,
+        release_id,
+        {"auto-validated"},
+    )
+    if manifest.get("release_channel") != "indicator-evidence" or asset_id not in asset_map:
+        raise HTTPException(status_code=404, detail="Unknown public indicator-release asset")
+    _, path = asset_map[asset_id]
+    return _immutable_public_asset_response(path, request)
 
 
 # These routes adapt only the approved release package to the shared Atlas
@@ -1216,7 +1298,21 @@ async def public_drought_dashboard_priority_previews():
 
 @app.get("/drought/public/dashboard/geometry")
 async def public_drought_dashboard_geometry():
-    return _public_indicator_geometry()
+    """Return a short revalidated descriptor for the current display geometry."""
+    _, manifest, asset_map = _read_approved_public_drought_release(
+        PUBLIC_DROUGHT_INDICATOR_RELEASE_ROOT,
+        {"auto-validated"},
+    )
+    if manifest.get("release_channel") != "indicator-evidence" or "tabia-geometry" not in asset_map:
+        raise HTTPException(status_code=404, detail="Approved public Tabia geometry is unavailable")
+    asset, _ = asset_map["tabia-geometry"]
+    return {
+        "schema_version": "tsird-public-display-geometry-pointer/v1",
+        "release_id": manifest["release_id"],
+        "asset_id": "tabia-geometry",
+        "feature_count": asset.get("feature_count"),
+        "url": f"/map/api/drought/public/indicators/releases/{manifest['release_id']}/assets/tabia-geometry",
+    }
 
 
 @app.get("/drought/public/dashboard/exposure/{measure}/features")

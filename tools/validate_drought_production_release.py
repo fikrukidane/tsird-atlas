@@ -9,6 +9,7 @@ pre-transfer gates.
 from __future__ import annotations
 
 import argparse
+import gzip
 import hashlib
 import json
 import re
@@ -182,6 +183,15 @@ def validate_asset(release_dir: Path, asset: Any, index: int, names: set[str]) -
     file_path = release_dir / relative_path
     if not file_path.is_file():
         fail(f"assets[{index}] referenced file is missing: {relative_path}")
+    gzip_path = file_path.with_name(f"{file_path.name}.gz")
+    if gzip_path.exists():
+        if file_path.suffix.lower() != ".json" or gzip_path.is_symlink() or not gzip_path.is_file():
+            fail(f"assets[{index}] has an invalid compressed JSON sidecar")
+        try:
+            if gzip.decompress(gzip_path.read_bytes()) != file_path.read_bytes():
+                fail(f"assets[{index}] compressed JSON sidecar does not match the asset")
+        except OSError as error:
+            fail(f"assets[{index}] compressed JSON sidecar is unreadable: {error}")
     if kind == "native_evidence_raster":
         if AUTO_INDICATOR_RASTERS.get(asset_id) != str(relative_path):
             fail("native evidence raster is not one of the fixed display-ready indicator files")

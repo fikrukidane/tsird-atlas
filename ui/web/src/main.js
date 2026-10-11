@@ -164,6 +164,6 @@ document.addEventListener('DOMContentLoaded', function() {
   // Purpose-built workspaces initialise themselves with their own relative
   // API/data paths. Only the main Atlas page uses this generic bootstrap.
   if (!document.body.dataset.tsirdPage) {
-    initializeApplication('data/atlas-registry.json?v=20260306');
+    initializeApplication('data/atlas-registry.json?v=20261011a');
   }
 });
