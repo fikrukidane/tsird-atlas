@@ -121,7 +121,7 @@ function publicWorkspace(payloads) {
     const run = payload.run;
     const rows = name === "observed" ? payload.conditions : payload.summaries;
     const publicRun = {};
-    for (const key of ["run_id", "source_product", "source_version", "status", "analysis_year", "season_months", "period_start", "period_end", "observation_start", "observation_end", "source_period_start", "source_period_end", "native_resolution"]) if (run[key] != null) publicRun[key] = run[key];
+    for (const key of ["run_id", "source_product", "source_version", "status", "analysis_year", "season_months", "period_start", "period_end", "observation_start", "observation_end", "source_period_start", "source_period_end", "native_resolution", "pentad_count"]) if (run[key] != null) publicRun[key] = run[key];
     indicators[name] = { run: publicRun, summaries: rows.filter((row) => row && typeof row === "object").map((row) => {
       const safe = {}; for (const field of SUMMARY_FIELDS[name]) if (Object.hasOwn(row, field)) safe[field] = row[field]; return safe;
     })};
