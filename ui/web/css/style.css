@@ -50,9 +50,23 @@ header h1 {
 .site-nav a { display: inline-block; color: #0f3d56; font-size: 14px; font-weight: 600; text-decoration: none; border: 1px solid #93c5fd; border-radius: 4px; padding: 6px 10px; }
 .site-nav a:hover, .site-nav a:focus { background: #eff6ff; }
 
+/* Public workspaces are used first on small phones. Keep the header in one
+   compact row and constrain navigation inside its own horizontal scroller so
+   a long set of links never widens the document. */
+@media (max-width: 760px) {
+  header { padding: 4px 8px; }
+  .site-header-row { align-items: stretch; flex-direction: column; gap: 1px; min-width: 0; }
+  header h1 { display: -webkit-box; min-width: 0; max-height: 38px; overflow: hidden; font-size: 16px; line-height: 1.2; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+  .site-nav { display: flex; gap: 4px; width: 100%; min-width: 0; overflow-x: auto; overscroll-behavior-inline: contain; }
+  .site-nav a { display: flex; align-items: center; min-height: 44px; padding: 5px 8px; white-space: nowrap; }
+  .ol-zoom button, .tsird-toolbar-btn, .tsird-search-input { min-height: 44px; }
+  #toc-container button, #toc-container input, #toc-container select { min-width: 44px; min-height: 44px; }
+}
+
 #main-container {
   display: flex;
   flex: 1;
+  min-width: 0;
   overflow: hidden;
 }
 

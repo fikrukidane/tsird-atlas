@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TSIRD Drought Evidence Table — Tigray</title>
+  <link rel="stylesheet" href="table.css?v=20261012a" />
+</head>
+<body class="drought-table-page" data-tsird-page="drought-table">
+  <header class="drought-table-header">
+    <div><strong>🌦️ TSIRD Drought evidence table</strong><span>Tigray · approved retained evidence</span></div>
+    <nav aria-label="Primary navigation"><a id="map-view-link" href="../">Map view</a><a href="../../">Atlas</a></nav>
+  </header>
+  <main>
+    <section class="drought-table-intro">
+      <h1>Accessible Tabia evidence table</h1>
+      <p>This low-bandwidth view lists one retained indicator at a time. It does not load a map library, basemap tiles, or boundary geometry.</p>
+      <p id="drought-table-status" role="status" aria-live="polite">Loading approved retained evidence…</p>
+    </section>
+    <section class="drought-table-controls" aria-label="Table controls">
+      <label>Indicator <select id="drought-table-indicator" aria-describedby="drought-table-status"></select></label>
+      <label>Find a Tabia <input id="drought-table-filter" type="search" autocomplete="off" placeholder="Type a Tabia or Woreda name" /></label>
+    </section>
+    <p id="drought-table-release" class="drought-table-release"></p>
+    <div class="drought-table-wrap" tabindex="0">
+      <table id="drought-table" aria-describedby="drought-table-status">
+        <caption>Retained Tabia evidence</caption>
+        <thead><tr><th scope="col"><button type="button" data-sort="name">Tabia</button></th><th scope="col"><button type="button" data-sort="woreda">Woreda</button></th><th scope="col"><button type="button" data-sort="value">Value</button></th><th scope="col"><button type="button" data-sort="coverage">Coverage</button></th><th scope="col"><button type="button" data-sort="quality">Quality</button></th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </main>
+  <script src="table.js?v=20261012a"></script>
+</body>
+</html>

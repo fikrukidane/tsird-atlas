@@ -1245,6 +1245,27 @@ async def public_drought_dashboard_evidence_features(indicator: str, run_id: str
     return _public_history_features(rows)
 
 
+@app.get("/drought/public/dashboard/evidence/{indicator}/runs/{run_id}/summary")
+async def public_drought_dashboard_evidence_summary(indicator: str, run_id: str):
+    """Return an approved historical Tabia snapshot without display geometry.
+
+    The standalone table deliberately has no map dependency.  Serving the
+    retained summary directly avoids transferring every Tabia polygon merely
+    to honour its shared ``month`` parameter.
+    """
+    if indicator == "rainfall":
+        snapshot = _public_indicator_release_json(_public_indicator_asset_id("observed-rainfall-run", run_id))
+        rows = snapshot.get("conditions") if isinstance(snapshot, dict) else None
+    elif indicator in {"rapid", "ndvi", "swi", "lst", "wapor"}:
+        snapshot = _public_indicator_release_json(_public_indicator_asset_id(f"evidence-{indicator}-run", run_id))
+        rows = snapshot.get("rows") if isinstance(snapshot, dict) else None
+    else:
+        raise HTTPException(status_code=404, detail="Unknown public evidence indicator")
+    if not isinstance(rows, list):
+        raise HTTPException(status_code=404, detail="Approved public evidence snapshot is unavailable")
+    return {"schema_version": "tsird-public-evidence-summary/v1", "environment": "approved_release", "run_id": run_id, "summaries": rows}
+
+
 @app.get("/drought/public/dashboard/history/{indicator}/{tabia_id}")
 async def public_drought_dashboard_history(indicator: str, tabia_id: str):
     fields = {

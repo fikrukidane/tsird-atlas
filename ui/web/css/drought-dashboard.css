@@ -13,12 +13,14 @@
   font-size: 12px;
 }
 #drought-dashboard.is-hidden { display: none; }
+.drought-panel-toggle { position: absolute; right: 10px; bottom: 10px; z-index: 1101; min-height: 44px; border: 1px solid #0f3d56; border-radius: 5px; background: #0f3d56; color: #fff; padding: 8px 12px; font: inherit; font-weight: 700; cursor: pointer; box-shadow: 0 2px 8px rgba(15,23,42,.28); }
 .drought-heading, .drought-mode-title, .drought-source-meta { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .drought-heading { padding: 11px 12px 8px; border-bottom: 1px solid #e2e8f0; }
 .drought-heading strong { display: block; color: #0f3d56; font-size: 15px; }
 .drought-heading span { display: block; color: #64748b; margin-top: 2px; }
 .drought-heading .drought-freshness { display: block; margin-top: 4px; color: #92400e; font-size: 10px; font-weight: 600; }
 .drought-close { border: 0; background: transparent; color: #64748b; cursor: pointer; font-size: 20px; line-height: 1; }
+.drought-release-notice { margin: 0 12px 8px; padding: 7px 8px; border: 1px solid #b45309; border-left: 4px solid #b45309; border-radius: 4px; background: #fffbeb; color: #78350f; line-height: 1.35; }
 .drought-notice { margin: 9px 12px; padding: 7px 8px; color: #854d0e; background: #fef9c3; border: 1px solid #fde68a; border-radius: 4px; line-height: 1.35; }
 .drought-mode-controls { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; padding: 0 12px 8px; }
 .drought-mode-controls button { border: 1px solid #cbd5e1; border-radius: 4px; background: #f8fafc; color: #334155; cursor: pointer; padding: 6px 4px; }
@@ -76,6 +78,7 @@
 .drought-map-selection strong { color: #0f3d56; }
 .drought-map-selection span, .drought-map-selection small { display: block; }
 .drought-map-selection small { color: #64748b; }
+.drought-selection-announcement { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; }
 .drought-context-table { width: 100%; margin-top: 5px; border-collapse: collapse; font-size: 11px; text-align: left; }
 .drought-context-table th, .drought-context-table td { padding: 5px; vertical-align: top; border: 1px solid #bfdbfe; }
 .drought-context-table th { color: #0f3d56; background: #dbeafe; font-weight: 700; }
@@ -89,4 +92,14 @@
 .drought-row small { color: #64748b; }
 .drought-row em { grid-column: 1 / -1; color: #475569; font-style: normal; font-size: 11px; }
 .drought-footer { padding: 8px 12px; border-top: 1px solid #e2e8f0; color: #64748b; font-size: 11px; }
-@media (max-width: 700px) { #drought-dashboard { top: 8px; right: 8px; width: min(350px, calc(100% - 16px)); } .drought-legend ul { grid-template-columns: 1fr; } }
+.drought-table-link { display: inline-flex; align-items: center; min-height: 44px; color: #075985; font-weight: 700; }
+@media (max-width: 760px) {
+  #drought-dashboard { top: auto; right: 0; bottom: 0; width: 100%; max-height: 48%; border-radius: 10px 10px 0 0; }
+  .drought-heading { padding-top: 6px; }
+  .drought-heading strong { font-size: 14px; }
+  .drought-close { width: 44px; min-width: 44px; height: 44px; }
+  .drought-mode-controls button, .drought-spatial-control button, .drought-history-controls select { min-height: 44px; }
+  .drought-spatial-control { grid-template-columns: 1fr; }
+  .drought-spatial-control > div { justify-content: flex-start; flex-wrap: wrap; }
+  .drought-legend ul { grid-template-columns: 1fr; }
+}

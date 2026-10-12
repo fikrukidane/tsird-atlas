@@ -25,6 +25,7 @@ Exit code is 1 when --check is given and an enforced budget is exceeded.
 from __future__ import annotations
 
 import argparse
+import copy
 import datetime as dt
 import json
 import pathlib
@@ -152,6 +153,36 @@ def run_visit(page, cdp, acct, url: str, spec: dict, cache_state: str) -> dict:
             pass
     functional = {"attempted": False, "succeeded": False, "seconds": None, "note": None}
     check = spec.get("functional_check")
+    if check and check.get("click", {}).get("strategy") == "restored_public_selection":
+        functional["attempted"] = True
+        try:
+            ready_selector = check.get("ready_selector")
+            if ready_selector:
+                page.locator(ready_selector).wait_for(timeout=check.get("timeout_ms", 30000))
+            # Match the ordinary Stage 1 interaction metric: this is the
+            # response time after the map becomes actionable, not a duplicate
+            # navigation/transfer metric (which CDP already records above).
+            ready_at = page.evaluate("() => performance.now()")
+            success_selector = check.get("success_selector")
+            page.wait_for_function(
+                """selector => {
+                  const card = document.querySelector(selector);
+                  const panel = document.getElementById('drought-dashboard');
+                  const painted = performance.getEntriesByName('tsird-public-evidence-selection-ready').length > 0;
+                  return Boolean(card && panel && painted && !panel.classList.contains('is-hidden') && getComputedStyle(panel).display !== 'none');
+                }""",
+                arg=success_selector,
+                timeout=check.get("timeout_ms", 30000),
+                polling=50,
+            )
+            mark = page.evaluate("() => performance.getEntriesByName('tsird-public-evidence-selection-ready').at(-1)?.startTime || null")
+            if mark is None:
+                raise RuntimeError("restored selection did not emit its completion mark")
+            functional.update(succeeded=True, seconds=round(max(0, mark - ready_at) / 1000, 3),
+                              note=f"restored selection matched {success_selector!r}")
+        except Exception as exc:  # pragma: no cover - environment dependent
+            functional["note"] = f"{type(exc).__name__}: {str(exc)[:160]}"
+        check = None
     if check:
         functional["attempted"] = True
         try:
@@ -278,13 +309,24 @@ def run_visit(page, cdp, acct, url: str, spec: dict, cache_state: str) -> dict:
 
 
 def measure(budget: dict, page_key: str, profile_name: str, viewport_name: str,
-            base_url: str) -> dict:
+            base_url: str, path_override: str | None = None, restored_selection: bool = False) -> dict:
     from playwright.sync_api import sync_playwright
 
-    spec = budget["pages"][page_key]
+    spec = copy.deepcopy(budget["pages"][page_key])
+    if restored_selection:
+        spec["functional_check"] = {
+            "description": "Restore the Tabia evidence selection carried by the deep link.",
+            "ready_selector": "body[data-tsird-drought-geometry='ready']",
+            "click": {"strategy": "restored_public_selection"},
+            "success_selector": "[data-selected-tabia]",
+            "timeout_ms": 30000,
+        }
     profile = budget["network_profiles"][profile_name]
     viewport = budget["viewports"][viewport_name]
-    url = base_url.rstrip("/") + spec["path"]
+    path = path_override or spec["path"]
+    if not path.startswith("/"):
+        raise ValueError("--path must begin with /")
+    url = base_url.rstrip("/") + path
     with sync_playwright() as pw:
         browser = pw.chromium.launch()
         context = browser.new_context(
@@ -302,7 +344,7 @@ def measure(budget: dict, page_key: str, profile_name: str, viewport_name: str,
         browser_version = browser.version
         browser.close()
     return {
-        "page": page_key, "url": url,
+        "page": page_key, "path": path, "url": url,
         "environment": {
             "measured_at": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds"),
             "harness_version": HARNESS_VERSION, "git_commit": git_commit(),
@@ -362,6 +404,8 @@ def main(argv: list[str]) -> int:
     parser.add_argument("--budget", default=str(BUDGET_FILE))
     parser.add_argument("--base-url", default=None)
     parser.add_argument("--page", default="all")
+    parser.add_argument("--path", default=None, help="override one page path, including a deep-link query string")
+    parser.add_argument("--restored-selection", action="store_true", help="measure deep-link restoration instead of injecting a map click")
     parser.add_argument("--profile", default=None)
     parser.add_argument("--viewport", default=None)
     parser.add_argument("--runs", type=int, default=1, help="median of N cold runs")
@@ -376,6 +420,12 @@ def main(argv: list[str]) -> int:
     profile = args.profile or budget["default_profile"]
     viewport = args.viewport or budget["default_viewport"]
     pages = list(budget["pages"]) if args.page == "all" else [args.page]
+    if (args.path or args.restored_selection) and len(pages) != 1:
+        print("--path and --restored-selection require exactly one --page")
+        return 2
+    if args.restored_selection and not args.path:
+        print("--restored-selection requires --path")
+        return 2
     for key in pages:
         if key not in budget["pages"]:
             print(f"unknown page {key!r}; known: {list(budget['pages'])}")
@@ -400,7 +450,7 @@ def main(argv: list[str]) -> int:
 
     failures = 0
     for key in pages:
-        runs = [measure(budget, key, profile, viewport, base_url) for _ in range(max(1, args.runs))]
+        runs = [measure(budget, key, profile, viewport, base_url, args.path, args.restored_selection) for _ in range(max(1, args.runs))]
         result = runs[0]
         if len(runs) > 1:
             for field in ("total_kb", "application_kb", "critical_path_kb", "app_requests"):

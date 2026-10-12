@@ -42,6 +42,7 @@ class DroughtDashboard {
     this.fixtureRenderToken = 0;
     this.selectedId = null;
     this.observedArtifact = null;
+    this.observedArtifactRunId = null;
     this.observedRuns = [];
     this.observedSnapshotId = 'latest';
     this.preliminaryArtifact = null;
@@ -91,6 +92,11 @@ class DroughtDashboard {
     this.publicLoadPromises = {};
     this.publicEvidenceLayer = null;
     this.publicRasterLayer = null;
+    this.historicalIndicatorRows = {};
+    this.publicTableUrl = options.publicTableUrl || 'table/';
+    this.publicUrlState = this._readPublicUrlState();
+    this.publicReleaseSuperseded = false;
+    this.panelToggle = null;
   }
 
   async initialize() {
@@ -106,18 +112,30 @@ class DroughtDashboard {
     if (this.publicMode) {
       this.publicFreshness = Array.isArray(this.data.freshness) ? this.data.freshness : [];
       this.publicRelease = this.data.indicator_release || null;
+      this.publicReleaseSuperseded = Boolean(
+        this.publicUrlState.release && this.publicRelease &&
+        this.publicUrlState.release !== this.publicRelease.release_id
+      );
       // The versioned display geometry is required before a visitor can select
       // a Tabia. Expose that readiness explicitly for the performance check
       // and for diagnostic tooling; it is not a data-quality signal.
       document.body.dataset.tsirdDroughtGeometry = 'loading';
       // Render controls and current retained evidence before the versioned,
       // cacheable display geometry arrives. Redraw once it is ready.
-      await this._loadObservedArtifact();
+      const requestedMode = this._publicModeFromUrl(this.publicUrlState.indicator);
+      const requestedObservedRun = requestedMode === 'observed' &&
+        this.publicUrlState.month && this.publicUrlState.month !== 'latest'
+        ? this.publicUrlState.month : 'latest';
+      await this._loadObservedArtifact(requestedObservedRun);
       this._createBoundaryLayer();
       this._renderShell();
+      await this._restorePublicUrlState({ selectTabia: false });
       this._renderMode();
-      void this._loadPublicGeometry().then(() => {
-        if (this.publicMode) this._renderMode();
+      void this._loadPublicGeometry().then(async () => {
+        if (this.publicMode) {
+          this._renderMode();
+          await this._restorePublicUrlState({ selectTabia: true });
+        }
       });
     } else {
       await Promise.all([
@@ -138,6 +156,93 @@ class DroughtDashboard {
     const root = document.getElementById(this.containerId);
     if (!root) return;
     root.innerHTML = `<div class="drought-heading"><div><strong>${this.priorityOnly ? 'Retrospective Evidence Replay' : 'Drought intelligence'}</strong><span>Tigray · loading retained evidence</span></div></div><div class="drought-notice">Loading the approved retained evidence and map controls…</div>`;
+  }
+
+  _readPublicUrlState() {
+    if (typeof window === 'undefined') return {};
+    const params = new URLSearchParams(window.location.search);
+    return {
+      indicator: params.get('indicator') || '',
+      month: params.get('month') || 'latest',
+      tabia: params.get('tabia') || '',
+      release: params.get('release') || ''
+    };
+  }
+
+  _publicModeFromUrl(value) {
+    const modes = {
+      latest: 'observed', observed: 'observed', rapid: 'rapid', vegetation: 'vegetation',
+      soil_water: 'soilWater', 'soil-water': 'soilWater', thermal: 'thermal',
+      water_use: 'waterUse', 'crop-water-use': 'waterUse', history: 'history',
+      outlook: 'outlook', exposure: 'vulnerability'
+    };
+    return modes[value] || 'observed';
+  }
+
+  _publicUrlIndicator(mode = this.mode) {
+    return {
+      observed: 'observed', rapid: 'rapid', vegetation: 'vegetation', soilWater: 'soil_water',
+      thermal: 'thermal', waterUse: 'water_use', history: 'history', outlook: 'outlook',
+      vulnerability: 'exposure'
+    }[mode] || 'observed';
+  }
+
+  _publicUrlMonth() {
+    if (this.mode === 'observed') return this.observedSnapshotId || 'latest';
+    if (['vegetation', 'soilWater', 'thermal', 'waterUse'].includes(this.mode)) {
+      return this.indicatorSnapshots[this.mode] || 'latest';
+    }
+    return 'latest';
+  }
+
+  _publicUrl() {
+    const url = new URL(window.location.href);
+    url.searchParams.set('indicator', this._publicUrlIndicator());
+    url.searchParams.set('month', this._publicUrlMonth());
+    if (this.selectedId) url.searchParams.set('tabia', this.selectedId);
+    else url.searchParams.delete('tabia');
+    if (this.publicRelease && this.publicRelease.release_id) url.searchParams.set('release', this.publicRelease.release_id);
+    return url;
+  }
+
+  _syncPublicUrl() {
+    if (!this.publicMode || typeof history === 'undefined') return;
+    const url = this._publicUrl();
+    history.replaceState({ tsirdDrought: true }, '', `${url.pathname}${url.search}${url.hash}`);
+  }
+
+  _publicTableHref() {
+    if (!this.publicMode) return '';
+    const params = this._publicUrl().search;
+    return `${this.publicTableUrl}${params}`;
+  }
+
+  async _restorePublicUrlState({ selectTabia = false } = {}) {
+    if (!this.publicMode) return;
+    // First restore indicator and retained snapshot while the compact run
+    // indexes are loading.  Geometry resolves later, so selection restoration
+    // deliberately has its own pass.  Replaying all state twice used to make
+    // a month-pinned link issue duplicate observed-run requests.
+    if (!selectTabia) {
+      const requestedMode = this._publicModeFromUrl(this.publicUrlState.indicator);
+      if (requestedMode !== this.mode) await this._activateMode(requestedMode, { writeUrl: false });
+      if (this.mode === 'observed' && this.publicUrlState.month && this.publicUrlState.month !== 'latest') {
+        await this._loadObservedRuns();
+        if (this.observedRuns.some(run => run && run.run_id === this.publicUrlState.month)) {
+          await this._selectObservedSnapshot(this.publicUrlState.month, { writeUrl: false });
+        }
+      }
+      if (['vegetation', 'soilWater', 'thermal', 'waterUse'].includes(this.mode) &&
+          this.publicUrlState.month && this.publicUrlState.month !== 'latest' &&
+          this._indicatorRuns(this.mode).some(run => run && run.run_id === this.publicUrlState.month)) {
+        this.indicatorSnapshots[this.mode] = this.publicUrlState.month;
+        this._renderMode();
+      }
+    }
+    if (selectTabia && this.publicUrlState.tabia && this.publicGeometry.length) {
+      const feature = this.publicGeometry.find(item => item && item.properties && item.properties.tsird_tabia_id === this.publicUrlState.tabia);
+      if (feature) await this.selectBoundary({ type: 'tabia', id: this.publicUrlState.tabia, label: feature.properties.tabia_name_en || 'Selected Tabia' }, { writeUrl: false });
+    }
   }
 
   async _loadPriorityFoundation() {
@@ -271,6 +376,7 @@ class DroughtDashboard {
   }
 
   async _loadObservedArtifact(runId = 'latest') {
+    if (this.observedArtifactRunId === runId && this.observedArtifact && !this.observedArtifact.unavailable) return;
     try {
       const url = runId === 'latest'
         ? this.observedUrl
@@ -280,9 +386,16 @@ class DroughtDashboard {
       const artifact = await response.json();
       if (!Array.isArray(artifact.conditions) || !artifact.run) throw new Error('invalid observed artifact schema');
       this.observedArtifact = artifact;
+      this.observedArtifactRunId = runId;
     } catch (error) {
       console.error('[DroughtDashboard] Observed artifact unavailable:', error);
+      // A pasted or retired historical run must not leave the public workspace
+      // blank. Fall back to the current retained artifact; URL restoration
+      // will leave the month selector at "latest" and avoid rewriting the
+      // visitor's original link behind their back.
+      if (runId !== 'latest') return this._loadObservedArtifact('latest');
       this.observedArtifact = { unavailable: true, message: 'Current development rainfall artifact is unavailable.' };
+      this.observedArtifactRunId = null;
     }
   }
 
@@ -364,7 +477,7 @@ class DroughtDashboard {
     return load;
   }
 
-  async _activateMode(mode) {
+  async _activateMode(mode, { writeUrl = true } = {}) {
     this.mode = mode;
     if (this.publicMode) {
       const loaders = {
@@ -384,6 +497,7 @@ class DroughtDashboard {
       if (load) await load();
     }
     this._renderMode();
+    if (writeUrl) this._syncPublicUrl();
   }
 
   _validateData() {
@@ -482,7 +596,8 @@ class DroughtDashboard {
     close.type = 'button';
     close.textContent = '×';
     close.title = 'Hide drought intelligence';
-    close.addEventListener('click', () => root.classList.toggle('is-hidden'));
+    close.setAttribute('aria-label', 'Hide drought intelligence panel');
+    close.addEventListener('click', () => this._setPanelHidden(true));
     heading.appendChild(close);
     this.freshnessElement = heading.querySelector('.drought-freshness');
     root.appendChild(heading);
@@ -492,6 +607,12 @@ class DroughtDashboard {
     notice.textContent = this.data.geographic_note;
     this.notice = notice;
     root.appendChild(notice);
+    if (this.publicReleaseSuperseded) {
+      const releaseNotice = document.createElement('div');
+      releaseNotice.className = 'drought-release-notice';
+      releaseNotice.textContent = `This link refers to released evidence ${this.publicUrlState.release}, which has been superseded by ${this.publicRelease.release_id}. Use the current release shown here or obtain the archived release before relying on the values.`;
+      root.appendChild(releaseNotice);
+    }
 
     const controls = document.createElement('div');
     controls.className = 'drought-mode-controls';
@@ -520,6 +641,45 @@ class DroughtDashboard {
       ? (this.priorityReplays.length ? `${this.publicMode ? 'Approved' : 'Development'} retrospective replay · draft only; no forecast or publication` : `${this.publicMode ? 'Approved' : 'Development'} retrospective calibration review · no priority score or forecast`)
       : `${this.publicMode ? 'Approved retained-evidence workspace' : 'Development workspace'}${this.publicMode && this.publicRelease && this.publicRelease.activated_at ? ` · released ${String(this.publicRelease.activated_at).slice(0, 10)}` : ''} · no composite risk score`;
     root.appendChild(footer);
+    if (this.publicMode && !this.priorityOnly) {
+      const tableLink = document.createElement('a');
+      tableLink.className = 'drought-table-link';
+      tableLink.href = this._publicTableHref();
+      tableLink.textContent = 'Table view: all Tabias';
+      tableLink.setAttribute('aria-label', 'Table view: all Tabias — open accessible table view');
+      footer.appendChild(document.createElement('br'));
+      footer.appendChild(tableLink);
+    }
+    this._ensurePanelToggle();
+  }
+
+  _ensurePanelToggle() {
+    const root = document.getElementById(this.containerId);
+    const host = root && root.parentElement;
+    if (!root || !host) return;
+    let toggle = host.querySelector('[data-drought-panel-toggle]');
+    if (!toggle) {
+      toggle = document.createElement('button');
+      toggle.type = 'button';
+      toggle.className = 'drought-panel-toggle';
+      toggle.dataset.droughtPanelToggle = '';
+      toggle.textContent = 'Show evidence panel';
+      toggle.addEventListener('click', () => this._setPanelHidden(false));
+      host.appendChild(toggle);
+    }
+    this.panelToggle = toggle;
+    this._setPanelHidden(root.classList.contains('is-hidden'));
+  }
+
+  _setPanelHidden(hidden) {
+    const root = document.getElementById(this.containerId);
+    if (!root) return;
+    root.classList.toggle('is-hidden', hidden);
+    root.dataset.panelState = hidden ? 'collapsed' : 'expanded';
+    if (this.panelToggle) {
+      this.panelToggle.hidden = !hidden;
+      this.panelToggle.setAttribute('aria-expanded', String(!hidden));
+    }
   }
 
   _activeFreshnessKey() {
@@ -544,6 +704,8 @@ class DroughtDashboard {
 
   _renderMode() {
     if (this.freshnessElement) this.freshnessElement.textContent = this._publicFreshnessLabel();
+    const tableLink = document.querySelector('#drought-dashboard .drought-table-link');
+    if (tableLink) tableLink.href = this._publicTableHref();
     document.body.dataset.tsirdDroughtMode = this.mode;
     document.querySelectorAll('#drought-dashboard [data-mode]').forEach(button => {
       button.classList.toggle('is-active', button.dataset.mode === this.mode);
@@ -950,6 +1112,7 @@ class DroughtDashboard {
     control.querySelector('[data-indicator-snapshot]').addEventListener('change', event => {
       this.indicatorSnapshots[this.mode] = event.target.value;
       this._renderMode();
+      this._syncPublicUrl();
     });
     this.content.prepend(control);
   }
@@ -967,7 +1130,7 @@ class DroughtDashboard {
     }
     const retained = Number(quality.retained_tabias);
     const usable = Number(quality.usable_tabias);
-    this.content.innerHTML = `<div class="drought-mode-title"><strong>${names[0]}</strong><span>${names[1]} · retained historical evidence</span></div><div class="drought-source-meta"><span>Observation: ${String(run.observation_start).slice(0, 10)}</span><span>Native resolution: ${run.native_resolution || 'not recorded'}</span><span>Usable: ${Number.isFinite(usable) && Number.isFinite(retained) ? `${usable}/${retained}` : 'not recorded'}</span><span>Status: ${run.status || 'not recorded'}</span></div><div class="drought-map-instruction">This is a retained Tabia-average observation. It does not reconstruct a native raster, interpolate a missing period, or create a drought, food-security, or priority classification.</div><div class="drought-map-selection" data-indicator-selection>Select a coloured Tabia to inspect this retained observation.</div>`;
+    this.content.innerHTML = `<div class="drought-mode-title"><strong>${names[0]}</strong><span>${names[1]} · retained historical evidence</span></div><div class="drought-source-meta"><span>Observation: ${String(run.observation_start).slice(0, 10)}</span><span>Native resolution: ${run.native_resolution || 'not recorded'}</span><span>Usable: ${Number.isFinite(usable) && Number.isFinite(retained) ? `${usable}/${retained}` : 'not recorded'}</span><span>Status: ${run.status || 'not recorded'}</span></div><div class="drought-map-instruction">This is a retained Tabia-average observation. It does not reconstruct a native raster, interpolate a missing period, or create a drought, food-security, or priority classification.</div><div class="drought-selection-announcement" data-public-evidence-announcement aria-live="polite" aria-atomic="true"></div><div class="drought-map-selection" data-indicator-selection>Select a coloured Tabia to inspect this retained observation.</div>`;
   }
 
   async _showHistoricalIndicatorMap(kind, run) {
@@ -975,11 +1138,10 @@ class DroughtDashboard {
     if (!layer) return;
     const token = ++this.indicatorMapToken;
     try {
-      const response = await fetch(`${this.evidenceBaseUrl}/${kind}/runs/${encodeURIComponent(run.run_id)}/features`, { cache: 'no-store' });
-      const collection = await response.json();
-      if (!response.ok || !Array.isArray(collection.features)) throw new Error('historical indicator snapshot unavailable');
+      const rows = await this._loadHistoricalIndicatorRows(kind, run);
+      await this._loadPublicGeometry();
       if (token !== this.indicatorMapToken || !this._historicalIndicatorRun() || this._historicalIndicatorRun().run_id !== run.run_id) return;
-      const features = new ol.format.GeoJSON().readFeatures(collection, {
+      const features = new ol.format.GeoJSON().readFeatures(this._publicHistoricalFeatureCollection(rows), {
         dataProjection: 'EPSG:4326', featureProjection: this.map.getView().getProjection()
       });
       features.forEach(feature => feature.setProperties({ droughtIndicator: kind, droughtHistoricalIndicator: true }));
@@ -995,6 +1157,33 @@ class DroughtDashboard {
         if (target) target.textContent = 'This retained Tabia snapshot is unavailable.';
       }
     }
+  }
+
+  _historicalIndicatorCacheKey(kind, runId) {
+    return `${kind}:${runId}`;
+  }
+
+  async _loadHistoricalIndicatorRows(kind, run) {
+    const key = this._historicalIndicatorCacheKey(kind, run.run_id);
+    if (Array.isArray(this.historicalIndicatorRows[key])) return this.historicalIndicatorRows[key];
+    const response = await fetch(`${this.evidenceBaseUrl}/${kind}/runs/${encodeURIComponent(run.run_id)}/summary`, { cache: 'no-store' });
+    const payload = await response.json();
+    if (!response.ok || !Array.isArray(payload.summaries)) throw new Error('historical indicator snapshot unavailable');
+    this.historicalIndicatorRows[key] = payload.summaries;
+    if (this.selectedId) this._showPublicEvidenceSelection(this._publicEvidenceForTabia(this.selectedId));
+    return this.historicalIndicatorRows[key];
+  }
+
+  _publicHistoricalFeatureCollection(rows) {
+    const byTabia = new Map((rows || []).filter(row => row && row.tsird_tabia_id).map(row => [row.tsird_tabia_id, row]));
+    return {
+      type: 'FeatureCollection',
+      features: this.publicGeometry.map(feature => ({
+        type: 'Feature',
+        geometry: feature.geometry,
+        properties: { ...(feature.properties || {}), ...(byTabia.get(feature.properties && feature.properties.tsird_tabia_id) || {}) }
+      }))
+    };
   }
 
   _renderSpatialControl() {
@@ -1376,6 +1565,16 @@ class DroughtDashboard {
     const fineNdviColors = ['#a50026', '#d73027', '#f46d43', '#fdae61', '#fee08b', '#d9ef8b', '#a6d96a', '#66bd63', '#1a9850', '#006837'];
     const fineSwiColors = ['#b2182b', '#d6604d', '#f4a582', '#fddbc7', '#f7f7f7', '#d1e5f0', '#92c5de', '#4393c3', '#2166ac', '#053061'];
     const fineLstColors = ['#053061', '#2166ac', '#4393c3', '#92c5de', '#d1e5f0', '#fee08b', '#fdae61', '#f46d43', '#d6302b', '#a50026'];
+    // Eight evenly spaced, lightness-ordered colours distinguish the public
+    // Tabia evidence classes for visitors with common red--green deficiencies.
+    // Native rasters retain their source-faithful ten-class ramps.
+    const publicEvidenceColors = ['#440154', '#472d7b', '#3b528b', '#2c728e', '#21918c', '#27ad81', '#5ec962', '#fde725'];
+    const publicEvidenceBands = {
+      vegetation: fineBands('NDVI', [0.15, 0.25, 0.35, 0.45, 0.55, 0.65, 0.75], publicEvidenceColors, '', 'Tabia-average value'),
+      soilWater: fineBands('SWI-040', [15, 25, 35, 45, 55, 65, 75], publicEvidenceColors, '%', 'Tabia-average value'),
+      thermal: fineBands('LST', [15, 20, 25, 30, 35, 40, 45], publicEvidenceColors, ' °C', 'Tabia-average value'),
+      waterUse: fineBands('T', [0.5, 1, 1.5, 2, 2.5, 3, 3.5], publicEvidenceColors, ' mm/day', 'Tabia-average magnitude')
+    };
     const fineSeasonalRainfallBands = fineBands('', [50, 100, 150, 200, 250, 300, 350, 400, 450], fineRainColors, ' mm', 'native seasonal total');
     const fineRapidRainfallBands = fineBands('', [50, 100, 150, 200, 250, 300, 350, 400, 450], fineRainColors, ' mm', 'native preliminary total');
     const fineNdviBands = fineBands('NDVI', [0.10, 0.20, 0.30, 0.40, 0.50, 0.60, 0.70, 0.80, 0.90], fineNdviColors, '', 'native grid value');
@@ -1427,23 +1626,23 @@ class DroughtDashboard {
       },
       vegetation: {
         title: 'Map legend · vegetation condition',
-        note: this.spatialViews.vegetation === 'raw' ? 'Ten fixed NDVI bands preserve the retained 300 m grid. They indicate greenness values, not drought severity or priority.' : 'Copernicus NDVI v3 mean, zonally summarized from the retained 300 m raster. It uses the same ten fixed NDVI bands and colours as the native grid.',
-        items: fineNdviBands
+        note: this.spatialViews.vegetation === 'raw' ? 'Ten fixed NDVI bands preserve the retained 300 m grid. They indicate greenness values, not drought severity or priority.' : this.publicMode ? 'Copernicus NDVI v3 Tabia mean. Eight colour-vision-safe value bands support the released display; this is not a drought-severity or priority scale.' : 'Copernicus NDVI v3 mean, zonally summarized from the retained 300 m raster. It uses the same ten fixed NDVI bands and colours as the native grid.',
+        items: this.publicMode && this.spatialViews.vegetation !== 'raw' ? publicEvidenceBands.vegetation : fineNdviBands
       },
       soilWater: {
         title: 'Map legend · soil-water context',
-        note: this.spatialViews.soilWater === 'raw' ? 'Ten fixed SWI-040 bands preserve the roughly 12.5 km grid. They indicate index values, not drought priority.' : 'Copernicus SWI-040 mean, zonally summarized from a roughly 12.5 km grid. It uses the same ten SWI-040 bands and colours as the native grid, but remains coarse context.',
-        items: fineSwiBands
+        note: this.spatialViews.soilWater === 'raw' ? 'Ten fixed SWI-040 bands preserve the roughly 12.5 km grid. They indicate index values, not drought priority.' : this.publicMode ? 'Copernicus SWI-040 Tabia mean. Eight colour-vision-safe value bands support the released display; the source remains coarse context.' : 'Copernicus SWI-040 mean, zonally summarized from a roughly 12.5 km grid. It uses the same ten SWI-040 bands and colours as the native grid, but remains coarse context.',
+        items: this.publicMode && this.spatialViews.soilWater !== 'raw' ? publicEvidenceBands.soilWater : fineSwiBands
       },
       thermal: {
         title: 'Map legend · thermal context',
-        note: this.spatialViews.thermal === 'raw' ? 'Ten fixed land-surface-temperature bands preserve the approximately 5 km grid. They are not air temperature or a drought-priority scale.' : 'Copernicus land-surface-temperature mean, summarized from an approximately 5 km raster. It uses the same ten temperature bands and colours as the native grid; it is not air temperature or a drought class.',
-        items: fineLstBands
+        note: this.spatialViews.thermal === 'raw' ? 'Ten fixed land-surface-temperature bands preserve the approximately 5 km grid. They are not air temperature or a drought-priority scale.' : this.publicMode ? 'Copernicus land-surface-temperature Tabia mean. Eight colour-vision-safe value bands support the released display; it is not air temperature or a drought class.' : 'Copernicus land-surface-temperature mean, summarized from an approximately 5 km raster. It uses the same ten temperature bands and colours as the native grid; it is not air temperature or a drought class.',
+        items: this.publicMode && this.spatialViews.thermal !== 'raw' ? publicEvidenceBands.thermal : fineLstBands
       },
       waterUse: {
         title: 'Map legend · agricultural water use',
-        note: this.spatialViews.waterUse === 'raw' ? 'FAO WaPOR v3 Level 2 dekadal transpiration, retained at its approximately 100 m native grid. The composite is expressed as a daily mean (mm/day). Ten fixed magnitude bands do not represent crop yield, drought severity, food insecurity, or priority.' : 'FAO WaPOR v3 Level 2 dekadal transpiration daily mean, summarized per Tabia from the approximately 100 m retained raster. It uses the same ten fixed mm/day bands as the native grid. AETI is available as supporting detail and includes evaporation/interception.',
-        items: fineBands('T', [0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 5], fineRainColors, ' mm/day', 'vegetation water-use magnitude')
+        note: this.spatialViews.waterUse === 'raw' ? 'FAO WaPOR v3 Level 2 dekadal transpiration, retained at its approximately 100 m native grid. The composite is expressed as a daily mean (mm/day). Ten fixed magnitude bands do not represent crop yield, drought severity, food insecurity, or priority.' : this.publicMode ? 'FAO WaPOR v3 Tabia transpiration mean. Eight colour-vision-safe magnitude bands support the released display; AETI remains supporting detail.' : 'FAO WaPOR v3 Level 2 dekadal transpiration daily mean, summarized per Tabia from the approximately 100 m retained raster. It uses the same ten fixed mm/day bands as the native grid. AETI is available as supporting detail and includes evaporation/interception.',
+        items: this.publicMode && this.spatialViews.waterUse !== 'raw' ? publicEvidenceBands.waterUse : fineBands('T', [0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 5], fineRainColors, ' mm/day', 'vegetation water-use magnitude')
       },
       history: {
         title: this.historyCompareSnapshot !== 'off' ? 'Map legend · measured change between snapshots' : 'Map legend · history map context',
@@ -1767,11 +1966,12 @@ class DroughtDashboard {
     return colors[index === -1 ? colors.length - 1 : index];
   }
 
-  async _selectObservedSnapshot(runId) {
+  async _selectObservedSnapshot(runId, { writeUrl = true } = {}) {
     this.observedSnapshotId = runId;
     if (runId !== 'latest') this.spatialViews.observed = 'tabia';
     await this._loadObservedArtifact(runId);
     if (this.mode === 'observed') this._renderMode();
+    if (writeUrl) this._syncPublicUrl();
   }
 
   async _showHistoricalObservedMap() {
@@ -1779,11 +1979,11 @@ class DroughtDashboard {
     const runId = this.observedSnapshotId;
     const token = ++this.fixtureRenderToken;
     try {
-      const response = await fetch(`${this.observedRunBaseUrl}/${encodeURIComponent(runId)}/features`, { cache: 'no-store' });
-      const featureCollection = await response.json();
-      if (!response.ok || !Array.isArray(featureCollection.features)) throw new Error('invalid historical rainfall GeoJSON');
+      await this._loadPublicGeometry();
+      const rows = this.observedArtifact && this.observedArtifact.conditions;
+      if (!Array.isArray(rows)) throw new Error('historical rainfall snapshot is unavailable');
       if (token !== this.fixtureRenderToken || this.mode !== 'observed' || this.observedSnapshotId !== runId) return;
-      const features = new ol.format.GeoJSON().readFeatures(featureCollection, {
+      const features = new ol.format.GeoJSON().readFeatures(this._publicHistoricalFeatureCollection(rows), {
         dataProjection: 'EPSG:4326', featureProjection: this.map.getView().getProjection()
       });
       features.forEach(feature => {
@@ -1869,7 +2069,7 @@ class DroughtDashboard {
     this.selectBoundary(area[this.mode].boundary);
   }
 
-  async selectBoundary(boundary) {
+  async selectBoundary(boundary, { writeUrl = true } = {}) {
     this.selectedId = boundary.id;
     if (boundary.type === 'tabia') {
       this.historyTabiaId = boundary.id;
@@ -1891,6 +2091,7 @@ class DroughtDashboard {
       if (releasedFeature && releasedFeature.geometry) {
         this._showBoundary({ geometry: releasedFeature.geometry }, boundary.type);
         this._showPublicEvidenceSelection(this._publicEvidenceForTabia(boundary.id, releasedFeature.properties));
+        if (writeUrl) this._syncPublicUrl();
         return;
       }
       if (this.publicMode && boundary.type === 'tabia') {
@@ -1903,6 +2104,7 @@ class DroughtDashboard {
       const response = await fetch(`${this.boundaryUrl}/${boundary.type}/${boundary.id}`, { cache: 'no-store' });
       if (!response.ok) throw new Error(`boundary lookup returned ${response.status}`);
       this._showBoundary(await response.json(), boundary.type);
+      if (writeUrl) this._syncPublicUrl();
     } catch (error) {
       console.error('[DroughtDashboard] Boundary selection failed:', error);
       this._showSelectionError(`Boundary unavailable for ${boundary.label}.`);
@@ -1980,6 +2182,11 @@ class DroughtDashboard {
   }
 
   _publicEvidenceRows() {
+    const historicalRun = this._historicalIndicatorRun();
+    if (historicalRun) {
+      const kind = this._indicatorKindForMode();
+      return this.historicalIndicatorRows[this._historicalIndicatorCacheKey(kind, historicalRun.run_id)] || [];
+    }
     const artifact = {
       observed: this.observedArtifact && this.observedArtifact.conditions,
       rapid: this.preliminaryArtifact && this.preliminaryArtifact.summaries,
@@ -1997,6 +2204,12 @@ class DroughtDashboard {
 
   _appendPublicEvidenceSelection() {
     if (!this.publicMode || !['observed', 'rapid', 'vegetation', 'soilWater', 'thermal', 'waterUse'].includes(this.mode)) return;
+    const announcement = document.createElement('div');
+    announcement.className = 'drought-selection-announcement';
+    announcement.dataset.publicEvidenceAnnouncement = '';
+    announcement.setAttribute('aria-live', 'polite');
+    announcement.setAttribute('aria-atomic', 'true');
+    this.content.appendChild(announcement);
     const target = document.createElement('div');
     target.className = 'drought-map-selection';
     target.dataset.publicEvidenceSelection = '';
@@ -2007,12 +2220,12 @@ class DroughtDashboard {
   }
 
   _showPublicEvidenceSelection(value) {
-    const target = this.content && this.content.querySelector('[data-public-evidence-selection]');
+    const target = this.content && this.content.querySelector('[data-public-evidence-selection], [data-indicator-selection]');
     if (!target || !value) return;
     // On narrow screens the user may hide the evidence panel to reach the
     // map. A selected Tabia must bring it back so the result is not hidden.
     const root = document.getElementById(this.containerId);
-    if (root) root.classList.remove('is-hidden');
+    if (root) this._setPanelHidden(false);
     // A real selection gets a stable, machine-readable marker. This lets the
     // performance gate distinguish evidence shown for a clicked Tabia from
     // explanatory text that happens to mention the same terms.
@@ -2038,7 +2251,19 @@ class DroughtDashboard {
       thermal: 'Retained land-surface-temperature zonal mean; it is not an air-temperature observation or drought class.',
       waterUse: 'Retained WaPOR zonal mean; it is vegetation water-use context, not crop extent, yield, or food-security status.'
     };
-    target.innerHTML = `<strong>Tabia detail · ${title}</strong><span>${summaries[this.mode] || 'Approved evidence value unavailable'}</span><small>Coverage ${coverage} · quality ${quality}. ${descriptions[this.mode] || ''}</small>`;
+    const summary = summaries[this.mode] || 'Approved evidence value unavailable';
+    target.innerHTML = `<strong>Tabia detail · ${title}</strong><span>${summary}</span><small>Coverage ${coverage} · quality ${quality}. ${descriptions[this.mode] || ''}</small>`;
+    // This shared marker covers both a user click and an already-selected
+    // Tabia restored from a deep link. It gives the performance harness a
+    // paint-aware, evidence-specific completion signal.
+    performance.clearMarks('tsird-public-evidence-selection-ready');
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      performance.mark('tsird-public-evidence-selection-ready');
+    }));
+    // Keep selection visible without stealing focus from a deep link on load.
+    // The independent live region announces user-visible evidence once.
+    const announcement = this.content && this.content.querySelector('[data-public-evidence-announcement]');
+    if (announcement) announcement.textContent = `${title}. ${summary}. Coverage ${coverage}; quality ${quality}.`;
   }
 
   _publicEvidenceValue(row) {
@@ -2049,18 +2274,47 @@ class DroughtDashboard {
   _publicEvidenceColour(value, quality) {
     if (quality !== 'ok' || !Number.isFinite(value)) return '#94a3b8';
     if (this.mode === 'observed' || this.mode === 'rapid') return this._historicalRainfallColour(value, quality);
-    const scales = {
-      vegetation: [[0.1, '#a50026'], [0.2, '#d73027'], [0.3, '#f46d43'], [0.4, '#fdae61'], [0.5, '#fee08b'], [0.6, '#d9ef8b'], [0.7, '#a6d96a'], [0.8, '#66bd63'], [0.9, '#1a9850'], [Infinity, '#006837']],
-      soilWater: [[10, '#b2182b'], [20, '#d6604d'], [30, '#f4a582'], [40, '#fddbc7'], [50, '#f7f7f7'], [60, '#d1e5f0'], [70, '#92c5de'], [80, '#4393c3'], [90, '#2166ac'], [Infinity, '#053061']],
-      thermal: [[15, '#053061'], [20, '#2166ac'], [25, '#4393c3'], [30, '#92c5de'], [35, '#d1e5f0'], [40, '#fee08b'], [45, '#fdae61'], [50, '#f46d43'], [55, '#d6302b'], [Infinity, '#a50026']],
-      waterUse: [[0.5, '#fff7bc'], [1, '#fee391'], [1.5, '#fec44f'], [2, '#fe9929'], [2.5, '#ec7014'], [3, '#cc4c02'], [3.5, '#993404'], [4, '#662506'], [5, '#471908'], [Infinity, '#2d1208']]
-    };
-    return (scales[this.mode] || [[Infinity, '#94a3b8']]).find(item => value < item[0])[1];
+    // These ramps avoid the red--green distinction that disappears for many
+    // visitors. Value labels in the legend remain the primary encoding.
+    const colours = ['#440154', '#472d7b', '#3b528b', '#2c728e', '#21918c', '#27ad81', '#5ec962', '#fde725'];
+    const thresholds = {
+      vegetation: [0.15, 0.25, 0.35, 0.45, 0.55, 0.65, 0.75],
+      soilWater: [15, 25, 35, 45, 55, 65, 75],
+      thermal: [15, 20, 25, 30, 35, 40, 45],
+      waterUse: [0.5, 1, 1.5, 2, 2.5, 3, 3.5]
+    }[this.mode];
+    if (!thresholds) return '#94a3b8';
+    const index = thresholds.findIndex(threshold => value < threshold);
+    return colours[index === -1 ? colours.length - 1 : index];
   }
 
   _publicEvidenceStyle(feature) {
+    const insufficient = feature.get('quality_status') !== 'ok' || !Number.isFinite(Number(feature.get('publicEvidenceValue')));
     const colour = this._publicEvidenceColour(Number(feature.get('publicEvidenceValue')), feature.get('quality_status'));
-    return new ol.style.Style({ fill: new ol.style.Fill({ color: `${colour}cc` }), stroke: new ol.style.Stroke({ color: '#ffffff', width: 0.55 }) });
+    return new ol.style.Style({
+      fill: new ol.style.Fill({ color: insufficient ? this._publicInsufficientPattern() : `${colour}cc` }),
+      stroke: new ol.style.Stroke({ color: insufficient ? '#334155' : '#ffffff', width: insufficient ? 1.2 : 0.55, lineDash: insufficient ? [3, 2] : undefined })
+    });
+  }
+
+  _publicInsufficientPattern() {
+    if (this._insufficientEvidencePattern) return this._insufficientEvidencePattern;
+    const canvas = document.createElement('canvas');
+    canvas.width = 8;
+    canvas.height = 8;
+    const context = canvas.getContext('2d');
+    context.fillStyle = '#dbe3ee';
+    context.fillRect(0, 0, 8, 8);
+    context.strokeStyle = '#64748b';
+    context.lineWidth = 1.4;
+    context.beginPath();
+    context.moveTo(-2, 8);
+    context.lineTo(8, -2);
+    context.moveTo(2, 10);
+    context.lineTo(10, 2);
+    context.stroke();
+    this._insufficientEvidencePattern = context.createPattern(canvas, 'repeat');
+    return this._insufficientEvidencePattern;
   }
 
   _setPublicEvidenceLayer(activeLayerId) {

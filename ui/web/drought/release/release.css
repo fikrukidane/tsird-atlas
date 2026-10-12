@@ -3,10 +3,11 @@ body.drought-release-page { margin: 0; background: #101315; color: #e8edf2; font
 .release-header { min-height: 48px; display: flex; justify-content: space-between; align-items: center; gap: 18px; padding: 0 16px; border-bottom: 1px solid #2c3943; background: #151a1e; }
 .release-header strong { display: block; color: #71a9ff; font-size: 16px; }
 .release-header span { color: #aab8c5; font-size: 12px; }
-.release-header a { color: #9cc7ff; margin-left: 14px; text-decoration: none; }
+.release-header a { display: inline-flex; align-items: center; min-width: 44px; min-height: 44px; color: #9cc7ff; margin-left: 14px; text-decoration: none; }
 .release-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(330px, 390px); min-height: calc(100vh - 49px); }
 .release-map-wrap { min-height: 620px; position: relative; }
 .release-map { position: absolute; inset: 0; }
+.release-map-wrap .ol-control button { min-width: 44px; min-height: 44px; }
 .release-disclaimer { position: absolute; left: 12px; bottom: 12px; max-width: 560px; z-index: 2; padding: 7px 9px; color: #fce7a0; background: rgba(33, 29, 8, .92); border: 1px solid #756426; font-size: 12px; }
 .release-panel { overflow: auto; padding: 14px; border-left: 1px solid #2c3943; background: #151a1e; }
 .release-panel h1 { margin: 0 0 5px; font-size: 17px; color: #d8ecff; }
@@ -28,4 +29,5 @@ body.drought-release-page { margin: 0; background: #101315; color: #e8edf2; font
 .release-detail dt { color: #9eb2c1; }
 .release-detail dd { margin: 0; color: #e8edf2; }
 .release-assets { font-size: 12px; padding-left: 18px; color: #c4d0db; }
+.release-toggle button { min-height: 44px; }
 @media (max-width: 860px) { .release-layout { grid-template-columns: 1fr; } .release-map-wrap { min-height: 55vh; } .release-panel { border-left: 0; border-top: 1px solid #2c3943; } }

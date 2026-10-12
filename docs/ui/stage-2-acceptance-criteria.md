@@ -1,6 +1,6 @@
 # Public workspace Stage 2 acceptance criteria
 
-Status: **proposed gate, written before implementation.** Nothing in this
+Status: **acceptance gate, written before implementation.** Nothing in this
 document changes the site. It defines what "Stage 2 passed" means, so that the
 work can be accepted or rejected on measurement rather than on impression.
 
@@ -154,6 +154,28 @@ why C10 forbids it from pulling the map stack back in through the side door.
 
 A criterion that the harness cannot read out of the DOM is recorded as a manual
 check with a named observation, not silently dropped.
+
+### Two-step release acceptance
+
+A successful isolated-stage run certifies the candidate implementation only;
+it is **not** a statement about the public site. Every archived run records the
+harness, Playwright and Chromium versions so a later rerun remains comparable.
+
+Stage 2 is accepted only after both steps below pass and their JSON records are
+committed with the release evidence:
+
+1. **Staging certification:** run the usability gate and the Stage 1
+   performance gate against the isolated candidate stack, with archives labelled
+   `stage2`. The stage carries the two retained historical fixtures required to
+   exercise month-pinned links.
+2. **Production certification:** after deployment, rerun both gates against
+   `https://lab.tigrayinsights.net`, with archives labelled `production`. This
+   run must include a month-pinned deep link as well as the bare workspace, so
+   B2 and B6 are measured on the real public route rather than inferred from
+   staging.
+
+No staging result may be presented as a production measurement, and a release
+without the second record remains staging-certified only.
 
 ## Decisions, 12 October 2026
 

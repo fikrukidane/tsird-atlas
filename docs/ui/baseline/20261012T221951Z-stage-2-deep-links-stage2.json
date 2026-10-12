@@ -1,0 +1,41 @@
+{
+  "base_url": "http://tsird-edge-stage2:8080",
+  "label": "stage2",
+  "toolchain": {
+    "harness_version": "tsird-public-deep-link-check/v1",
+    "playwright_version": "1.52.0",
+    "chromium_version": "136.0.7103.25"
+  },
+  "fixtures": {
+    "observed_run": "chirps-v3-2026-7-baseline-1991-2020",
+    "ndvi_run": "cdse-clms-ndvi-v3-20260821T000000Z",
+    "tabia_id": "tsird-tabia-v1-827a5816dcf85be8ece0d93a85d1f560"
+  },
+  "results": [
+    {
+      "name": "observed historical restore",
+      "url": "http://tsird-edge-stage2:8080/map/drought/?tabia=tsird-tabia-v1-827a5816dcf85be8ece0d93a85d1f560&release=2026-10-12T045350Z-indicators&indicator=rainfall&month=chirps-v3-2026-7-baseline-1991-2020",
+      "passed": true
+    },
+    {
+      "name": "NDVI historical restore",
+      "url": "http://tsird-edge-stage2:8080/map/drought/?tabia=tsird-tabia-v1-827a5816dcf85be8ece0d93a85d1f560&release=2026-10-12T045350Z-indicators&indicator=vegetation&month=cdse-clms-ndvi-v3-20260821T000000Z",
+      "passed": true
+    },
+    {
+      "name": "unknown run falls back",
+      "url": "http://tsird-edge-stage2:8080/map/drought/?tabia=tsird-tabia-v1-827a5816dcf85be8ece0d93a85d1f560&release=2026-10-12T045350Z-indicators&indicator=rainfall&month=not-a-retained-run",
+      "passed": true
+    },
+    {
+      "name": "stale release is explicit",
+      "url": "http://tsird-edge-stage2:8080/map/drought/?tabia=tsird-tabia-v1-827a5816dcf85be8ece0d93a85d1f560&release=superseded-fixture&indicator=rainfall&month=chirps-v3-2026-7-baseline-1991-2020",
+      "passed": true
+    },
+    {
+      "name": "table shares historical parameters",
+      "url": "http://tsird-edge-stage2:8080/map/drought/table/?tabia=tsird-tabia-v1-827a5816dcf85be8ece0d93a85d1f560&release=2026-10-12T045350Z-indicators&indicator=rainfall&month=chirps-v3-2026-7-baseline-1991-2020",
+      "passed": true
+    }
+  ]
+}

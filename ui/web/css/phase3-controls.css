@@ -107,10 +107,26 @@
   border-color: #1565c0;
 }
 
+@media (max-width: 760px) {
+  .tsird-phase3-toolbar { top: 8px; left: 8px; right: 8px; gap: 4px; }
+  .tsird-search-widget { flex: 1 1 auto; width: auto; max-width: none; min-width: 0; }
+  .tsird-search-input, .tsird-toolbar-btn { min-height: 44px; font-size: 14px; }
+  .ol-zoom { top: 64px; }
+  .ol-zoom button { min-width: 44px; min-height: 44px; font-size: 20px; }
+}
+
 /* ── Native OL zoom control — pushed below the Phase 3 toolbar ── */
 .ol-zoom {
   top: 56px;
   left: 8px;
+}
+
+/* This comes after the desktop OpenLayers rule above so mobile controls are
+   not silently reduced again by source order. */
+@media (max-width: 760px) {
+  #map .ol-control button, #map input { min-width: 44px; min-height: 44px; }
+  #map .ol-attribution button { min-width: 44px; min-height: 44px; }
+  .ol-zoom { top: 64px; }
 }
 
 /* ═══════════════════════════════════════════════════════

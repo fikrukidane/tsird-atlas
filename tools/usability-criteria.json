@@ -1,0 +1,28 @@
+{
+  "schema_version": "tsird-public-usability/v1",
+  "stage": "stage-2",
+  "base_url": "https://lab.tigrayinsights.net",
+  "viewports": {
+    "phone-360": { "width": 360, "height": 740, "mode": "enforce" },
+    "phone-390": { "width": 390, "height": 844, "mode": "enforce" },
+    "phone-320": { "width": 320, "height": 568, "mode": "record" }
+  },
+  "routes": [
+    "/map/drought/",
+    "/map/drought/table/",
+    "/map/drought/release/",
+    "/map/drought/priority/",
+    "/map/drought/priority/model/",
+    "/map/drought/priority/scenario/",
+    "/map/"
+  ],
+  "criteria": {
+    "horizontal_overflow_px": { "target": 1, "mode": "enforce" },
+    "header_height_px": { "target": 96, "mode": "enforce" },
+    "title_lines": { "target": 2, "mode": "enforce" },
+    "touch_target_px": { "target": 44, "mode": "enforce" },
+    "panel_visible_map_ratio": { "target": 0.45, "mode": "enforce" },
+    "table_forbidden_hosts": ["cdn.jsdelivr.net", "tile.openstreetmap.org", "a.tile.openstreetmap.org", "b.tile.openstreetmap.org", "c.tile.openstreetmap.org"],
+    "table_forbidden_path_fragments": ["/ol@", "/ol.js"]
+  }
+}
