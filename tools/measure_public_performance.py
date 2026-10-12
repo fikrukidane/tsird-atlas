@@ -28,13 +28,14 @@ import argparse
 import copy
 import datetime as dt
 import json
+import os
 import pathlib
 import statistics
 import subprocess
 import sys
 from urllib.parse import urlparse
 
-HARNESS_VERSION = "1.1.0"
+HARNESS_VERSION = "1.2.0"
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 BUDGET_FILE = ROOT / "tools" / "performance-budget.json"
 ARCHIVE_DIR = ROOT / "docs" / "performance" / "baseline"
@@ -45,6 +46,9 @@ def load_budget(path: pathlib.Path) -> dict:
 
 
 def git_commit() -> str:
+    supplied = os.environ.get("TSIRD_GIT_COMMIT", "").strip()
+    if supplied:
+        return supplied
     try:
         out = subprocess.run(["git", "rev-parse", "--short", "HEAD"], cwd=ROOT,
                              capture_output=True, text=True, timeout=10)
@@ -140,10 +144,48 @@ def cdp_timestamp(cdp) -> float | None:
         return None
 
 
+def install_restored_selection_probe(page) -> None:
+    """Record a deep-link selection at the moment the page creates it.
+
+    The script is installed before navigation.  Looking for the selected card
+    only after the dashboard reports itself ready can make a completed restore
+    appear to take zero seconds, which is not a navigation-start measurement.
+    """
+    page.add_init_script("""() => {
+      const key = '__tsirdRestoredSelectionAt';
+      const markName = 'tsird-public-restored-selection-observed';
+      let observer;
+      const record = () => {
+        if (Number.isFinite(window[key])) return;
+        const card = document.querySelector('[data-selected-tabia]');
+        const panel = document.getElementById('drought-dashboard');
+        if (!card || !panel || panel.classList.contains('is-hidden') ||
+            getComputedStyle(panel).display === 'none') return;
+        window[key] = performance.now();
+        performance.mark(markName);
+        if (observer) observer.disconnect();
+      };
+      observer = new MutationObserver(record);
+      observer.observe(document, {
+        subtree: true,
+        childList: true,
+        attributes: true,
+        attributeFilter: ['data-selected-tabia', 'class'],
+      });
+      document.addEventListener('DOMContentLoaded', record, { once: true });
+    }""")
+
+
 def run_visit(page, cdp, acct, url: str, spec: dict, cache_state: str) -> dict:
     """Load one page and, when configured, time the functional check."""
     started = page.evaluate("() => performance.timeOrigin + performance.now()") if cache_state == "repeat" else None
     page.goto(url, wait_until="commit", timeout=120000)
+    # CDP network completion timestamps use a monotonic clock, whereas the
+    # page records its selection with performance.now().  An anchor in the
+    # newly committed document maps the pre-armed selection event into CDP's
+    # clock without delaying the cutoff until the harness polls it.
+    clock_anchor_browser = page.evaluate("() => performance.now()")
+    clock_anchor_cdp = cdp_timestamp(cdp)
     ready = spec.get("ready_signal") or {}
     if ready.get("text"):
         try:
@@ -156,30 +198,32 @@ def run_visit(page, cdp, acct, url: str, spec: dict, cache_state: str) -> dict:
     if check and check.get("click", {}).get("strategy") == "restored_public_selection":
         functional["attempted"] = True
         try:
-            ready_selector = check.get("ready_selector")
-            if ready_selector:
-                page.locator(ready_selector).wait_for(timeout=check.get("timeout_ms", 30000))
-            # Match the ordinary Stage 1 interaction metric: this is the
-            # response time after the map becomes actionable, not a duplicate
-            # navigation/transfer metric (which CDP already records above).
-            ready_at = page.evaluate("() => performance.now()")
             success_selector = check.get("success_selector")
             page.wait_for_function(
                 """selector => {
                   const card = document.querySelector(selector);
                   const panel = document.getElementById('drought-dashboard');
-                  const painted = performance.getEntriesByName('tsird-public-evidence-selection-ready').length > 0;
-                  return Boolean(card && panel && painted && !panel.classList.contains('is-hidden') && getComputedStyle(panel).display !== 'none');
+                  const observedAt = window.__tsirdRestoredSelectionAt;
+                  return Boolean(card && panel && Number.isFinite(observedAt) &&
+                    !panel.classList.contains('is-hidden') &&
+                    getComputedStyle(panel).display !== 'none');
                 }""",
                 arg=success_selector,
                 timeout=check.get("timeout_ms", 30000),
                 polling=50,
             )
-            mark = page.evaluate("() => performance.getEntriesByName('tsird-public-evidence-selection-ready').at(-1)?.startTime || null")
+            mark = page.evaluate("() => window.__tsirdRestoredSelectionAt ?? null")
             if mark is None:
-                raise RuntimeError("restored selection did not emit its completion mark")
-            functional.update(succeeded=True, seconds=round(max(0, mark - ready_at) / 1000, 3),
-                              note=f"restored selection matched {success_selector!r}")
+                raise RuntimeError("pre-navigation restored-selection probe did not fire")
+            functional.update(
+                succeeded=True,
+                seconds=round(mark / 1000, 3),
+                timing_origin="navigation-start",
+                note=f"restored selection matched {success_selector!r} via pre-navigation probe",
+            )
+            if clock_anchor_cdp is not None:
+                functional["completion_cdp_timestamp"] = round(
+                    clock_anchor_cdp + (mark - clock_anchor_browser) / 1000, 6)
         except Exception as exc:  # pragma: no cover - environment dependent
             functional["note"] = f"{type(exc).__name__}: {str(exc)[:160]}"
         check = None
@@ -292,7 +336,7 @@ def run_visit(page, cdp, acct, url: str, spec: dict, cache_state: str) -> dict:
             functional["note"] = f"{type(exc).__name__}: {str(exc)[:160]}"
     cutoff = None
     if functional.get("succeeded"):
-        cutoff = cdp_timestamp(cdp)
+        cutoff = functional.get("completion_cdp_timestamp") or cdp_timestamp(cdp)
     paint = page.evaluate(
         "() => { const p = performance.getEntriesByType('paint')"
         ".find(e => e.name === 'first-contentful-paint'); return p ? Math.round(p.startTime) : null; }")
@@ -302,7 +346,9 @@ def run_visit(page, cdp, acct, url: str, spec: dict, cache_state: str) -> dict:
     result = acct.summary(cutoff)
     result.update({"cache_state": cache_state, "first_contentful_paint_ms": paint,
                    "navigation": nav, "functional_check": functional,
-                   "critical_path_cutoff": "functional-success" if cutoff else "whole-load"})
+                   "critical_path_cutoff": (
+                       "restored-selection-event" if functional.get("completion_cdp_timestamp")
+                       else "functional-success" if cutoff else "whole-load")})
     if started:
         result["note"] = "repeat visit in the same browser context"
     return result
@@ -333,6 +379,8 @@ def measure(budget: dict, page_key: str, profile_name: str, viewport_name: str,
             viewport={"width": viewport["width"], "height": viewport["height"]},
             device_scale_factor=viewport.get("device_scale_factor", 1))
         page = context.new_page()
+        if restored_selection:
+            install_restored_selection_probe(page)
         cdp = context.new_cdp_session(page)
         cdp.send("Network.enable")
         cdp.send("Performance.enable")
