@@ -298,8 +298,7 @@ class DroughtDashboard {
     }
   }
 
-  async _loadHistoryRuns() {
-    const kinds = ['rainfall', 'rapid', 'ndvi', 'swi', 'lst', 'wapor'];
+  async _loadHistoryRuns(kinds = ['rainfall', 'rapid', 'ndvi', 'swi', 'lst', 'wapor']) {
     await Promise.all(kinds.map(async kind => {
       try {
         const response = await fetch(`${this.evidenceBaseUrl}/${kind}/runs`, { cache: 'no-store' });
@@ -359,10 +358,14 @@ class DroughtDashboard {
     if (this.publicMode) {
       const loaders = {
         rapid: () => this._loadPublicOnce('rapid', () => this._loadPreliminaryArtifact()),
-        vegetation: () => this._loadPublicOnce('vegetation', () => this._loadNdviArtifact()),
-        soilWater: () => this._loadPublicOnce('soilWater', () => this._loadSwiArtifact()),
-        thermal: () => this._loadPublicOnce('thermal', () => this._loadLstArtifact()),
-        waterUse: () => this._loadPublicOnce('waterUse', () => this._loadWaporArtifact()),
+        // Load each indicator's compact retained-run index with its current
+        // artifact. The public workspace defers these indexes to keep first
+        // paint fast, but the Evidence month control needs them before it
+        // renders. Fetch only the selected indicator rather than all history.
+        vegetation: () => this._loadPublicOnce('vegetation', () => Promise.all([this._loadNdviArtifact(), this._loadHistoryRuns(['ndvi'])])),
+        soilWater: () => this._loadPublicOnce('soilWater', () => Promise.all([this._loadSwiArtifact(), this._loadHistoryRuns(['swi'])])),
+        thermal: () => this._loadPublicOnce('thermal', () => Promise.all([this._loadLstArtifact(), this._loadHistoryRuns(['lst'])])),
+        waterUse: () => this._loadPublicOnce('waterUse', () => Promise.all([this._loadWaporArtifact(), this._loadHistoryRuns(['wapor'])])),
         history: () => this._loadPublicOnce('history', () => Promise.all([this._loadObservedRuns(), this._loadHistoryRuns()])),
         outlook: () => this._loadPublicOnce('outlook', () => this._loadOutlookArtifact()),
       };
