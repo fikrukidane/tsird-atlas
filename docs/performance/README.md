@@ -49,6 +49,32 @@ Two constraints that sit outside the measured numbers:
 - The analytical geometry in PostGIS, which the Tabia zonal statistics run
   against, is never simplified. Display changes must not change evidence.
 
+## Display-geometry fidelity gate
+
+The release builder creates a separate public display copy of the Tabia
+boundaries. It uses topology-preserving Mapshaper simplification at a
+**30-75 metre interval**, rather than a global percentage of vertices: a
+percentage lets large rural Tabias consume most of the budget while small town
+boundaries collapse into quadrilaterals. The default is 75 metres, selected
+from a staged 50/60/75 metre comparison because its compressed TopoJSON has
+enough transfer headroom for the unchanged performance budget.
+The browser
+receives that shared-arc display copy as TopoJSON; a GeoJSON companion remains
+inside the package for server-side metadata lookups. Every release records the
+chosen interval, feature count, minimum, median and maximum vertices, plus the
+number of features at the four-vertex floor in both `tabia-geometry.json` and
+the release manifest.
+
+A releasable build permits only the two already-known, three-vertex source
+boundary defects (Debre Genet and Menachek), explicitly recording them. It
+rejects any new floor-level collapse. Those two analytical source boundaries
+need their own repair; the display build never changes them. Before publishing
+a changed geometry, inspect the staged display at least for Agulae Town, Abyi Adi
+Town 01, Adi Nebri Id, Abnet and Birshewa-Rama Town, report the recorded
+statistics, and then run the phone/slow-4G performance gate. This is
+display-only: the PostGIS boundaries used for zonal statistics are never
+modified.
+
 The application-byte measures include first-party TSIRD responses and exclude
 basemap tiles and third-party library hosts. The separately enforced critical
 total includes third-party responses that finish before the first successful

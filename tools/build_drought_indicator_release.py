@@ -60,8 +60,15 @@ NATIVE_RASTERS = (
     ("native-raster-lst", "lst-current.tif", "TSIRD display-ready Copernicus LST native grid", "thermal"),
     ("native-raster-wapor", "wapor-transpiration-current.tif", "TSIRD display-ready FAO WaPOR transpiration native grid", "water_use"),
 )
-DISPLAY_SIMPLIFICATION = "0.5%"
 DISPLAY_COORDINATE_PRECISION = 0.00001
+DISPLAY_SIMPLIFICATION_INTERVAL_METERS = 75.0
+DISPLAY_SIMPLIFICATION_INTERVAL_MIN_METERS = 30.0
+DISPLAY_SIMPLIFICATION_INTERVAL_MAX_METERS = 75.0
+DISPLAY_VERTEX_FLOOR = 4
+KNOWN_SOURCE_FLOOR_TABIA_IDS = frozenset({
+    "tsird-tabia-v1-eaac4242a1fc0b5b3399463efb3e4ccd",  # Debre Genet, Kola Temben
+    "tsird-tabia-v1-490fc743c6304faac0849b61ae167eb5",  # Menachek, Degua Temben
+})
 
 
 def utc_now() -> str:
@@ -129,7 +136,74 @@ def tabia_ids(payload: dict[str, Any]) -> set[str]:
     return identifiers
 
 
-def simplify_display_geometry(payload: dict[str, Any], mapshaper_bin: str) -> dict[str, Any]:
+def _ring_vertex_count(ring: Any) -> int:
+    """Count a GeoJSON ring without its repeated closing coordinate."""
+    if not isinstance(ring, list) or not ring:
+        raise RuntimeError("public Tabia geometry contains an invalid polygon ring")
+    count = len(ring)
+    if count > 1 and ring[0] == ring[-1]:
+        count -= 1
+    if count < 3:
+        raise RuntimeError("public Tabia geometry contains a degenerate polygon ring")
+    return count
+
+
+def feature_vertex_count(feature: Any) -> int:
+    """Return the display vertices for Polygon or MultiPolygon geometry."""
+    geometry = feature.get("geometry") if isinstance(feature, dict) else None
+    if not isinstance(geometry, dict):
+        raise RuntimeError("public Tabia geometry contains an invalid feature")
+    geometry_type = geometry.get("type")
+    coordinates = geometry.get("coordinates")
+    if geometry_type == "Polygon" and isinstance(coordinates, list):
+        rings = coordinates
+    elif geometry_type == "MultiPolygon" and isinstance(coordinates, list):
+        rings = [ring for polygon in coordinates if isinstance(polygon, list) for ring in polygon]
+    else:
+        raise RuntimeError("public Tabia geometry contains a non-polygon feature")
+    return sum(_ring_vertex_count(ring) for ring in rings)
+
+
+def floor_tabia_ids(payload: dict[str, Any]) -> set[str]:
+    """Return the low-vertex source geometries that need a boundary-data repair."""
+    features = payload.get("features") if isinstance(payload, dict) else None
+    if not isinstance(features, list):
+        raise RuntimeError("public Tabia geometry has no features")
+    result: set[str] = set()
+    for feature in features:
+        properties = feature.get("properties") if isinstance(feature, dict) else None
+        tabia_id = properties.get("tsird_tabia_id") if isinstance(properties, dict) else None
+        if not isinstance(tabia_id, str):
+            raise RuntimeError("public Tabia geometry has a missing identity")
+        if feature_vertex_count(feature) <= DISPLAY_VERTEX_FLOOR:
+            result.add(tabia_id)
+    return result
+
+
+def display_vertex_statistics(payload: dict[str, Any]) -> dict[str, int | float]:
+    """Describe release-only geometry fidelity without changing analysis data."""
+    features = payload.get("features") if isinstance(payload, dict) else None
+    if not isinstance(features, list) or not features:
+        raise RuntimeError("public Tabia geometry has no features for vertex statistics")
+    values = sorted(feature_vertex_count(feature) for feature in features)
+    midpoint = len(values) // 2
+    if len(values) % 2:
+        median: int | float = values[midpoint]
+    else:
+        median = (values[midpoint - 1] + values[midpoint]) / 2
+    return {
+        "feature_count": len(values),
+        "minimum_vertices": values[0],
+        "median_vertices": median,
+        "maximum_vertices": values[-1],
+        "floor_vertices": DISPLAY_VERTEX_FLOOR,
+        "floor_feature_count": sum(value <= DISPLAY_VERTEX_FLOOR for value in values),
+    }
+
+
+def simplify_display_geometry(
+    payload: dict[str, Any], mapshaper_bin: str, interval_meters: float
+) -> dict[str, Any]:
     """Simplify only the public copy with shared topology preserved.
 
     ``mapshaper`` builds topology across the whole FeatureCollection before it
@@ -139,6 +213,9 @@ def simplify_display_geometry(payload: dict[str, Any], mapshaper_bin: str) -> di
     """
     source = compact_display_geometry(payload)
     expected_ids = tabia_ids(source)
+    source_floor_ids = floor_tabia_ids(source)
+    if not source_floor_ids.issubset(KNOWN_SOURCE_FLOOR_TABIA_IDS):
+        raise RuntimeError("source Tabia geometry contains an unrecognised low-vertex boundary")
     with tempfile.TemporaryDirectory(prefix="tsird-display-geometry-") as temp:
         input_path = Path(temp) / "tabia-geometry-source.json"
         output_path = Path(temp) / "tabia-geometry.json"
@@ -149,7 +226,7 @@ def simplify_display_geometry(payload: dict[str, Any], mapshaper_bin: str) -> di
                     mapshaper_bin,
                     str(input_path),
                     "-simplify",
-                    DISPLAY_SIMPLIFICATION,
+                    f"interval={interval_meters:g}m",
                     "keep-shapes",
                     "-o",
                     "format=geojson",
@@ -177,17 +254,67 @@ def simplify_display_geometry(payload: dict[str, Any], mapshaper_bin: str) -> di
         raise RuntimeError("topology-preserving display simplifier produced invalid geometry")
     if tabia_ids(simplified) != expected_ids:
         raise RuntimeError("topology-preserving display simplifier changed the released Tabia identity set")
+    simplified_floor_ids = floor_tabia_ids(simplified)
+    if not simplified_floor_ids.issubset(source_floor_ids):
+        raise RuntimeError(
+            "topology-preserving display simplification introduced one or more low-vertex Tabias; "
+            "choose a more faithful interval"
+        )
+    vertex_statistics = display_vertex_statistics(simplified)
+    vertex_statistics.update({
+        "preexisting_floor_feature_count": len(simplified_floor_ids),
+        "preexisting_floor_tabia_ids": sorted(simplified_floor_ids),
+        "introduced_floor_feature_count": 0,
+    })
     simplified["schema_version"] = source.get("schema_version", "tsird-public-tabia-geometry/v1")
     simplified["display_coordinate_precision"] = 5
     simplified["display_simplification"] = {
         "engine": "mapshaper@0.7.83",
-        "retain_vertices": DISPLAY_SIMPLIFICATION,
+        "method": "interval",
+        "interval_meters": interval_meters,
         "topology": "shared Tabia arcs retained together with keep-shapes",
     }
+    simplified["display_vertex_statistics"] = vertex_statistics
     simplified["display_geometry_note"] = (
         "Display-only geometry simplified with shared Tabia topology and five-decimal output precision; analytical PostGIS boundaries are unchanged."
     )
     return simplified
+
+
+def encode_display_topology(
+    geometry: dict[str, Any], mapshaper_bin: str
+) -> dict[str, Any]:
+    """Encode the already-validated display copy with shared arcs for the browser.
+
+    The GeoJSON companion remains inside the release for server-side metadata
+    lookups. The dashboard receives this TopoJSON asset because its shared arcs
+    keep a faithful mixed-size Tabia layer inside the slow-4G byte budget.
+    """
+    with tempfile.TemporaryDirectory(prefix="tsird-display-topology-") as temp:
+        input_path = Path(temp) / "tabia-geometry.json"
+        output_path = Path(temp) / "tabia-geometry-display.topojson"
+        input_path.write_text(json.dumps(geometry, separators=(",", ":")), encoding="utf-8")
+        try:
+            subprocess.run(
+                [mapshaper_bin, str(input_path), "-o", "format=topojson", str(output_path)],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+        except FileNotFoundError as error:
+            raise RuntimeError("topology-preserving display simplifier is unavailable") from error
+        except subprocess.CalledProcessError as error:
+            detail = (error.stderr or error.stdout or "mapshaper failed").strip()
+            raise RuntimeError(f"TopoJSON display encoding failed: {detail}") from error
+        try:
+            topology = json.loads(output_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as error:
+            raise RuntimeError("TopoJSON display encoding produced invalid JSON") from error
+    if not isinstance(topology, dict) or topology.get("type") != "Topology" or not isinstance(topology.get("objects"), dict):
+        raise RuntimeError("TopoJSON display encoding produced invalid topology")
+    for key in ("schema_version", "display_coordinate_precision", "display_simplification", "display_vertex_statistics", "display_geometry_note"):
+        topology[key] = geometry[key]
+    return topology
 
 
 def copy_native_rasters(source_root: Path, release_dir: Path, payloads: dict[str, dict[str, Any]], boundary: str) -> list[dict[str, Any]]:
@@ -256,7 +383,28 @@ def main() -> int:
     parser.add_argument("--prepared-by", default="TSIRD automated indicator validation", help="release preparer identity")
     parser.add_argument("--release-id", default=None, help="optional UTC indicator release ID")
     parser.add_argument("--mapshaper-bin", default="mapshaper", help="pinned mapshaper executable for release-only display geometry")
+    parser.add_argument(
+        "--display-simplification-interval-meters",
+        type=float,
+        default=DISPLAY_SIMPLIFICATION_INTERVAL_METERS,
+        help=(
+            "mapshaper display-only simplification interval in metres; must stay within "
+            f"{DISPLAY_SIMPLIFICATION_INTERVAL_MIN_METERS:g}-{DISPLAY_SIMPLIFICATION_INTERVAL_MAX_METERS:g} m"
+        ),
+    )
     args = parser.parse_args()
+
+    if not (
+        DISPLAY_SIMPLIFICATION_INTERVAL_MIN_METERS
+        <= args.display_simplification_interval_meters
+        <= DISPLAY_SIMPLIFICATION_INTERVAL_MAX_METERS
+    ):
+        print(
+            "ERROR: display simplification interval must be between "
+            f"{DISPLAY_SIMPLIFICATION_INTERVAL_MIN_METERS:g} and {DISPLAY_SIMPLIFICATION_INTERVAL_MAX_METERS:g} metres",
+            file=sys.stderr,
+        )
+        return 2
 
     release_id = args.release_id or compact_release_id()
     if not RELEASE_ID.fullmatch(release_id):
@@ -303,6 +451,10 @@ def main() -> int:
                 history_payloads["tabia-geometry.json"] = simplify_display_geometry(
                     public_tabia_geometry(request_json(args.api_base, OBSERVED_FEATURE_PATH.format(run_id=run_id))),
                     args.mapshaper_bin,
+                    args.display_simplification_interval_meters,
+                )
+                history_payloads["tabia-geometry-display.topojson"] = encode_display_topology(
+                    history_payloads["tabia-geometry.json"], args.mapshaper_bin
                 )
         history_payloads["observed-rainfall-runs.json"] = public_observed_run_index(observed_runs_payload)
         for source in HISTORY_SOURCES:
@@ -384,6 +536,7 @@ def main() -> int:
         asset_record("drought-evidence-summary", "drought_evidence_summary", "drought-evidence-summary.json", written["drought-evidence-summary.json"], "TSIRD retained CHIRPS rainfall evidence index", start, end, rainfall.get("schema_version", "unknown"), boundary),
         asset_record("drought-workspace-latest", "vector_display_summary", "drought-workspace-latest.json", written["drought-workspace-latest.json"], "TSIRD retained Tabia indicator summaries", start, end, workspace.get("schema_version", "unknown"), boundary),
         asset_record("tabia-geometry", "vector_display_summary", "tabia-geometry.json", written["tabia-geometry.json"], "TSIRD Tabia boundary geometry for retained evidence display", start, end, history_payloads["tabia-geometry.json"].get("schema_version", "unknown"), f"{boundary} Boundary geometry joins only to released Tabia evidence summaries."),
+        asset_record("tabia-geometry-display", "vector_display_summary", "tabia-geometry-display.topojson", written["tabia-geometry-display.topojson"], "TSIRD shared-arc Tabia display geometry for retained evidence", start, end, history_payloads["tabia-geometry.json"].get("schema_version", "unknown"), f"{boundary} Shared-arc display geometry only; analytical PostGIS boundaries are unchanged."),
         asset_record("observed-rainfall-runs", "drought_evidence_summary", "observed-rainfall-runs.json", written["observed-rainfall-runs.json"], "TSIRD retained observed rainfall snapshot index", start, end, history_payloads["observed-rainfall-runs.json"].get("schema_version", "unknown"), f"{boundary} Historical selections remain archived observations."),
         asset_record("release-status", "public_status", "status.json", written["status.json"], "TSIRD automated indicator validator", start, end, status["schema_version"], "Publication provenance only; it is not a scientific certification or operational decision."),
     ]
@@ -430,6 +583,12 @@ def main() -> int:
         "previous_release_id": None,
         "public_scope": boundary,
         "freshness": freshness,
+        "display_geometry": {
+            "asset_id": "tabia-geometry-display",
+            "format": "topojson",
+            "simplification": history_payloads["tabia-geometry.json"]["display_simplification"],
+            "vertex_statistics": history_payloads["tabia-geometry.json"]["display_vertex_statistics"],
+        },
         "assets": assets,
     }
     write_json(release_dir / "manifest.json", manifest)

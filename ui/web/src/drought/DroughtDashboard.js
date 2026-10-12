@@ -325,8 +325,19 @@ class DroughtDashboard {
         if (!pointerResponse.ok || typeof pointer.url !== 'string') throw new Error('invalid public geometry pointer');
         const response = await fetch(pointer.url, { cache: 'default' });
         const payload = await response.json();
-        if (!response.ok || !Array.isArray(payload.features)) throw new Error('invalid public geometry asset');
-        this.publicGeometry = payload.features;
+        if (!response.ok) throw new Error('public geometry asset unavailable');
+        let collection = payload;
+        if (payload && payload.type === 'Topology') {
+          if (!ol.format.TopoJSON) throw new Error('TopoJSON display decoder is unavailable');
+          const topologyFeatures = new ol.format.TopoJSON().readFeatures(payload, {
+            dataProjection: 'EPSG:4326', featureProjection: 'EPSG:4326'
+          });
+          collection = new ol.format.GeoJSON().writeFeaturesObject(topologyFeatures, {
+            dataProjection: 'EPSG:4326', featureProjection: 'EPSG:4326'
+          });
+        }
+        if (!collection || !Array.isArray(collection.features)) throw new Error('invalid public geometry asset');
+        this.publicGeometry = collection.features;
         this.publicGeometryReleaseId = pointer.release_id || null;
         document.body.dataset.tsirdDroughtGeometry = 'ready';
         return this.publicGeometry;

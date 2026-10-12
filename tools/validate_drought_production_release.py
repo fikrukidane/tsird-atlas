@@ -45,7 +45,14 @@ AUTO_INDICATOR_RASTERS = {
 FRESHNESS_CONTRACT_PATH = Path(__file__).resolve().parents[1] / "n8n" / "publisher" / "drought-indicator-freshness-contract.json"
 GZIP_REQUIRED_MIN_BYTES = 64 * 1024
 DISPLAY_GEOMETRY_ENGINE = "mapshaper@0.7.83"
-DISPLAY_GEOMETRY_RETAIN_VERTICES = "0.5%"
+DISPLAY_GEOMETRY_INTERVAL_MIN_METERS = 30.0
+DISPLAY_GEOMETRY_INTERVAL_MAX_METERS = 75.0
+DISPLAY_VERTEX_FLOOR = 4
+KNOWN_SOURCE_FLOOR_TABIA_IDS = {
+    "tsird-tabia-v1-eaac4242a1fc0b5b3399463efb3e4ccd",
+    "tsird-tabia-v1-490fc743c6304faac0849b61ae167eb5",
+}
+JSON_ASSET_SUFFIXES = {".json", ".geojson", ".topojson"}
 
 
 def fail(message: str) -> None:
@@ -129,7 +136,64 @@ def validate_indicator_freshness(manifest: dict[str, Any]) -> None:
             fail(f"freshness[{key}] stale_after does not match the contract")
 
 
-def validate_display_geometry(release_dir: Path, assets: list[Any]) -> None:
+def _ring_vertex_count(ring: Any) -> int:
+    if not isinstance(ring, list) or not ring:
+        fail("tabia-geometry contains an invalid polygon ring")
+    count = len(ring)
+    if count > 1 and ring[0] == ring[-1]:
+        count -= 1
+    if count < 3:
+        fail("tabia-geometry contains a degenerate polygon ring")
+    return count
+
+
+def _feature_vertex_count(feature: Any) -> int:
+    geometry = feature.get("geometry") if isinstance(feature, dict) else None
+    if not isinstance(geometry, dict):
+        fail("tabia-geometry contains an invalid feature")
+    coordinates = geometry.get("coordinates")
+    if geometry.get("type") == "Polygon" and isinstance(coordinates, list):
+        rings = coordinates
+    elif geometry.get("type") == "MultiPolygon" and isinstance(coordinates, list):
+        rings = [ring for polygon in coordinates if isinstance(polygon, list) for ring in polygon]
+    else:
+        fail("tabia-geometry contains a non-polygon feature")
+    return sum(_ring_vertex_count(ring) for ring in rings)
+
+
+def _display_vertex_statistics(geometry: dict[str, Any]) -> dict[str, int | float]:
+    features = geometry.get("features")
+    if not isinstance(features, list) or not features:
+        fail("tabia-geometry has no features for vertex statistics")
+    values = sorted(_feature_vertex_count(feature) for feature in features)
+    midpoint = len(values) // 2
+    median: int | float = values[midpoint] if len(values) % 2 else (values[midpoint - 1] + values[midpoint]) / 2
+    return {
+        "feature_count": len(values),
+        "minimum_vertices": values[0],
+        "median_vertices": median,
+        "maximum_vertices": values[-1],
+        "floor_vertices": DISPLAY_VERTEX_FLOOR,
+        "floor_feature_count": sum(value <= DISPLAY_VERTEX_FLOOR for value in values),
+    }
+
+
+def _floor_tabia_ids(geometry: dict[str, Any]) -> set[str]:
+    features = geometry.get("features")
+    if not isinstance(features, list):
+        fail("tabia-geometry has no features")
+    result: set[str] = set()
+    for feature in features:
+        properties = feature.get("properties") if isinstance(feature, dict) else None
+        tabia_id = properties.get("tsird_tabia_id") if isinstance(properties, dict) else None
+        if not isinstance(tabia_id, str):
+            fail("tabia-geometry feature lacks tsird_tabia_id")
+        if _feature_vertex_count(feature) <= DISPLAY_VERTEX_FLOOR:
+            result.add(tabia_id)
+    return result
+
+
+def validate_display_geometry(release_dir: Path, manifest: dict[str, Any], assets: list[Any]) -> None:
     """Keep release-only display geometry compact without changing analysis data."""
     geometry_asset = next((asset for asset in assets if isinstance(asset, dict) and asset.get("asset_id") == "tabia-geometry"), None)
     if geometry_asset is None:
@@ -146,10 +210,49 @@ def validate_display_geometry(release_dir: Path, assets: list[Any]) -> None:
     simplification = geometry.get("display_simplification")
     if not isinstance(simplification, dict) or simplification.get("engine") != DISPLAY_GEOMETRY_ENGINE:
         fail("tabia-geometry must declare the required topology-preserving display simplifier")
-    if simplification.get("retain_vertices") != DISPLAY_GEOMETRY_RETAIN_VERTICES:
-        fail("tabia-geometry must declare the required display simplification level")
+    if simplification.get("method") != "interval":
+        fail("tabia-geometry must declare metre-interval display simplification")
+    interval_meters = simplification.get("interval_meters")
+    if not isinstance(interval_meters, (int, float)) or isinstance(interval_meters, bool) or not (
+        DISPLAY_GEOMETRY_INTERVAL_MIN_METERS <= interval_meters <= DISPLAY_GEOMETRY_INTERVAL_MAX_METERS
+    ):
+        fail("tabia-geometry must declare a 30-75 metre display simplification interval")
     if "keep-shapes" not in str(simplification.get("topology", "")):
         fail("tabia-geometry must declare shared-boundary topology preservation")
+    statistics = _display_vertex_statistics(geometry)
+    floor_ids = _floor_tabia_ids(geometry)
+    if not floor_ids.issubset(KNOWN_SOURCE_FLOOR_TABIA_IDS):
+        fail("tabia-geometry has an unrecognised low-vertex display feature")
+    declared_statistics = geometry.get("display_vertex_statistics")
+    expected_statistics = {
+        **statistics,
+        "preexisting_floor_feature_count": len(floor_ids),
+        "preexisting_floor_tabia_ids": sorted(floor_ids),
+        "introduced_floor_feature_count": 0,
+    }
+    if declared_statistics != expected_statistics:
+        fail("tabia-geometry display_vertex_statistics does not match the geometry")
+    manifest_geometry = manifest.get("display_geometry")
+    if not isinstance(manifest_geometry, dict):
+        fail("auto-validated indicator release lacks display_geometry provenance")
+    if manifest_geometry.get("asset_id") != "tabia-geometry-display" or manifest_geometry.get("format") != "topojson":
+        fail("manifest display_geometry must name the TopoJSON display asset")
+    display_asset = next((asset for asset in assets if isinstance(asset, dict) and asset.get("asset_id") == "tabia-geometry-display"), None)
+    if display_asset is None:
+        fail("auto-validated indicator release lacks tabia-geometry-display")
+    display_path = safe_relative_path(display_asset.get("relative_path"), "tabia-geometry-display.relative_path")
+    try:
+        topology = json.loads((release_dir / display_path).read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as error:
+        fail(f"tabia-geometry-display is not readable JSON: {error}")
+    if not isinstance(topology, dict) or topology.get("type") != "Topology" or not isinstance(topology.get("objects"), dict):
+        fail("tabia-geometry-display must be a TopoJSON topology")
+    if topology.get("display_simplification") != simplification or topology.get("display_vertex_statistics") != expected_statistics:
+        fail("tabia-geometry-display provenance does not match tabia-geometry")
+    if manifest_geometry.get("simplification") != simplification:
+        fail("manifest display_geometry simplification does not match tabia-geometry")
+    if manifest_geometry.get("vertex_statistics") != expected_statistics:
+        fail("manifest display_geometry vertex statistics do not match tabia-geometry")
 
 
 def safe_relative_path(value: Any, field: str) -> PurePosixPath:
@@ -210,10 +313,10 @@ def validate_asset(release_dir: Path, asset: Any, index: int, names: set[str]) -
     if not file_path.is_file():
         fail(f"assets[{index}] referenced file is missing: {relative_path}")
     gzip_path = file_path.with_name(f"{file_path.name}.gz")
-    if file_path.suffix.lower() == ".json" and file_path.stat().st_size >= GZIP_REQUIRED_MIN_BYTES and not gzip_path.exists():
+    if file_path.suffix.lower() in JSON_ASSET_SUFFIXES and file_path.stat().st_size >= GZIP_REQUIRED_MIN_BYTES and not gzip_path.exists():
         fail(f"assets[{index}] large JSON asset is missing its required compressed sidecar")
     if gzip_path.exists():
-        if file_path.suffix.lower() != ".json" or gzip_path.is_symlink() or not gzip_path.is_file():
+        if file_path.suffix.lower() not in JSON_ASSET_SUFFIXES or gzip_path.is_symlink() or not gzip_path.is_file():
             fail(f"assets[{index}] has an invalid compressed JSON sidecar")
         try:
             if gzip.decompress(gzip_path.read_bytes()) != file_path.read_bytes():
@@ -320,12 +423,12 @@ def validate_release(
         required = {"drought-evidence-summary", "drought-workspace-latest", "release-status", "exposure-population", "exposure-cropland", "exposure-road", *AUTO_INDICATOR_RASTERS}
         if not required.issubset(names):
             fail("auto-validated indicator release lacks a required current indicator summary or fixed native raster")
-        allowed_history = re.compile(r"^(tabia-geometry|observed-rainfall-runs|observed-rainfall-run-[a-z0-9-]+|evidence-(rapid|ndvi|swi|lst|wapor)-runs|evidence-(rapid|ndvi|swi|lst|wapor)-run-[a-z0-9-]+)$")
+        allowed_history = re.compile(r"^(tabia-geometry|tabia-geometry-display|observed-rainfall-runs|observed-rainfall-run-[a-z0-9-]+|evidence-(rapid|ndvi|swi|lst|wapor)-runs|evidence-(rapid|ndvi|swi|lst|wapor)-run-[a-z0-9-]+)$")
         unexpected = names - required
         if any(not allowed_history.fullmatch(name) for name in unexpected):
             fail("auto-validated indicator release contains an unapproved asset")
         validate_indicator_freshness(manifest)
-        validate_display_geometry(release_dir, assets)
+        validate_display_geometry(release_dir, manifest, assets)
     return manifest
 
 

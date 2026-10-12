@@ -38,7 +38,12 @@ activation. The publisher and Python
 validator both read the same freshness contract; do not activate a workflow
 with only a partial update. `mapshaper` changes only the release's display
 geometry, preserving shared Tabia arcs; it never changes PostGIS or source
-evidence geometry.
+evidence geometry. The JavaScript publisher is the release builder used by
+the schedule, so keep it aligned with `tools/build_drought_indicator_release.py`:
+both emit the same metre-based display-geometry contract and vertex statistics.
+The publisher fingerprint includes that contract version, so a geometry-format
+correction produces one replacement package even when observations have not
+changed.
 
 ```powershell
 Copy-Item C:\docker\projects\tsird-atlas\n8n\publisher\tsird-drought-automatic-indicator-publisher-v1.js `
@@ -67,8 +72,11 @@ reused from `tsird-drought-publisher-keys`; no administrator key is involved.
    Any missing raster, unavailable source, incomplete Tabia evidence, checksum
    mismatch, host-key mismatch, upload error, or VPS validation failure must
    fail while leaving the existing public indicator pointer untouched. Confirm
-   that the generated `tabia-geometry.json` records `mapshaper@0.7.83`,
-   `retain_vertices: 0.5%`, and the shared-topology note before activation.
+   that the generated `tabia-geometry.json` records `mapshaper@0.7.83`, a
+   30-75 metre interval, no newly introduced features at the four-vertex
+   floor, its vertex statistics, and the shared-topology note before
+   activation. The two declared source-boundary defects remain explicitly
+   reported until their analytical geometry is repaired separately.
 4. Check the public Drought Intelligence page in both **Native raster** and
    **Tabia average** modes for each of the six indicator tabs.
 5. Record the package ID, fingerprint, n8n execution result and previous
