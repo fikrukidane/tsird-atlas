@@ -238,6 +238,17 @@ class DroughtDashboard {
         this.indicatorSnapshots[this.mode] = this.publicUrlState.month;
         this._renderMode();
       }
+      // A rainfall deep link already has a compact, retained Tabia row. Render
+      // that evidence immediately instead of making a reader wait for the
+      // larger display-geometry asset. Geometry still loads independently and
+      // supplies the outline/highlight in the second restoration pass below.
+      if (this.mode === 'observed' && this.publicUrlState.tabia) {
+        const value = this._publicEvidenceForTabia(this.publicUrlState.tabia);
+        if (value) {
+          this.selectedId = this.publicUrlState.tabia;
+          this._showPublicEvidenceSelection(value);
+        }
+      }
     }
     if (selectTabia && this.publicUrlState.tabia && this.publicGeometry.length) {
       const feature = this.publicGeometry.find(item => item && item.properties && item.properties.tsird_tabia_id === this.publicUrlState.tabia);
@@ -1390,11 +1401,6 @@ class DroughtDashboard {
       if (tabiaId) {
         this.selectBoundary({ type: 'tabia', id: tabiaId, label: feature.get('tabia_name_en') || 'Selected Tabia' });
         this._showPublicEvidenceSelection(feature.getProperties());
-        // Two frames place the mark after the changed selection card has had
-        // a browser paint opportunity, rather than merely after its DOM write.
-        requestAnimationFrame(() => requestAnimationFrame(() => {
-          performance.mark('tsird-public-evidence-selection-ready');
-        }));
         if (this.mode === 'history') this._handleBoundarySelection({ detail: { type: 'tabia', id: tabiaId, name_en: feature.get('tabia_name_en'), parent_name_en: feature.get('woreda_name_en') } });
       }
       return;
