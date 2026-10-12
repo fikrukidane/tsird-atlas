@@ -30,8 +30,11 @@ This is only the small, display-ready raster folder. Do not mount the broader
 `data/drought` tree, source archives, the TSIRD repository, Docker socket, a
 database volume, or an administrator SSH directory into n8n.
 
-Copy these four tracked files into the existing n8n `/workflows` mount and
-install the pinned, build-only topology tool there. The publisher and Python
+Copy these five tracked files into the existing read-only n8n `/workflows` mount
+and install the pinned, build-only topology tool in n8n's persistent data
+volume. Set `TSIRD_MAPSHAPER_BIN` on the n8n service to
+`/home/node/.n8n/tsird-publisher-runtime/node_modules/.bin/mapshaper` before
+activation. The publisher and Python
 validator both read the same freshness contract; do not activate a workflow
 with only a partial update. `mapshaper` changes only the release's display
 geometry, preserving shared Tabia arcs; it never changes PostGIS or source
@@ -46,8 +49,10 @@ Copy-Item C:\docker\projects\tsird-atlas\n8n\publisher\drought-indicator-freshne
   C:\docker\projects\n8n-platform\workflows\drought-indicator-freshness-contract.json -Force
 Copy-Item C:\docker\projects\tsird-atlas\n8n\publisher\package.json `
   C:\docker\projects\n8n-platform\workflows\package.json -Force
-docker compose -f C:\docker\projects\n8n-platform\docker-compose.yml exec -u node n8n `
-  npm --prefix /workflows install --omit=dev --ignore-scripts
+Copy-Item C:\docker\projects\tsird-atlas\n8n\publisher\package-lock.json `
+  C:\docker\projects\n8n-platform\workflows\package-lock.json -Force
+docker compose -f C:\docker\projects\n8n-platform\compose.yaml exec -u node n8n `
+  sh -lc 'mkdir -p /home/node/.n8n/tsird-publisher-runtime && cp /workflows/package.json /workflows/package-lock.json /home/node/.n8n/tsird-publisher-runtime/ && npm --prefix /home/node/.n8n/tsird-publisher-runtime ci --omit=dev --ignore-scripts'
 ```
 
 The existing two restricted publisher keys and verified `known_hosts` file are
