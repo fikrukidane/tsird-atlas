@@ -1556,11 +1556,12 @@ class DroughtDashboard {
     const artifact = this.waporArtifact;
     if (!artifact || artifact.unavailable) { this.content.innerHTML = `<p class="drought-empty">${artifact ? artifact.message : 'Loading artifact.'}</p>`; return; }
     const run = artifact.run, usable = artifact.summaries.filter(item => item.quality_status === 'ok' && Number.isFinite(Number(item.transpiration_mm)));
+    const evidenceState = this.publicMode ? 'approved retained evidence' : run.status;
     const transpiration = usable.map(item => Number(item.transpiration_mm));
     const aeti = usable.map(item => Number(item.aeti_mm)).filter(Number.isFinite);
     const tRange = transpiration.length ? `${Math.min(...transpiration).toFixed(1)}–${Math.max(...transpiration).toFixed(1)} mm/day` : 'no usable values';
     const aetiRange = aeti.length ? `${Math.min(...aeti).toFixed(1)}–${Math.max(...aeti).toFixed(1)} mm/day` : 'no usable values';
-    this.content.innerHTML = `<div class="drought-mode-title"><strong>Current agricultural water use</strong><span>FAO WaPOR v3 · ${run.status}</span></div><div class="drought-source-meta"><span>Native resolution: ${run.native_resolution}</span><span>Period: ${run.source_period_start} to ${run.source_period_end}</span><span>Unit: daily mean within dekadal composite</span><span>Usable: ${usable.length}/${artifact.summaries.length}</span><span>T mean range: ${tRange}</span><span>AETI range: ${aetiRange}</span></div><div class="drought-map-instruction">${run.status === 'degraded' ? 'Degraded freshness — do not treat as current. ' : ''}Transpiration is vegetation water-use context. Use Native raster for the retained provider grid; Tabia average is a zonal summary. AETI includes evaporation and interception, and neither measure identifies current crop extent or yield.</div>`;
+    this.content.innerHTML = `<div class="drought-mode-title"><strong>Current agricultural water use</strong><span>FAO WaPOR v3 · ${evidenceState}</span></div><div class="drought-source-meta"><span>Native resolution: ${run.native_resolution}</span><span>Period: ${run.source_period_start} to ${run.source_period_end}</span><span>Unit: daily mean within dekadal composite</span><span>Usable: ${usable.length}/${artifact.summaries.length}</span><span>T mean range: ${tRange}</span><span>AETI range: ${aetiRange}</span></div><div class="drought-map-instruction">${run.status === 'degraded' ? 'Degraded freshness — do not treat as current. ' : ''}Transpiration is vegetation water-use context. Use Native raster for the retained provider grid; Tabia average is a zonal summary. AETI includes evaporation and interception, and neither measure identifies current crop extent or yield.</div>`;
   }
 
   _historyArtifact(indicator) {
