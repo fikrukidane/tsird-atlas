@@ -16,7 +16,9 @@ import hashlib
 import json
 import re
 import shutil
+import subprocess
 import sys
+import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -58,6 +60,8 @@ NATIVE_RASTERS = (
     ("native-raster-lst", "lst-current.tif", "TSIRD display-ready Copernicus LST native grid", "thermal"),
     ("native-raster-wapor", "wapor-transpiration-current.tif", "TSIRD display-ready FAO WaPOR transpiration native grid", "water_use"),
 )
+DISPLAY_SIMPLIFICATION = "0.5%"
+DISPLAY_COORDINATE_PRECISION = 0.00001
 
 
 def utc_now() -> str:
@@ -74,6 +78,116 @@ def observation_window(run: dict[str, Any]) -> tuple[str, str]:
     if not isinstance(start, str) or not isinstance(end, str):
         raise RuntimeError("indicator run lacks a source-observation window")
     return start[:10], end[:10]
+
+
+def _round_display_coordinates(value: Any, precision: int = 5) -> Any:
+    """Round only the public display copy; analytical PostGIS geometry stays intact."""
+    if isinstance(value, float):
+        return round(value, precision)
+    if isinstance(value, list):
+        return [_round_display_coordinates(item, precision) for item in value]
+    return value
+
+
+def compact_display_geometry(payload: dict[str, Any]) -> dict[str, Any]:
+    """Prepare the release-only geometry before topology-preserving simplify."""
+    if payload.get("type") != "FeatureCollection" or not isinstance(payload.get("features"), list):
+        raise RuntimeError("public Tabia geometry is not a FeatureCollection")
+    compact = dict(payload)
+    compact["features"] = []
+    for feature in payload["features"]:
+        geometry = feature.get("geometry") if isinstance(feature, dict) else None
+        if not isinstance(geometry, dict) or "coordinates" not in geometry:
+            raise RuntimeError("public Tabia geometry contains an invalid feature")
+        compact["features"].append({
+            **feature,
+            "geometry": {**geometry, "coordinates": _round_display_coordinates(geometry["coordinates"])},
+        })
+    compact["display_coordinate_precision"] = 5
+    compact["display_geometry_note"] = (
+        "Display-only coordinates are prepared for topology-preserving simplification; analytical PostGIS boundaries are unchanged."
+    )
+    return compact
+
+
+def tabia_ids(payload: dict[str, Any]) -> set[str]:
+    """Return the exact Tabia identity set expected in a display geometry."""
+    features = payload.get("features")
+    if not isinstance(features, list):
+        raise RuntimeError("public Tabia geometry is not a FeatureCollection")
+    identifiers = {
+        feature.get("properties", {}).get("tsird_tabia_id")
+        for feature in features
+        if isinstance(feature, dict)
+        and isinstance(feature.get("properties"), dict)
+        and isinstance(feature["properties"].get("tsird_tabia_id"), str)
+        and isinstance(feature.get("geometry"), dict)
+        and feature["geometry"].get("coordinates")
+    }
+    if len(identifiers) != len(features):
+        raise RuntimeError("public Tabia geometry has a missing identity or empty feature")
+    return identifiers
+
+
+def simplify_display_geometry(payload: dict[str, Any], mapshaper_bin: str) -> dict[str, Any]:
+    """Simplify only the public copy with shared topology preserved.
+
+    ``mapshaper`` builds topology across the whole FeatureCollection before it
+    simplifies. That makes shared Tabia borders use the same retained arcs,
+    unlike per-feature simplification which can introduce visible slivers.
+    The source PostGIS geometry is never read or changed by this operation.
+    """
+    source = compact_display_geometry(payload)
+    expected_ids = tabia_ids(source)
+    with tempfile.TemporaryDirectory(prefix="tsird-display-geometry-") as temp:
+        input_path = Path(temp) / "tabia-geometry-source.json"
+        output_path = Path(temp) / "tabia-geometry.json"
+        input_path.write_text(json.dumps(source, separators=(",", ":")), encoding="utf-8")
+        try:
+            subprocess.run(
+                [
+                    mapshaper_bin,
+                    str(input_path),
+                    "-simplify",
+                    DISPLAY_SIMPLIFICATION,
+                    "keep-shapes",
+                    "-o",
+                    "format=geojson",
+                    f"precision={DISPLAY_COORDINATE_PRECISION}",
+                    str(output_path),
+                ],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+        except FileNotFoundError as error:
+            raise RuntimeError(
+                "topology-preserving display simplifier is unavailable; install the pinned mapshaper tool before building an indicator release"
+            ) from error
+        except subprocess.CalledProcessError as error:
+            detail = (error.stderr or error.stdout or "mapshaper failed").strip()
+            raise RuntimeError(f"topology-preserving display simplification failed: {detail}") from error
+        if not output_path.is_file():
+            raise RuntimeError("topology-preserving display simplifier produced no geometry output")
+        try:
+            simplified = json.loads(output_path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError as error:
+            raise RuntimeError("topology-preserving display simplifier produced invalid JSON") from error
+    if not isinstance(simplified, dict) or simplified.get("type") != "FeatureCollection":
+        raise RuntimeError("topology-preserving display simplifier produced invalid geometry")
+    if tabia_ids(simplified) != expected_ids:
+        raise RuntimeError("topology-preserving display simplifier changed the released Tabia identity set")
+    simplified["schema_version"] = source.get("schema_version", "tsird-public-tabia-geometry/v1")
+    simplified["display_coordinate_precision"] = 5
+    simplified["display_simplification"] = {
+        "engine": "mapshaper@0.7.83",
+        "retain_vertices": DISPLAY_SIMPLIFICATION,
+        "topology": "shared Tabia arcs retained together with keep-shapes",
+    }
+    simplified["display_geometry_note"] = (
+        "Display-only geometry simplified with shared Tabia topology and five-decimal output precision; analytical PostGIS boundaries are unchanged."
+    )
+    return simplified
 
 
 def copy_native_rasters(source_root: Path, release_dir: Path, payloads: dict[str, dict[str, Any]], boundary: str) -> list[dict[str, Any]]:
@@ -141,6 +255,7 @@ def main() -> int:
     parser.add_argument("--native-raster-root", type=Path, default=Path("/data/drought/published"), help="fixed display-ready native-raster directory")
     parser.add_argument("--prepared-by", default="TSIRD automated indicator validation", help="release preparer identity")
     parser.add_argument("--release-id", default=None, help="optional UTC indicator release ID")
+    parser.add_argument("--mapshaper-bin", default="mapshaper", help="pinned mapshaper executable for release-only display geometry")
     args = parser.parse_args()
 
     release_id = args.release_id or compact_release_id()
@@ -185,7 +300,10 @@ def main() -> int:
             observed_asset_ids[run_id] = asset_id
             history_payloads[f"{asset_id}.json"] = public_observed_snapshot(request_json(args.api_base, OBSERVED_RUN_PATH.format(run_id=run_id)))
             if index == 0:
-                history_payloads["tabia-geometry.json"] = public_tabia_geometry(request_json(args.api_base, OBSERVED_FEATURE_PATH.format(run_id=run_id)))
+                history_payloads["tabia-geometry.json"] = simplify_display_geometry(
+                    public_tabia_geometry(request_json(args.api_base, OBSERVED_FEATURE_PATH.format(run_id=run_id))),
+                    args.mapshaper_bin,
+                )
         history_payloads["observed-rainfall-runs.json"] = public_observed_run_index(observed_runs_payload)
         for source in HISTORY_SOURCES:
             index_payload = request_json(args.api_base, EVIDENCE_RUNS_PATH.format(source=source))

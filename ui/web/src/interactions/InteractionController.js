@@ -1698,10 +1698,11 @@ class InteractionController {
    * @private
    */
   async _handleMapClick(evt) {
-    // History owns its vector snapshot clicks so one click selects a Tabia
-    // and updates the indicator table/chart, rather than opening the general
-    // Atlas GetFeatureInfo popup as a competing interaction.
-    if (['history', 'priority'].includes(document.body.dataset.tsirdDroughtMode)) {
+    // The Drought workspace owns its map clicks. Its vector layers already
+    // provide the relevant retained-evidence or context result, so the Atlas
+    // GetFeatureInfo popup would be a competing, duplicate interaction.
+    const droughtDashboard = document.getElementById('drought-dashboard');
+    if (droughtDashboard && !droughtDashboard.classList.contains('is-hidden')) {
       this.popup.setPosition(undefined);
       return;
     }

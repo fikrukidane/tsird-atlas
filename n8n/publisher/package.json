@@ -1,0 +1,12 @@
+{
+  "name": "tsird-drought-publisher-tools",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Pinned build-only tools for the TSIRD automatic indicator publisher",
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "mapshaper": "0.7.83"
+  }
+}

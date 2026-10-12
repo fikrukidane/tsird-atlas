@@ -1,0 +1,87 @@
+{
+  "schema_version": "tsird-performance-budget/v1",
+  "updated": "2026-10-11",
+  "stage": "stage-1",
+  "base_url": "https://lab.tigrayinsights.net",
+  "note": "Targets are a fixed engineering benchmark, not a claim about any real connection. See docs/performance/README.md.",
+  "classification": {
+    "basemap_hosts": [
+      "tile.openstreetmap.org",
+      "a.tile.openstreetmap.org",
+      "b.tile.openstreetmap.org",
+      "c.tile.openstreetmap.org",
+      "server.arcgisonline.com",
+      "services.arcgisonline.com"
+    ],
+    "third_party_hosts": ["cdn.jsdelivr.net", "fonts.googleapis.com", "fonts.gstatic.com"]
+  },
+  "network_profiles": {
+    "slow-4g": {
+      "description": "Fixed benchmark profile used for stage targets.",
+      "download_kbps": 1600,
+      "upload_kbps": 750,
+      "latency_ms": 150,
+      "cpu_slowdown": 4
+    },
+    "regular-3g": {
+      "description": "Harsher comparison profile; recorded, not used for pass/fail.",
+      "download_kbps": 780,
+      "upload_kbps": 330,
+      "latency_ms": 300,
+      "cpu_slowdown": 4
+    },
+    "unthrottled": {
+      "description": "No throttling; useful for isolating server-side time.",
+      "download_kbps": 0,
+      "upload_kbps": 0,
+      "latency_ms": 0,
+      "cpu_slowdown": 1
+    }
+  },
+  "default_profile": "slow-4g",
+  "viewports": {
+    "phone": { "width": 390, "height": 844, "device_scale_factor": 2 },
+    "desktop": { "width": 1440, "height": 900, "device_scale_factor": 1 }
+  },
+  "default_viewport": "phone",
+  "pages": {
+    "drought": {
+      "path": "/map/drought/",
+      "ready_signal": { "text": "Drought intelligence", "timeout_ms": 90000 },
+      "functional_check": {
+        "description": "Select a visible Tabia and read back its indicator values.",
+        "ready_selector": "body[data-tsird-drought-geometry='ready']",
+        "before_click_selector": "#drought-dashboard .drought-close",
+        "click": { "strategy": "first_public_evidence_feature" },
+        "success_selector": "[data-public-evidence-selection][data-selected-tabia]",
+        "success_text_any": ["Baseline percentile", "Coverage", "Tabia detail", "rainfall_mm"],
+        "known_failure_text_any": ["Boundary unavailable", "unavailable for"],
+        "timeout_ms": 30000,
+        "selectors_verified_on_production": false
+      },
+      "budgets": {
+        "critical_path_kb": { "target": 400, "mode": "enforce" },
+        "critical_total_kb": { "target": 650, "mode": "enforce" },
+        "total_cold_kb": { "target": 1500, "mode": "enforce" },
+        "app_requests": { "target": 15, "mode": "enforce" },
+        "functional_seconds": { "target": 3.0, "mode": "enforce" },
+        "basemap_tile_requests": { "target": null, "mode": "record" },
+        "repeat_total_kb": { "target": null, "mode": "record" },
+        "repeat_functional_seconds": { "target": null, "mode": "record" }
+      }
+    },
+    "atlas": {
+      "path": "/map/",
+      "ready_signal": { "text": "TSIRD Atlas", "timeout_ms": 60000 },
+      "functional_check": null,
+      "budgets": {
+        "total_cold_kb": { "target": 600, "mode": "enforce" },
+        "app_requests": { "target": 20, "mode": "enforce" },
+        "critical_path_kb": { "target": null, "mode": "record" },
+        "critical_total_kb": { "target": null, "mode": "record" },
+        "basemap_tile_requests": { "target": null, "mode": "record" },
+        "repeat_total_kb": { "target": null, "mode": "record" }
+      }
+    }
+  }
+}

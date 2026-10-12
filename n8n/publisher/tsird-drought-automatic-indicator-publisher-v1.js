@@ -11,6 +11,7 @@ const crypto = require("crypto");
 const fs = require("fs");
 const os = require("os");
 const path = require("path");
+const zlib = require("zlib");
 const FRESHNESS_CONTRACT = require("./drought-indicator-freshness-contract.json");
 
 const API_BASE = "http://tsird-edge:8080";
@@ -51,6 +52,8 @@ const EXPOSURE_PROPERTIES = {
   cropland: ["tsird_tabia_id", "tabia_name_en", "woreda_name_en", "cropland_pct", "cropland_area_ha", "coverage_pct", "quality_status"],
   road: ["tsird_tabia_id", "tabia_name_en", "woreda_name_en", "nearest_road_m", "tigray_roads_2006_intersects", "quality_status"],
 };
+const DISPLAY_SIMPLIFICATION = "0.5%";
+const MAPSHAPER_VERSION = "mapshaper@0.7.83";
 
 const now = () => new Date().toISOString().replace(/\.\d{3}Z$/, "Z");
 // Match the VPS forced-command contract: ISO date separators remain while
@@ -58,7 +61,14 @@ const now = () => new Date().toISOString().replace(/\.\d{3}Z$/, "Z");
 const compactId = () => now().replace(/:/g, "").replace("Z", "Z-indicators");
 const sha256 = (filename) => crypto.createHash("sha256").update(fs.readFileSync(filename)).digest("hex");
 const jsonBytes = (data) => Buffer.from(`${JSON.stringify(data)}\n`, "utf8");
-const writeJson = (filename, data) => { const bytes = jsonBytes(data); fs.writeFileSync(filename, bytes); return [bytes.length, sha256(filename)]; };
+const writeJson = (filename, data) => {
+  const bytes = jsonBytes(data);
+  fs.writeFileSync(filename, bytes);
+  // The release-ID route serves this prebuilt sidecar directly. Keep the
+  // compression work off the constrained VPS and preserve deterministic bytes.
+  fs.writeFileSync(`${filename}.gz`, zlib.gzipSync(bytes, {mtime: 0}));
+  return [bytes.length, sha256(filename)];
+};
 const fail = (message) => { throw new Error(message); };
 function windowFor(run) {
   const start = run.observation_start || run.source_period_start || run.period_start || run.source_latest_month;
@@ -140,13 +150,57 @@ function historySnapshot(source, run, payload) {
   const publicRun={}; for (const field of ["run_id", "observation_start", "observation_end", "native_resolution", "status"]) if (run[field] != null) publicRun[field]=run[field];
   return {schema_version:"tsird-public-evidence-snapshot/v1", indicator:source, run:publicRun, rows:payload.rows.filter((row) => row && typeof row === "object").map((row) => { const safe={}; for (const field of HISTORY_FIELDS) if (Object.hasOwn(row,field)) safe[field]=row[field]; return safe; })};
 }
+function roundDisplayCoordinates(value, precision = 5) {
+  if (typeof value === "number") return Number(value.toFixed(precision));
+  return Array.isArray(value) ? value.map((item) => roundDisplayCoordinates(item, precision)) : value;
+}
 function tabiaGeometry(payload) {
   if (!payload || payload.type !== "FeatureCollection" || !Array.isArray(payload.features)) fail("Tabia geometry is invalid");
   return {type:"FeatureCollection", schema_version:"tsird-public-tabia-geometry/v1", features:payload.features.map((feature) => {
     if (!feature || !feature.geometry || !feature.properties || typeof feature.properties.tsird_tabia_id !== "string") fail("Tabia geometry feature is invalid");
     const properties={}; for (const field of ["tsird_tabia_id", "tabia_name_en", "tabia_name_ti", "woreda_name_en", "woreda_name_ti"]) if (Object.hasOwn(feature.properties,field)) properties[field]=feature.properties[field];
-    return {type:"Feature",geometry:feature.geometry,properties};
+    return {type:"Feature",geometry:{...feature.geometry, coordinates:roundDisplayCoordinates(feature.geometry.coordinates)},properties};
   })};
+}
+function geometryIds(payload) {
+  if (!payload || payload.type !== "FeatureCollection" || !Array.isArray(payload.features)) fail("Tabia geometry is invalid");
+  const ids = new Set();
+  for (const feature of payload.features) {
+    const id = feature && feature.properties && feature.properties.tsird_tabia_id;
+    if (typeof id !== "string" || !feature.geometry || !feature.geometry.coordinates || ids.has(id)) fail("Tabia geometry feature is invalid");
+    ids.add(id);
+  }
+  return ids;
+}
+function mapshaperBin() {
+  const configured = process.env.TSIRD_MAPSHAPER_BIN;
+  const bundled = path.join(__dirname, "node_modules", ".bin", "mapshaper");
+  const candidate = configured || bundled;
+  if (!fs.existsSync(candidate)) fail(`topology-preserving display simplifier is unavailable at ${candidate}; install ${MAPSHAPER_VERSION} beside the publisher before activating the workflow`);
+  return candidate;
+}
+function simplifyDisplayGeometry(geometry, releaseDir) {
+  const expected = geometryIds(geometry);
+  const sourcePath = path.join(releaseDir, ".tabia-geometry-source.json");
+  const outputPath = path.join(releaseDir, ".tabia-geometry-simplified.json");
+  fs.writeFileSync(sourcePath, jsonBytes(geometry), {mode:0o600});
+  try {
+    childProcess.execFileSync(mapshaperBin(), [sourcePath, "-simplify", DISPLAY_SIMPLIFICATION, "keep-shapes", "-o", "format=geojson", "precision=0.00001", outputPath], {stdio:"pipe"});
+    const simplified = JSON.parse(fs.readFileSync(outputPath, "utf8"));
+    const actual = geometryIds(simplified);
+    if (actual.size !== expected.size || [...actual].some((id) => !expected.has(id))) fail("topology-preserving display simplifier changed the released Tabia identity set");
+    simplified.schema_version = geometry.schema_version || "tsird-public-tabia-geometry/v1";
+    simplified.display_coordinate_precision = 5;
+    simplified.display_simplification = {engine:MAPSHAPER_VERSION, retain_vertices:DISPLAY_SIMPLIFICATION, topology:"shared Tabia arcs retained together with keep-shapes"};
+    simplified.display_geometry_note = "Display-only geometry simplified with shared Tabia topology and five-decimal output precision; analytical PostGIS boundaries are unchanged.";
+    return simplified;
+  } catch (error) {
+    if (error && error.code === "ENOENT") fail(`topology-preserving display simplifier is unavailable; install ${MAPSHAPER_VERSION} beside the publisher before activating the workflow`);
+    fail(`topology-preserving display simplification failed: ${error && (error.stderr || error.message) ? String(error.stderr || error.message).trim() : "unknown error"}`);
+  } finally {
+    fs.rmSync(sourcePath, {force:true});
+    fs.rmSync(outputPath, {force:true});
+  }
 }
 function publicExposure(measure, payload, expectedTabiaIds) {
   if (!EXPOSURE_PROPERTIES[measure] || payload.type !== "FeatureCollection" || !Array.isArray(payload.features)) fail(`${measure} exposure payload is not a FeatureCollection`);
@@ -188,7 +242,7 @@ async function main() {
     observedSnapshots[runId] = observedSnapshot(await getJson(`/map/api/drought/development/observed-rainfall/runs/${encodeURIComponent(runId)}?limit=748`));
     if (!geometry) geometry = tabiaGeometry(await getJson(`/map/api/drought/development/observed-rainfall/runs/${encodeURIComponent(runId)}/features`));
   }
-  const expectedTabiaIds = new Set(geometry.features.map((feature) => feature.properties.tsird_tabia_id));
+  const expectedTabiaIds = geometryIds(geometry);
   if (!expectedTabiaIds.size) fail("released Tabia geometry is incomplete");
   const exposures = {};
   for (const measure of EXPOSURE_MEASURES) exposures[measure] = publicExposure(measure, await getJson(`/map/api/drought/development/exposure/${measure}/features`), expectedTabiaIds);
@@ -208,12 +262,13 @@ async function main() {
     observation_start:run.observation_start, observation_end:run.observation_end, quality_summary:run.quality_summary,
     source_product:run.provenance && run.provenance.source_product, method:run.provenance && run.provenance.method,
     interpretation_boundary:"Retained rainfall evidence only; it does not create a drought class or combined score." })) };
-  const fingerprint = crypto.createHash("sha256").update(JSON.stringify({workspace, publicRainfall, observedRuns, observedSnapshots, histories, exposures, rasters:RASTERS.map((entry) => [entry[1], sha256(path.join(NATIVE_ROOT, entry[1]))])})).digest("hex");
+  const fingerprint = crypto.createHash("sha256").update(JSON.stringify({workspace, publicRainfall, observedRuns, observedSnapshots, geometry, histories, exposures, rasters:RASTERS.map((entry) => [entry[1], sha256(path.join(NATIVE_ROOT, entry[1]))])})).digest("hex");
   fs.mkdirSync(STAGING_ROOT, {recursive:true, mode:0o700});
   const receiptFile = path.join(STAGING_ROOT, "last-successful-fingerprint.json");
   if (fs.existsSync(receiptFile)) { try { if (JSON.parse(fs.readFileSync(receiptFile, "utf8")).fingerprint === fingerprint) { console.log(JSON.stringify({status:"current", note:"No retained indicator or native raster change; public pointer was not moved."})); return; } } catch {} }
   const releaseId = compactId(); const releaseDir = path.join(STAGING_ROOT, releaseId); fs.mkdirSync(releaseDir, {mode:0o700});
   try {
+    geometry = simplifyDisplayGeometry(geometry, releaseDir);
     const written = {};
     written["drought-evidence-summary.json"] = writeJson(path.join(releaseDir, "drought-evidence-summary.json"), publicRainfall);
     written["drought-workspace-latest.json"] = writeJson(path.join(releaseDir, "drought-workspace-latest.json"), workspace);
@@ -263,7 +318,11 @@ async function main() {
       const uploadKey = path.join(runtime,"upload_key"), activateKey = path.join(runtime,"activate_key"), knownHosts = path.join(runtime,"known_hosts");
       fs.copyFileSync(path.join(KEY_ROOT,"tsird-drought-release-upload"), uploadKey); fs.copyFileSync(path.join(KEY_ROOT,"tsird-drought-release-activate"), activateKey); fs.copyFileSync(path.join(KEY_ROOT,"known_hosts"), knownHosts);
       for (const item of [uploadKey, activateKey, knownHosts]) fs.chmodSync(item,0o600);
-      const filenames = ["manifest.json", ...assets.map((item) => item.relative_path)].sort();
+      const filenames = ["manifest.json", "manifest.json.gz", ...assets.flatMap((item) => (
+        item.relative_path.endsWith(".json")
+          ? [item.relative_path, `${item.relative_path}.gz`]
+          : [item.relative_path]
+      ))].sort();
       const batch = [`mkdir /incoming/${releaseId}`, ...filenames.map((filename) => `put ${path.join(releaseDir, filename)} /incoming/${releaseId}/${filename}`)].join("\n") + "\n";
       const batchFile = path.join(runtime,"upload.batch"); fs.writeFileSync(batchFile,batch,{mode:0o600});
       const options = ["-o","BatchMode=yes","-o","IdentitiesOnly=yes","-o","StrictHostKeyChecking=yes","-o",`UserKnownHostsFile=${knownHosts}`,"-o","GlobalKnownHostsFile=/dev/null"];

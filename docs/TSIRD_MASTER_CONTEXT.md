@@ -156,6 +156,11 @@ automatic activation that would make any retained source older is refused and
 leaves the existing pointer intact. A separate read-only public freshness
 monitor is designed to run outside n8n and notify only on an alert-state
 change; it has no production activation, source-data, runner or n8n control.
+The pending Stage-1 delivery serves pointer documents with revalidation and
+release-ID assets with immutable cache headers. Release builders emit verified
+gzip sidecars for large JSON; edge gzip remains the fallback for dynamic API
+and frontend responses. These are implementation-branch contracts until a
+browser measurement and a controlled production release prove them live.
 
 The public-only release viewer is `/map/drought/release/`. It calls only the
 approved-release API, displays neutral C1--C4 retrospective draft codes and
@@ -209,6 +214,13 @@ The query depends on `geometry`, `WEREDA`/`TABIA`, and `woreda_tig`/`tabia_tig`.
 ## MapServer and cartography
 
 The active mapfile is [infra/mapserver/mapfiles/tsird.map](../infra/mapserver/mapfiles/tsird.map). It includes [includes/vectors_gold.map](../infra/mapserver/mapfiles/includes/vectors_gold.map) and defines additional layers directly. Do not assume `layers_published.map` or `layers_published_all.map` is active merely because it exists.
+
+The production Compose overlay replaces that one include with the generated
+[vectors_public.map](../infra/mapserver/mapfiles/includes/vectors_public.map)
+and mounts a matching generated public Atlas registry. This is the production
+boundary that removes development-only drought layers from both capabilities
+and the public layer list; regenerate both files after any intentional change
+to the source mapfile or registry.
 
 Rendering combines OGR/file-backed vectors, PostGIS layers, and rasters. Mapfile classes define styles, raster classification, labels, and legends. The UI uses WMS; older broad WFS/WCS claims do not establish verified WFS/WCS functionality in this checkout.
 

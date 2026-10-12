@@ -9,6 +9,7 @@ pre-transfer gates.
 from __future__ import annotations
 
 import argparse
+import gzip
 import hashlib
 import json
 import re
@@ -42,6 +43,9 @@ AUTO_INDICATOR_RASTERS = {
     "native-raster-wapor": "wapor-transpiration-current.tif",
 }
 FRESHNESS_CONTRACT_PATH = Path(__file__).resolve().parents[1] / "n8n" / "publisher" / "drought-indicator-freshness-contract.json"
+GZIP_REQUIRED_MIN_BYTES = 64 * 1024
+DISPLAY_GEOMETRY_ENGINE = "mapshaper@0.7.83"
+DISPLAY_GEOMETRY_RETAIN_VERTICES = "0.5%"
 
 
 def fail(message: str) -> None:
@@ -125,6 +129,29 @@ def validate_indicator_freshness(manifest: dict[str, Any]) -> None:
             fail(f"freshness[{key}] stale_after does not match the contract")
 
 
+def validate_display_geometry(release_dir: Path, assets: list[Any]) -> None:
+    """Keep release-only display geometry compact without changing analysis data."""
+    geometry_asset = next((asset for asset in assets if isinstance(asset, dict) and asset.get("asset_id") == "tabia-geometry"), None)
+    if geometry_asset is None:
+        fail("auto-validated indicator release lacks tabia-geometry")
+    relative_path = safe_relative_path(geometry_asset.get("relative_path"), "tabia-geometry.relative_path")
+    try:
+        geometry = json.loads((release_dir / relative_path).read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as error:
+        fail(f"tabia-geometry is not readable JSON: {error}")
+    if not isinstance(geometry, dict) or geometry.get("type") != "FeatureCollection" or not isinstance(geometry.get("features"), list):
+        fail("tabia-geometry must be a GeoJSON FeatureCollection")
+    if geometry.get("display_coordinate_precision") != 5:
+        fail("tabia-geometry must use five-decimal display coordinates")
+    simplification = geometry.get("display_simplification")
+    if not isinstance(simplification, dict) or simplification.get("engine") != DISPLAY_GEOMETRY_ENGINE:
+        fail("tabia-geometry must declare the required topology-preserving display simplifier")
+    if simplification.get("retain_vertices") != DISPLAY_GEOMETRY_RETAIN_VERTICES:
+        fail("tabia-geometry must declare the required display simplification level")
+    if "keep-shapes" not in str(simplification.get("topology", "")):
+        fail("tabia-geometry must declare shared-boundary topology preservation")
+
+
 def safe_relative_path(value: Any, field: str) -> PurePosixPath:
     text = require_string(value, field)
     path = PurePosixPath(text)
@@ -182,6 +209,17 @@ def validate_asset(release_dir: Path, asset: Any, index: int, names: set[str]) -
     file_path = release_dir / relative_path
     if not file_path.is_file():
         fail(f"assets[{index}] referenced file is missing: {relative_path}")
+    gzip_path = file_path.with_name(f"{file_path.name}.gz")
+    if file_path.suffix.lower() == ".json" and file_path.stat().st_size >= GZIP_REQUIRED_MIN_BYTES and not gzip_path.exists():
+        fail(f"assets[{index}] large JSON asset is missing its required compressed sidecar")
+    if gzip_path.exists():
+        if file_path.suffix.lower() != ".json" or gzip_path.is_symlink() or not gzip_path.is_file():
+            fail(f"assets[{index}] has an invalid compressed JSON sidecar")
+        try:
+            if gzip.decompress(gzip_path.read_bytes()) != file_path.read_bytes():
+                fail(f"assets[{index}] compressed JSON sidecar does not match the asset")
+        except OSError as error:
+            fail(f"assets[{index}] compressed JSON sidecar is unreadable: {error}")
     if kind == "native_evidence_raster":
         if AUTO_INDICATOR_RASTERS.get(asset_id) != str(relative_path):
             fail("native evidence raster is not one of the fixed display-ready indicator files")
@@ -287,6 +325,7 @@ def validate_release(
         if any(not allowed_history.fullmatch(name) for name in unexpected):
             fail("auto-validated indicator release contains an unapproved asset")
         validate_indicator_freshness(manifest)
+        validate_display_geometry(release_dir, assets)
     return manifest
 
 

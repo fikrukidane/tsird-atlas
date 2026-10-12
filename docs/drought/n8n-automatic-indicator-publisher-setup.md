@@ -30,9 +30,12 @@ This is only the small, display-ready raster folder. Do not mount the broader
 `data/drought` tree, source archives, the TSIRD repository, Docker socket, a
 database volume, or an administrator SSH directory into n8n.
 
-Copy these three tracked files into the existing n8n `/workflows` mount. The
-publisher and Python validator both read the same freshness contract; do not
-activate a workflow with only a partial update.
+Copy these four tracked files into the existing n8n `/workflows` mount and
+install the pinned, build-only topology tool there. The publisher and Python
+validator both read the same freshness contract; do not activate a workflow
+with only a partial update. `mapshaper` changes only the release's display
+geometry, preserving shared Tabia arcs; it never changes PostGIS or source
+evidence geometry.
 
 ```powershell
 Copy-Item C:\docker\projects\tsird-atlas\n8n\publisher\tsird-drought-automatic-indicator-publisher-v1.js `
@@ -41,6 +44,10 @@ Copy-Item C:\docker\projects\tsird-atlas\n8n\publisher\tsird-drought-automatic-i
   C:\docker\projects\n8n-platform\workflows\tsird-drought-automatic-indicator-publisher-v1.sh -Force
 Copy-Item C:\docker\projects\tsird-atlas\n8n\publisher\drought-indicator-freshness-contract.json `
   C:\docker\projects\n8n-platform\workflows\drought-indicator-freshness-contract.json -Force
+Copy-Item C:\docker\projects\tsird-atlas\n8n\publisher\package.json `
+  C:\docker\projects\n8n-platform\workflows\package.json -Force
+docker compose -f C:\docker\projects\n8n-platform\docker-compose.yml exec -u node n8n `
+  npm --prefix /workflows install --omit=dev --ignore-scripts
 ```
 
 The existing two restricted publisher keys and verified `known_hosts` file are
@@ -54,7 +61,9 @@ reused from `tsird-drought-publisher-keys`; no administrator key is involved.
    `published` with a complete freshness declaration or `current` without moving the public pointer.
    Any missing raster, unavailable source, incomplete Tabia evidence, checksum
    mismatch, host-key mismatch, upload error, or VPS validation failure must
-   fail while leaving the existing public indicator pointer untouched.
+   fail while leaving the existing public indicator pointer untouched. Confirm
+   that the generated `tabia-geometry.json` records `mapshaper@0.7.83`,
+   `retain_vertices: 0.5%`, and the shared-topology note before activation.
 4. Check the public Drought Intelligence page in both **Native raster** and
    **Tabia average** modes for each of the six indicator tabs.
 5. Record the package ID, fingerprint, n8n execution result and previous

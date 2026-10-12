@@ -196,6 +196,16 @@ layers.
   Priority Review, Scenario Laboratory and Model information. This is branch
   state pending review and deployment; it must not be described as live until
   the corresponding immutable images and production overlay have been applied.
+- Stage-1 public-performance implementation is branch state pending review and
+  deployment. It adds a release-ID geometry descriptor and immutable gzip
+  sidecars, a public Tabia-boundary fallback that never calls the unavailable
+  development boundary API, revalidated release pointers, dynamic gzip
+  fallback, cached on-demand indicator loading, and active-source freshness
+  labels. Large JSON sidecars are validator-required and the budget now
+  includes render-blocking third-party critical transfer. Its production
+  Compose overlay substitutes a generated Atlas registry and MapServer vector
+  include that omit development-only drought layers; a post-deploy WMS renderer
+  check is required before treating that overlay as live.
 
 ### Registry inventory
 

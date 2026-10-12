@@ -1,0 +1,87 @@
+{
+  "schema_version": "tsird-performance-baseline/v1",
+  "measured_at": "2026-10-11T05:30:00Z",
+  "method": "manual-browser-instrumentation",
+  "method_note": "Captured with Resource Timing and fetch probes in a desktop browser pane before the harness existed. Byte totals come from encodedBodySize and exclude response headers, so they are not strictly comparable with the harness CDP accounting. Treat this as the reference state of production, not as a harness run.",
+  "environment": {
+    "base_url": "https://lab.tigrayinsights.net",
+    "viewport": "desktop pane, unthrottled",
+    "network_profile": "none",
+    "cache_state": "cold"
+  },
+  "pages": {
+    "drought": {
+      "path": "/map/drought/",
+      "requests": 72,
+      "transferred_mb": 9.54,
+      "uncompressed_mb": 10.11,
+      "first_contentful_paint_ms": 1248,
+      "dom_content_loaded_ms": 1547,
+      "load_event_ms": 1548,
+      "ttfb_ms": 451,
+      "by_initiator": {
+        "fetch": "23 requests / 8.95 MB",
+        "script": "17 requests / 478 KB",
+        "img": "25 requests / 81 KB",
+        "link": "5 requests / 44 KB"
+      },
+      "basemap_tile_requests": 25,
+      "functional_check": {
+        "succeeded": false,
+        "note": "Selecting a Tabia calls /map/api/boundaries/tabia/{id}, which returns HTTP 503 in production, so the per-Tabia panel never renders. The stage-1 functional criterion cannot pass until that falls back to packaged release geometry."
+      },
+      "largest_responses": [
+        { "kb": 7966, "url": "/map/api/drought/public/dashboard/geometry" },
+        { "kb": 222, "url": "/map/api/drought/public/dashboard/indicator/rapid" },
+        { "kb": 210, "url": "https://cdn.jsdelivr.net/npm/ol@8.1.0/dist/ol.js" },
+        { "kb": 201, "url": "/map/api/drought/public/dashboard/indicator/observed" },
+        { "kb": 174, "url": "/map/api/drought/public/dashboard/indicator/soil_water" },
+        { "kb": 168, "url": "/map/api/drought/public/dashboard/indicator/thermal" },
+        { "kb": 154, "url": "/map/api/drought/public/dashboard/indicator/water_use" },
+        { "kb": 152, "url": "/map/api/drought/public/dashboard/indicator/vegetation" },
+        { "kb": 138, "url": "/map/src/drought/DroughtDashboard.js" }
+      ]
+    },
+    "atlas": {
+      "path": "/map/",
+      "requests": 19,
+      "transferred_kb": 375,
+      "load_event_ms": 1125,
+      "protocols": ["h2", "http/1.1"],
+      "openlayers_version": "8.1.0",
+      "subresource_integrity": false
+    }
+  },
+  "server_observations": {
+    "compression": {
+      "gzip_enabled_for": ["text/html", "text/xml"],
+      "gzip_missing_for": ["application/json", "application/javascript"],
+      "evidence": "content-encoding absent on /dashboard/geometry, /dashboard/indicator/*, /data/atlas-registry.json and /src/drought/DroughtDashboard.js; the CDN copy of ol.js arrives at 210 KB against 770 KB raw, so the client accepts compression."
+    },
+    "caching": {
+      "versioned_static_assets": "cache-control: no-cache, max-age=0, must-revalidate",
+      "api_release_payloads": "no cache-control header at all"
+    },
+    "published_geometry": {
+      "bytes": 8156224,
+      "features": 748,
+      "geometry_types": ["Polygon"],
+      "max_coordinate_decimal_places": 9,
+      "properties": ["tsird_tabia_id", "tabia_name_en", "woreda_name_en"]
+    },
+    "wms": {
+      "advertised_layers": 123,
+      "capabilities_kb": 87,
+      "capabilities_ms_warm": 372,
+      "capabilities_ms_cold_2026_10_10": 10228,
+      "getmap_samples": [
+        { "layer": "tigray_tabias_ti_en_pg", "ms": 954, "kb": 225 },
+        { "layer": "tigray_tabias", "ms": 213, "kb": 337 },
+        { "layer": "tigray_woredas_ti_en_pg", "ms": 339, "kb": 312 },
+        { "layer": "ethiopia_dem", "ms": 1215, "kb": 82 }
+      ],
+      "development_layers_in_production": "tigray_drought_*_dev layers are advertised and return ServiceExceptionReport; tigray_drought_*_raw_public layers render correctly."
+    },
+    "mobile_375px": "Title wraps to four lines, navigation buttons overflow horizontally off-screen, the panel covers the map, and the search box overlaps the map controls."
+  }
+}
