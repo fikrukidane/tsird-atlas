@@ -53,21 +53,26 @@ they are quoted anywhere outside this document.
 
 ## A. Mobile layout
 
-Checked at **390x844** and **360x740**, with 375x812 recorded for comparison.
-Applies to every public route: `/map/drought/`, `/map/drought/release/`,
-`/map/drought/priority/`, `/map/drought/priority/model/`,
-`/map/drought/priority/scenario/`, and `/map/`. The local-only
-`/map/drought/control/` page is excluded.
+Enforced at **360x740** and **390x844**. **320x568 is measured and recorded
+but never blocks a release**: it protects against a regression on the smallest
+phones still in use without making Stage 2 chase layouts that are leaving the
+field.
+
+Applies to every public route: `/map/drought/`, `/map/drought/table/`,
+`/map/drought/release/`, `/map/drought/priority/`,
+`/map/drought/priority/model/`, `/map/drought/priority/scenario/`, and `/map/`.
+The local-only `/map/drought/control/` page is excluded.
 
 | ID | Criterion | Target | Mode |
 | --- | --- | --- | --- |
-| A1 | Horizontal overflow | `scrollWidth <= clientWidth + 1` on every route, at both widths | enforce |
+| A1 | Horizontal overflow | `scrollWidth <= clientWidth + 1` on every route, at both enforced widths | enforce |
 | A2 | Map remains usable with the panel open | at least **45 %** of viewport height shows map that the panel does not cover | enforce |
 | A3 | Header cost | header height **<= 96 px**; title occupies **<= 2 lines** | enforce |
 | A4 | Touch targets | every interactive element is **>= 44x44 CSS px**, or >= 44 px in one dimension with >= 8 px clear spacing | enforce |
 | A5 | Panel dismissal | the panel can be collapsed and reopened without a page reload, and its state is readable from the DOM | enforce |
 | A6 | Viewport zoom | no `user-scalable=no` and no `maximum-scale` below 5 | enforce |
 | A7 | Breakpoint consolidation | the four current thresholds reduced to one documented set | record |
+| A8 | Smallest phones | A1 to A6 measured at 320x568 and reported, pass or fail | record |
 
 A2 is the criterion that decides whether the page is usable at all on a phone:
 a panel that covers the map turns a map product into a form.
@@ -82,6 +87,7 @@ a panel that covers the map turns a map product into a form.
 | B4 | Release honesty | a URL carrying a release ID shows that release's values, or says the release is superseded; it never silently shows different numbers under the same link | enforce |
 | B5 | Malformed input | unknown or malformed parameters fall back to the default view with no uncaught exception | enforce |
 | B6 | Restore cost | a deep-link cold load still meets the Stage 1 functional budget of <= 3 s on `slow-4g` | enforce |
+| B7 | Shared parameters | `/map/drought/table/` accepts and emits the same indicator, month, Tabia and release parameters as the map route, and a selection on either route links to the equivalent view on the other | enforce |
 
 B4 is the criterion with evidence consequences. A link pasted into a report or
 a message must not change meaning when the next indicator release lands. The
@@ -98,14 +104,24 @@ values is not one of them.
 | C3 | Colour ramp | passes a deuteranopia and protanopia simulation check, with >= 3:1 between adjacent classes | enforce |
 | C4 | Insufficient evidence | encoded by pattern or hatch **and** text, never by colour alone | enforce |
 | C5 | Text contrast | >= 4.5:1 for body text and >= 3:1 for large text, panel and legend included | enforce |
-| C6 | Table view | the current indicator for all 748 Tabias in real table semantics, sortable, reachable without the map rendering | enforce |
-| C7 | Documented fallback | with `body[data-tsird-drought-geometry]` reporting an unavailable boundary, the table still reports values | enforce |
+| C6 | Table view | a separate **`/map/drought/table/`** route listing the current indicator for all 748 Tabias in real table semantics, sortable, with a clearly labelled "Table view" link in the map panel | enforce |
+| C7 | Documented fallback | with `body[data-tsird-drought-geometry]` reporting an unavailable boundary, the map route surfaces the table link and the table route still reports values | enforce |
 | C8 | Automated audit | zero critical or serious violations from axe-core, or an equivalent, on each public route | enforce |
-| C9 | Language marking | Tigrinya strings carry `lang="ti"` | enforce |
+| C9 | Language marking | the Tigrinya place names already present are correct and carry `lang="ti"`; no interface string is translated in this stage | enforce |
+| C10 | Table route independence | `/map/drought/table/` renders its values without loading the map stack: no OpenLayers, no basemap tiles, no `cdn.jsdelivr.net` request | enforce |
+| C11 | Table route transfer | its own cold transfer on `slow-4g`, recorded. Expectation on first measurement is well under 250 KB, since it carries values and no geometry; the target is set once measured rather than guessed now | record |
 
-C6 and C7 are one feature with two purposes. The table is the accessible view
-and it is also what the workspace shows when geometry cannot be delivered,
-which is the failure mode this platform has actually had in production.
+C6, C7, C10 and C11 are one feature with two purposes. The table is the
+accessible view, and it is also what the workspace falls back to when geometry
+cannot be delivered, which is the failure mode this platform has actually had
+in production.
+
+Giving the table its own route rather than another panel mode is what makes
+that second purpose real. A panel mode inherits the whole map stack, so it
+fails in exactly the conditions it is meant to survive: a slow connection, a
+missing boundary asset, a screen reader on a page whose primary control is a
+canvas. A separate route can be opened, linked and read on its own, which is
+why C10 forbids it from pulling the map stack back in through the side door.
 
 ## What Stage 2 must not do
 
@@ -139,13 +155,24 @@ which is the failure mode this platform has actually had in production.
 A criterion that the harness cannot read out of the DOM is recorded as a manual
 check with a named observation, not silently dropped.
 
-## Open questions
+## Decisions, 12 October 2026
 
-These need Frank's decision before implementation, not during it.
+The three questions left open when this document was drafted are now settled.
+They are recorded here because they change what the criteria above mean.
 
-1. **Narrowest enforced width.** 390 and 360, or should 320 be included?
-2. **Table placement.** A separate route (`/map/drought/table/`) or a toggle
-   inside the existing panel?
-3. **Tigrinya labelling.** In scope for Stage 2, or deferred to a later stage?
-   C9 only marks the language of strings that already exist; translating the
-   interface is a larger piece of work.
+1. **Enforced widths: 360 px and 390 px. 320 px is recorded, not blocking.**
+   Reflected in section A and in A8.
+2. **The table is its own route, `/map/drought/table/`**, carrying the same
+   indicator, month, Tabia and release parameters, and linked from the map
+   panel. Reflected in B7, C6, C7, C10 and C11. The reason for the separate
+   route, rather than a panel mode, is in the note under section C.
+3. **Tigrinya: place names only in this stage.** The bilingual place names
+   already in the data must be correct and correctly marked, and no interface
+   string is translated. Full interface localisation is deferred to its own
+   phase with reviewed terminology, because a partial and unreviewed
+   translation of an evidence product reads as less trustworthy than a clean
+   English interface. Reflected in C9.
+
+With these recorded, this document is the acceptance contract for Stage 2.
+Changing a target from here on is a reviewable change to this file, not a
+reinterpretation during implementation.
