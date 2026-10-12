@@ -1,0 +1,238 @@
+{
+  "page": "drought",
+  "url": "http://host.docker.internal:18082/map/drought/",
+  "environment": {
+    "measured_at": "2026-10-12T04:34:49+00:00",
+    "harness_version": "1.1.0",
+    "git_commit": "unknown",
+    "browser": "136.0.7103.25",
+    "viewport": "phone",
+    "viewport_px": {
+      "width": 390,
+      "height": 844,
+      "device_scale_factor": 2
+    },
+    "network_profile": "slow-4g",
+    "network_profile_values": {
+      "description": "Fixed benchmark profile used for stage targets.",
+      "download_kbps": 1600,
+      "upload_kbps": 750,
+      "latency_ms": 150,
+      "cpu_slowdown": 4
+    },
+    "method": "playwright + cdp network accounting"
+  },
+  "cold": {
+    "total_kb": 632.9,
+    "application_kb": 289.9,
+    "third_party_kb": 211.9,
+    "basemap_kb": 131.2,
+    "critical_path_kb": 289.9,
+    "critical_total_kb": 632.9,
+    "requests": 28,
+    "app_requests": 14,
+    "basemap_tile_requests": 12,
+    "largest_responses": [
+      {
+        "kb": 210.3,
+        "status": 200,
+        "url": "https://cdn.jsdelivr.net/npm/ol@8.1.0/dist/ol.js"
+      },
+      {
+        "kb": 186.7,
+        "status": 200,
+        "url": "ght/public/indicators/releases/2026-10-12T042934Z-indicators/assets/tabia-geometry-display"
+      },
+      {
+        "kb": 43.0,
+        "status": 200,
+        "url": "http://host.docker.internal:18082/map/src/drought/DroughtDashboard.js"
+      },
+      {
+        "kb": 35.6,
+        "status": 200,
+        "url": "http://host.docker.internal:18082/map/api/drought/public/dashboard/indicator/observed"
+      },
+      {
+        "kb": 18.7,
+        "status": 200,
+        "url": "https://tile.openstreetmap.org/7/76/60.png"
+      },
+      {
+        "kb": 14.2,
+        "status": 200,
+        "url": "https://tile.openstreetmap.org/7/77/58.png"
+      },
+      {
+        "kb": 12.8,
+        "status": 200,
+        "url": "https://tile.openstreetmap.org/7/77/60.png"
+      },
+      {
+        "kb": 12.6,
+        "status": 200,
+        "url": "https://tile.openstreetmap.org/7/78/58.png"
+      },
+      {
+        "kb": 10.9,
+        "status": 200,
+        "url": "https://tile.openstreetmap.org/7/76/59.png"
+      },
+      {
+        "kb": 10.8,
+        "status": 200,
+        "url": "https://tile.openstreetmap.org/7/78/59.png"
+      }
+    ],
+    "cache_state": "cold",
+    "first_contentful_paint_ms": 948,
+    "navigation": {
+      "ttfb": 61,
+      "load": 2095
+    },
+    "functional_check": {
+      "attempted": true,
+      "succeeded": true,
+      "seconds": 0.79,
+      "note": "matched '[data-public-evidence-selection][data-selected-tabia]'",
+      "handler_seconds": 0.79
+    },
+    "critical_path_cutoff": "functional-success"
+  },
+  "repeat": {
+    "total_kb": 40.1,
+    "application_kb": 39.6,
+    "third_party_kb": 0.0,
+    "basemap_kb": 0.6,
+    "critical_path_kb": 39.6,
+    "critical_total_kb": 40.1,
+    "requests": 30,
+    "app_requests": 14,
+    "basemap_tile_requests": 14,
+    "largest_responses": [
+      {
+        "kb": 35.6,
+        "status": 200,
+        "url": "http://host.docker.internal:18082/map/api/drought/public/dashboard/indicator/observed"
+      },
+      {
+        "kb": 1.3,
+        "status": 200,
+        "url": "http://host.docker.internal:18082/map/api/drought/public/dashboard/overview"
+      },
+      {
+        "kb": 0.5,
+        "status": 200,
+        "url": "http://host.docker.internal:18082/map/api/drought/public/dashboard/geometry"
+      },
+      {
+        "kb": 0.3,
+        "status": 200,
+        "url": "https://tile.openstreetmap.org/7/77/60.png"
+      },
+      {
+        "kb": 0.3,
+        "status": 200,
+        "url": "https://tile.openstreetmap.org/7/76/60.png"
+      },
+      {
+        "kb": 0.2,
+        "status": 304,
+        "url": "http://host.docker.internal:18082/map/src/drought/DroughtDashboard.js"
+      },
+      {
+        "kb": 0.2,
+        "status": 200,
+        "url": "http://host.docker.internal:18082/map/css/style.css"
+      },
+      {
+        "kb": 0.2,
+        "status": 200,
+        "url": "http://host.docker.internal:18082/map/css/drought-dashboard.css"
+      },
+      {
+        "kb": 0.2,
+        "status": 200,
+        "url": "http://host.docker.internal:18082/map/drought/drought-workspace.css"
+      },
+      {
+        "kb": 0.2,
+        "status": 304,
+        "url": "http://host.docker.internal:18082/map/src/map/MapController.js"
+      }
+    ],
+    "cache_state": "repeat",
+    "first_contentful_paint_ms": 644,
+    "navigation": {
+      "ttfb": 5,
+      "load": 1272
+    },
+    "functional_check": {
+      "attempted": true,
+      "succeeded": true,
+      "seconds": 1.355,
+      "note": "matched '[data-public-evidence-selection][data-selected-tabia]'",
+      "handler_seconds": 1.355
+    },
+    "critical_path_cutoff": "functional-success",
+    "note": "repeat visit in the same browser context"
+  },
+  "verdicts": [
+    {
+      "measure": "critical_path_kb",
+      "observed": 289.9,
+      "target": 400,
+      "mode": "enforce",
+      "verdict": "pass"
+    },
+    {
+      "measure": "critical_total_kb",
+      "observed": 632.9,
+      "target": 650,
+      "mode": "enforce",
+      "verdict": "pass"
+    },
+    {
+      "measure": "total_cold_kb",
+      "observed": 289.9,
+      "target": 1500,
+      "mode": "enforce",
+      "verdict": "pass"
+    },
+    {
+      "measure": "app_requests",
+      "observed": 14,
+      "target": 15,
+      "mode": "enforce",
+      "verdict": "pass"
+    },
+    {
+      "measure": "functional_seconds",
+      "observed": 0.79,
+      "target": 3.0,
+      "mode": "enforce",
+      "verdict": "pass"
+    },
+    {
+      "measure": "basemap_tile_requests",
+      "observed": 12,
+      "target": null,
+      "mode": "record",
+      "verdict": "record"
+    },
+    {
+      "measure": "repeat_total_kb",
+      "observed": 39.6,
+      "target": null,
+      "mode": "record",
+      "verdict": "record"
+    },
+    {
+      "measure": "repeat_functional_seconds",
+      "observed": 1.355,
+      "target": null,
+      "mode": "record",
+      "verdict": "record"
+    }
+  ]
+}

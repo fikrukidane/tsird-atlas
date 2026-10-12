@@ -1307,15 +1307,21 @@ async def public_drought_dashboard_geometry():
         PUBLIC_DROUGHT_INDICATOR_RELEASE_ROOT,
         {"auto-validated"},
     )
-    if manifest.get("release_channel") != "indicator-evidence" or "tabia-geometry" not in asset_map:
+    if manifest.get("release_channel") != "indicator-evidence":
         raise HTTPException(status_code=404, detail="Approved public Tabia geometry is unavailable")
-    asset, _ = asset_map["tabia-geometry"]
+    display = manifest.get("display_geometry") if isinstance(manifest.get("display_geometry"), dict) else {}
+    asset_id = display.get("asset_id") if isinstance(display.get("asset_id"), str) else "tabia-geometry"
+    if asset_id not in asset_map:
+        raise HTTPException(status_code=404, detail="Approved public Tabia geometry is unavailable")
+    asset, _ = asset_map[asset_id]
+    vertex_statistics = display.get("vertex_statistics") if isinstance(display.get("vertex_statistics"), dict) else {}
     return JSONResponse({
         "schema_version": "tsird-public-display-geometry-pointer/v1",
         "release_id": manifest["release_id"],
-        "asset_id": "tabia-geometry",
-        "feature_count": asset.get("feature_count"),
-        "url": f"/map/api/drought/public/indicators/releases/{manifest['release_id']}/assets/tabia-geometry",
+        "asset_id": asset_id,
+        "format": display.get("format", "geojson"),
+        "feature_count": vertex_statistics.get("feature_count"),
+        "url": f"/map/api/drought/public/indicators/releases/{manifest['release_id']}/assets/{asset_id}",
     }, headers={"Cache-Control": "no-cache, max-age=0, must-revalidate"})
 
 

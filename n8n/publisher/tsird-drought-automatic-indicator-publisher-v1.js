@@ -52,8 +52,17 @@ const EXPOSURE_PROPERTIES = {
   cropland: ["tsird_tabia_id", "tabia_name_en", "woreda_name_en", "cropland_pct", "cropland_area_ha", "coverage_pct", "quality_status"],
   road: ["tsird_tabia_id", "tabia_name_en", "woreda_name_en", "nearest_road_m", "tigray_roads_2006_intersects", "quality_status"],
 };
-const DISPLAY_SIMPLIFICATION = "0.5%";
 const MAPSHAPER_VERSION = "mapshaper@0.7.83";
+const DISPLAY_SIMPLIFICATION_INTERVAL_METERS = 75;
+const DISPLAY_VERTEX_FLOOR = 4;
+const KNOWN_SOURCE_FLOOR_TABIA_IDS = new Set([
+  "tsird-tabia-v1-eaac4242a1fc0b5b3399463efb3e4ccd", // Debre Genet, Kola Temben
+  "tsird-tabia-v1-490fc743c6304faac0849b61ae167eb5", // Menachek, Degua Temben
+]);
+// This version participates in the persistent release fingerprint. A delivery
+// contract change must produce one replacement package even if observations
+// have not changed; otherwise an old display representation would persist.
+const DISPLAY_GEOMETRY_CONTRACT_VERSION = "topojson-interval-75m-v1";
 
 const now = () => new Date().toISOString().replace(/\.\d{3}Z$/, "Z");
 // Match the VPS forced-command contract: ISO date separators remain while
@@ -172,6 +181,38 @@ function geometryIds(payload) {
   }
   return ids;
 }
+function ringVertexCount(ring) {
+  if (!Array.isArray(ring) || !ring.length) fail("Tabia geometry contains an invalid polygon ring");
+  const count = ring.length > 1 && JSON.stringify(ring[0]) === JSON.stringify(ring[ring.length - 1]) ? ring.length - 1 : ring.length;
+  if (count < 3) fail("Tabia geometry contains a degenerate polygon ring");
+  return count;
+}
+function featureVertexCount(feature) {
+  const geometry = feature && feature.geometry;
+  if (!geometry || typeof geometry !== "object") fail("Tabia geometry feature is invalid");
+  let rings;
+  if (geometry.type === "Polygon" && Array.isArray(geometry.coordinates)) rings = geometry.coordinates;
+  else if (geometry.type === "MultiPolygon" && Array.isArray(geometry.coordinates)) rings = geometry.coordinates.flat();
+  else fail("Tabia geometry contains a non-polygon feature");
+  return rings.reduce((total, ring) => total + ringVertexCount(ring), 0);
+}
+function displayVertexStatistics(geometry) {
+  if (!geometry || !Array.isArray(geometry.features) || !geometry.features.length) fail("Tabia geometry has no features for vertex statistics");
+  const values = geometry.features.map(featureVertexCount).sort((left, right) => left - right);
+  const midpoint = Math.floor(values.length / 2);
+  const median = values.length % 2 ? values[midpoint] : (values[midpoint - 1] + values[midpoint]) / 2;
+  return {feature_count:values.length, minimum_vertices:values[0], median_vertices:median, maximum_vertices:values[values.length - 1], floor_vertices:DISPLAY_VERTEX_FLOOR, floor_feature_count:values.filter((value) => value <= DISPLAY_VERTEX_FLOOR).length};
+}
+function floorTabiaIds(geometry) {
+  if (!geometry || !Array.isArray(geometry.features)) fail("Tabia geometry has no features");
+  const ids = new Set();
+  for (const feature of geometry.features) {
+    const id = feature && feature.properties && feature.properties.tsird_tabia_id;
+    if (typeof id !== "string") fail("Tabia geometry feature is invalid");
+    if (featureVertexCount(feature) <= DISPLAY_VERTEX_FLOOR) ids.add(id);
+  }
+  return ids;
+}
 function mapshaperBin() {
   const configured = process.env.TSIRD_MAPSHAPER_BIN;
   const bundled = path.join(__dirname, "node_modules", ".bin", "mapshaper");
@@ -181,22 +222,47 @@ function mapshaperBin() {
 }
 function simplifyDisplayGeometry(geometry, releaseDir) {
   const expected = geometryIds(geometry);
+  const sourceFloorIds = floorTabiaIds(geometry);
+  if ([...sourceFloorIds].some((id) => !KNOWN_SOURCE_FLOOR_TABIA_IDS.has(id))) fail("Tabia geometry contains an unrecognised low-vertex source boundary");
   const sourcePath = path.join(releaseDir, ".tabia-geometry-source.json");
   const outputPath = path.join(releaseDir, ".tabia-geometry-simplified.json");
   fs.writeFileSync(sourcePath, jsonBytes(geometry), {mode:0o600});
   try {
-    childProcess.execFileSync(mapshaperBin(), [sourcePath, "-simplify", DISPLAY_SIMPLIFICATION, "keep-shapes", "-o", "format=geojson", "precision=0.00001", outputPath], {stdio:"pipe"});
+    childProcess.execFileSync(mapshaperBin(), [sourcePath, "-simplify", `interval=${DISPLAY_SIMPLIFICATION_INTERVAL_METERS}m`, "keep-shapes", "-o", "format=geojson", "precision=0.00001", outputPath], {stdio:"pipe"});
     const simplified = JSON.parse(fs.readFileSync(outputPath, "utf8"));
     const actual = geometryIds(simplified);
     if (actual.size !== expected.size || [...actual].some((id) => !expected.has(id))) fail("topology-preserving display simplifier changed the released Tabia identity set");
+    const simplifiedFloorIds = floorTabiaIds(simplified);
+    if ([...simplifiedFloorIds].some((id) => !sourceFloorIds.has(id))) fail("topology-preserving display simplification introduced one or more low-vertex Tabias; choose a more faithful interval");
+    const vertexStatistics = displayVertexStatistics(simplified);
+    Object.assign(vertexStatistics, {preexisting_floor_feature_count:simplifiedFloorIds.size, preexisting_floor_tabia_ids:[...simplifiedFloorIds].sort(), introduced_floor_feature_count:0});
     simplified.schema_version = geometry.schema_version || "tsird-public-tabia-geometry/v1";
     simplified.display_coordinate_precision = 5;
-    simplified.display_simplification = {engine:MAPSHAPER_VERSION, retain_vertices:DISPLAY_SIMPLIFICATION, topology:"shared Tabia arcs retained together with keep-shapes"};
+    simplified.display_simplification = {engine:MAPSHAPER_VERSION, method:"interval", interval_meters:DISPLAY_SIMPLIFICATION_INTERVAL_METERS, topology:"shared Tabia arcs retained together with keep-shapes"};
+    simplified.display_vertex_statistics = vertexStatistics;
     simplified.display_geometry_note = "Display-only geometry simplified with shared Tabia topology and five-decimal output precision; analytical PostGIS boundaries are unchanged.";
     return simplified;
   } catch (error) {
     if (error && error.code === "ENOENT") fail(`topology-preserving display simplifier is unavailable; install ${MAPSHAPER_VERSION} beside the publisher before activating the workflow`);
     fail(`topology-preserving display simplification failed: ${error && (error.stderr || error.message) ? String(error.stderr || error.message).trim() : "unknown error"}`);
+  } finally {
+    fs.rmSync(sourcePath, {force:true});
+    fs.rmSync(outputPath, {force:true});
+  }
+}
+function encodeDisplayTopology(geometry, releaseDir) {
+  const sourcePath = path.join(releaseDir, ".tabia-geometry-display-source.json");
+  const outputPath = path.join(releaseDir, ".tabia-geometry-display.topojson");
+  fs.writeFileSync(sourcePath, jsonBytes(geometry), {mode:0o600});
+  try {
+    childProcess.execFileSync(mapshaperBin(), [sourcePath, "-o", "format=topojson", outputPath], {stdio:"pipe"});
+    const topology = JSON.parse(fs.readFileSync(outputPath, "utf8"));
+    if (!topology || topology.type !== "Topology" || !topology.objects || typeof topology.objects !== "object") fail("TopoJSON display encoding produced invalid topology");
+    for (const key of ["schema_version", "display_coordinate_precision", "display_simplification", "display_vertex_statistics", "display_geometry_note"]) topology[key] = geometry[key];
+    return topology;
+  } catch (error) {
+    if (error && error.code === "ENOENT") fail(`topology-preserving display simplifier is unavailable; install ${MAPSHAPER_VERSION} beside the publisher before activating the workflow`);
+    fail(`TopoJSON display encoding failed: ${error && (error.stderr || error.message) ? String(error.stderr || error.message).trim() : "unknown error"}`);
   } finally {
     fs.rmSync(sourcePath, {force:true});
     fs.rmSync(outputPath, {force:true});
@@ -262,17 +328,19 @@ async function main() {
     observation_start:run.observation_start, observation_end:run.observation_end, quality_summary:run.quality_summary,
     source_product:run.provenance && run.provenance.source_product, method:run.provenance && run.provenance.method,
     interpretation_boundary:"Retained rainfall evidence only; it does not create a drought class or combined score." })) };
-  const fingerprint = crypto.createHash("sha256").update(JSON.stringify({workspace, publicRainfall, observedRuns, observedSnapshots, geometry, histories, exposures, rasters:RASTERS.map((entry) => [entry[1], sha256(path.join(NATIVE_ROOT, entry[1]))])})).digest("hex");
+  const fingerprint = crypto.createHash("sha256").update(JSON.stringify({workspace, publicRainfall, observedRuns, observedSnapshots, geometry, histories, exposures, display_geometry_contract:DISPLAY_GEOMETRY_CONTRACT_VERSION, rasters:RASTERS.map((entry) => [entry[1], sha256(path.join(NATIVE_ROOT, entry[1]))])})).digest("hex");
   fs.mkdirSync(STAGING_ROOT, {recursive:true, mode:0o700});
   const receiptFile = path.join(STAGING_ROOT, "last-successful-fingerprint.json");
   if (fs.existsSync(receiptFile)) { try { if (JSON.parse(fs.readFileSync(receiptFile, "utf8")).fingerprint === fingerprint) { console.log(JSON.stringify({status:"current", note:"No retained indicator or native raster change; public pointer was not moved."})); return; } } catch {} }
   const releaseId = compactId(); const releaseDir = path.join(STAGING_ROOT, releaseId); fs.mkdirSync(releaseDir, {mode:0o700});
   try {
     geometry = simplifyDisplayGeometry(geometry, releaseDir);
+    const displayGeometry = encodeDisplayTopology(geometry, releaseDir);
     const written = {};
     written["drought-evidence-summary.json"] = writeJson(path.join(releaseDir, "drought-evidence-summary.json"), publicRainfall);
     written["drought-workspace-latest.json"] = writeJson(path.join(releaseDir, "drought-workspace-latest.json"), workspace);
     written["tabia-geometry.json"] = writeJson(path.join(releaseDir, "tabia-geometry.json"), geometry);
+    written["tabia-geometry-display.topojson"] = writeJson(path.join(releaseDir, "tabia-geometry-display.topojson"), displayGeometry);
     written["observed-rainfall-runs.json"] = writeJson(path.join(releaseDir, "observed-rainfall-runs.json"), observedRuns);
     for (const [measure, features] of Object.entries(exposures)) written[`exposure-${measure}.json`] = writeJson(path.join(releaseDir, `exposure-${measure}.json`), features);
     for (const [runId, snapshot] of Object.entries(observedSnapshots)) written[`observed-rainfall-run-${safeSuffix(runId)}.json`] = writeJson(path.join(releaseDir, `observed-rainfall-run-${safeSuffix(runId)}.json`), snapshot);
@@ -287,6 +355,7 @@ async function main() {
       asset("drought-evidence-summary", "drought_evidence_summary", "drought-evidence-summary.json", ...written["drought-evidence-summary.json"], "TSIRD retained CHIRPS rainfall evidence index", start, end, publicRainfall.schema_version, boundary),
       asset("drought-workspace-latest", "vector_display_summary", "drought-workspace-latest.json", ...written["drought-workspace-latest.json"], "TSIRD retained Tabia indicator summaries", start, end, workspace.schema_version, boundary),
       asset("tabia-geometry", "vector_display_summary", "tabia-geometry.json", ...written["tabia-geometry.json"], "TSIRD Tabia boundary geometry for retained evidence display", start, end, geometry.schema_version, `${boundary} Boundary geometry joins only to released Tabia evidence summaries.`),
+      asset("tabia-geometry-display", "vector_display_summary", "tabia-geometry-display.topojson", ...written["tabia-geometry-display.topojson"], "TSIRD shared-arc Tabia display geometry for retained evidence", start, end, geometry.schema_version, `${boundary} Shared-arc display geometry only; analytical PostGIS boundaries are unchanged.`),
       asset("observed-rainfall-runs", "drought_evidence_summary", "observed-rainfall-runs.json", ...written["observed-rainfall-runs.json"], "TSIRD retained observed rainfall snapshot index", start, end, observedRuns.schema_version, `${boundary} Historical selections remain archived observations.`),
       asset("release-status", "public_status", "status.json", ...written["status.json"], "TSIRD automated indicator validator", start, end, status.schema_version, "Publication provenance only; it is not a scientific certification or operational decision."),
     ];
@@ -311,7 +380,7 @@ async function main() {
       const [rasterStart, rasterEnd] = windowFor(payloads[indicator].run);
       assets.push(asset(id, "native_evidence_raster", filename, fs.statSync(target).size, sha256(target), source, rasterStart, rasterEnd, String(payloads[indicator].run.schema_version || payloads[indicator].run.run_id || "unknown"), boundary));
     }
-    const manifest = {schema_version:"tsird-drought-production-release/v1", release_id:releaseId, release_state:"auto-validated", release_channel:"indicator-evidence", prepared_by:"TSIRD automated indicator validation", prepared_at:now(), previous_release_id:null, public_scope:boundary, freshness:freshnessFor(payloads), assets};
+    const manifest = {schema_version:"tsird-drought-production-release/v1", release_id:releaseId, release_state:"auto-validated", release_channel:"indicator-evidence", prepared_by:"TSIRD automated indicator validation", prepared_at:now(), previous_release_id:null, public_scope:boundary, freshness:freshnessFor(payloads), display_geometry:{asset_id:"tabia-geometry-display",format:"topojson",simplification:geometry.display_simplification,vertex_statistics:geometry.display_vertex_statistics}, assets};
     writeJson(path.join(releaseDir, "manifest.json"), manifest);
     const runtime = fs.mkdtempSync(path.join(os.tmpdir(), "tsird-indicator-publisher-"));
     try {
@@ -319,7 +388,7 @@ async function main() {
       fs.copyFileSync(path.join(KEY_ROOT,"tsird-drought-release-upload"), uploadKey); fs.copyFileSync(path.join(KEY_ROOT,"tsird-drought-release-activate"), activateKey); fs.copyFileSync(path.join(KEY_ROOT,"known_hosts"), knownHosts);
       for (const item of [uploadKey, activateKey, knownHosts]) fs.chmodSync(item,0o600);
       const filenames = ["manifest.json", "manifest.json.gz", ...assets.flatMap((item) => (
-        item.relative_path.endsWith(".json")
+        /\.(json|geojson|topojson)$/i.test(item.relative_path)
           ? [item.relative_path, `${item.relative_path}.gz`]
           : [item.relative_path]
       ))].sort();
