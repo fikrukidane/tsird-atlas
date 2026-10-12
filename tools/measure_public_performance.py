@@ -155,6 +155,7 @@ def install_restored_selection_probe(page) -> None:
       const key = '__tsirdRestoredSelectionAt';
       const markName = 'tsird-public-restored-selection-observed';
       let observer;
+      let timer;
       const record = () => {
         if (Number.isFinite(window[key])) return;
         const card = document.querySelector('[data-selected-tabia]');
@@ -164,6 +165,7 @@ def install_restored_selection_probe(page) -> None:
         window[key] = performance.now();
         performance.mark(markName);
         if (observer) observer.disconnect();
+        if (timer) clearInterval(timer);
       };
       observer = new MutationObserver(record);
       observer.observe(document, {
@@ -173,6 +175,11 @@ def install_restored_selection_probe(page) -> None:
         attributeFilter: ['data-selected-tabia', 'class'],
       });
       document.addEventListener('DOMContentLoaded', record, { once: true });
+      // Some dashboard updates prepare an element while it is detached, then
+      // attach it without mutating the selected attribute in the observed
+      // tree.  The short poll remains pre-navigation instrumentation and
+      // closes that ordering gap without depending on harness polling.
+      timer = setInterval(record, 10);
     }""")
 
 
