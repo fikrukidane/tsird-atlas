@@ -147,15 +147,31 @@ def cdp_timestamp(cdp) -> float | None:
 def install_restored_selection_probe(page) -> None:
     """Record a deep-link selection at the moment the page creates it.
 
-    The script is installed before navigation.  Looking for the selected card
-    only after the dashboard reports itself ready can make a completed restore
-    appear to take zero seconds, which is not a navigation-start measurement.
+    The script is installed before navigation.  It intercepts the dashboard's
+    paint-aware selection mark, rather than looking for the card only after
+    the dashboard reports itself ready; the latter can make a completed restore
+    appear to take zero seconds.
     """
     page.add_init_script("""() => {
       const key = '__tsirdRestoredSelectionAt';
       const markName = 'tsird-public-restored-selection-observed';
+      const appMarkName = 'tsird-public-evidence-selection-ready';
       let observer;
       let timer;
+      try {
+        const originalMark = performance.mark.bind(performance);
+        performance.mark = (name, ...args) => {
+          const result = originalMark(name, ...args);
+          if (name === appMarkName && !Number.isFinite(window[key])) {
+            window[key] = performance.getEntriesByName(name).at(-1)?.startTime ?? performance.now();
+            performance.mark(markName);
+          }
+          return result;
+        };
+      } catch (_) {
+        // The DOM probe below remains a fallback for browsers that do not
+        // allow a Performance method override.
+      }
       const record = () => {
         if (Number.isFinite(window[key])) return;
         const card = document.querySelector('[data-selected-tabia]');
