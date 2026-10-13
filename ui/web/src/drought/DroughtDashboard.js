@@ -2272,6 +2272,8 @@ class DroughtDashboard {
     // The independent live region announces user-visible evidence once.
     const announcement = this.content && this.content.querySelector('[data-public-evidence-announcement]');
     if (announcement) announcement.textContent = `${title}. ${summary}. Coverage ${coverage}; quality ${quality}.`;
+    const tableLink = document.querySelector('#drought-dashboard .drought-table-link');
+    if (tableLink) tableLink.href = this._publicTableHref();
   }
 
   _publicEvidenceValue(row) {
