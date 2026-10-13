@@ -1,0 +1,28 @@
+{
+  "schema_version": "tsird-stage-2-axe-audit/v1",
+  "environment": "staging",
+  "label": "stage2",
+  "toolchain": {
+    "axe_core": "4.10.2",
+    "playwright": "1.52.0",
+    "viewport": { "width": 390, "height": 844 }
+  },
+  "scope": {
+    "standard": ["wcag2a", "wcag2aa"],
+    "blocking_impacts": ["critical", "serious"]
+  },
+  "results": [
+    {
+      "url": "http://tsird-edge-stage2:8080/map/drought/",
+      "critical_or_serious_violations": [],
+      "page_errors": []
+    },
+    {
+      "url": "http://tsird-edge-stage2:8080/map/drought/table/",
+      "critical_or_serious_violations": [],
+      "page_errors": []
+    }
+  ],
+  "verdict": "pass",
+  "note": "Staging-only certificate. Production must be audited after deployment."
+}

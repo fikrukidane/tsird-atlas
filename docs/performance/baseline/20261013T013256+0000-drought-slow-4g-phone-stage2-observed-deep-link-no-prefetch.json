@@ -1,0 +1,243 @@
+{
+  "page": "drought",
+  "path": "/map/drought/?indicator=observed&month=chirps-v3-2026-7-baseline-1991-2020&tabia=tsird-tabia-v1-827a5816dcf85be8ece0d93a85d1f560&release=2026-10-12T045350Z-indicators",
+  "url": "http://tsird-edge-stage2:8080/map/drought/?indicator=observed&month=chirps-v3-2026-7-baseline-1991-2020&tabia=tsird-tabia-v1-827a5816dcf85be8ece0d93a85d1f560&release=2026-10-12T045350Z-indicators",
+  "environment": {
+    "measured_at": "2026-10-13T01:32:56+00:00",
+    "harness_version": "1.2.0",
+    "git_commit": "55225de",
+    "browser": "136.0.7103.25",
+    "viewport": "phone",
+    "viewport_px": {
+      "width": 390,
+      "height": 844,
+      "device_scale_factor": 2
+    },
+    "network_profile": "slow-4g",
+    "network_profile_values": {
+      "description": "Fixed benchmark profile used for stage targets.",
+      "download_kbps": 1600,
+      "upload_kbps": 750,
+      "latency_ms": 150,
+      "cpu_slowdown": 4
+    },
+    "method": "playwright + cdp network accounting"
+  },
+  "cold": {
+    "total_kb": 452.1,
+    "application_kb": 109.1,
+    "third_party_kb": 211.9,
+    "basemap_kb": 131.1,
+    "critical_path_kb": 109.1,
+    "critical_total_kb": 452.1,
+    "requests": 28,
+    "app_requests": 14,
+    "basemap_tile_requests": 12,
+    "largest_responses": [
+      {
+        "kb": 210.3,
+        "status": 200,
+        "url": "https://cdn.jsdelivr.net/npm/ol@8.1.0/dist/ol.js"
+      },
+      {
+        "kb": 47.7,
+        "status": 200,
+        "url": "http://tsird-edge-stage2:8080/map/src/drought/DroughtDashboard.js"
+      },
+      {
+        "kb": 35.1,
+        "status": 200,
+        "url": "ap/api/drought/public/dashboard/observed-rainfall/runs/chirps-v3-2026-7-baseline-1991-2020"
+      },
+      {
+        "kb": 18.7,
+        "status": 200,
+        "url": "https://tile.openstreetmap.org/7/76/60.png"
+      },
+      {
+        "kb": 14.2,
+        "status": 200,
+        "url": "https://tile.openstreetmap.org/7/77/58.png"
+      },
+      {
+        "kb": 12.8,
+        "status": 200,
+        "url": "https://tile.openstreetmap.org/7/78/58.png"
+      },
+      {
+        "kb": 12.8,
+        "status": 200,
+        "url": "https://tile.openstreetmap.org/7/77/60.png"
+      },
+      {
+        "kb": 10.8,
+        "status": 200,
+        "url": "https://tile.openstreetmap.org/7/78/59.png"
+      },
+      {
+        "kb": 10.6,
+        "status": 200,
+        "url": "https://tile.openstreetmap.org/7/76/59.png"
+      },
+      {
+        "kb": 10.6,
+        "status": 200,
+        "url": "https://tile.openstreetmap.org/7/78/60.png"
+      }
+    ],
+    "cache_state": "cold",
+    "first_contentful_paint_ms": 528,
+    "navigation": {
+      "ttfb": 7,
+      "load": 1946
+    },
+    "functional_check": {
+      "attempted": true,
+      "succeeded": true,
+      "seconds": 8.096,
+      "note": "restored selection matched '[data-selected-tabia]' from navigation start",
+      "timing_origin": "navigation-start",
+      "timing_source": "application-performance-mark",
+      "completion_cdp_timestamp": 398675.693123
+    },
+    "critical_path_cutoff": "restored-selection-event"
+  },
+  "repeat": {
+    "total_kb": 39.9,
+    "application_kb": 39.7,
+    "third_party_kb": 0.0,
+    "basemap_kb": 0.2,
+    "critical_path_kb": 39.7,
+    "critical_total_kb": 39.9,
+    "requests": 29,
+    "app_requests": 14,
+    "basemap_tile_requests": 13,
+    "largest_responses": [
+      {
+        "kb": 35.1,
+        "status": 200,
+        "url": "ap/api/drought/public/dashboard/observed-rainfall/runs/chirps-v3-2026-7-baseline-1991-2020"
+      },
+      {
+        "kb": 1.2,
+        "status": 200,
+        "url": "http://tsird-edge-stage2:8080/map/api/drought/public/dashboard/overview"
+      },
+      {
+        "kb": 0.6,
+        "status": 200,
+        "url": "http://tsird-edge-stage2:8080/map/api/drought/public/dashboard/observed-rainfall/runs"
+      },
+      {
+        "kb": 0.5,
+        "status": 200,
+        "url": "http://tsird-edge-stage2:8080/map/api/drought/public/dashboard/geometry"
+      },
+      {
+        "kb": 0.2,
+        "status": 304,
+        "url": "http://tsird-edge-stage2:8080/map/src/drought/DroughtDashboard.js"
+      },
+      {
+        "kb": 0.2,
+        "status": 304,
+        "url": "http://tsird-edge-stage2:8080/map/css/style.css"
+      },
+      {
+        "kb": 0.2,
+        "status": 304,
+        "url": "http://tsird-edge-stage2:8080/map/css/phase3-controls.css"
+      },
+      {
+        "kb": 0.2,
+        "status": 304,
+        "url": "http://tsird-edge-stage2:8080/map/css/drought-dashboard.css"
+      },
+      {
+        "kb": 0.2,
+        "status": 304,
+        "url": "http://tsird-edge-stage2:8080/map/drought/drought-workspace.css"
+      },
+      {
+        "kb": 0.2,
+        "status": 304,
+        "url": "http://tsird-edge-stage2:8080/map/src/map/MapController.js"
+      }
+    ],
+    "cache_state": "repeat",
+    "first_contentful_paint_ms": 1492,
+    "navigation": {
+      "ttfb": 25,
+      "load": 1987
+    },
+    "functional_check": {
+      "attempted": true,
+      "succeeded": true,
+      "seconds": 6.794,
+      "note": "restored selection matched '[data-selected-tabia]' from navigation start",
+      "timing_origin": "navigation-start",
+      "timing_source": "application-performance-mark",
+      "completion_cdp_timestamp": 398683.24635
+    },
+    "critical_path_cutoff": "restored-selection-event",
+    "note": "repeat visit in the same browser context"
+  },
+  "verdicts": [
+    {
+      "measure": "critical_path_kb",
+      "observed": 109.1,
+      "target": 400,
+      "mode": "enforce",
+      "verdict": "pass"
+    },
+    {
+      "measure": "critical_total_kb",
+      "observed": 452.1,
+      "target": 650,
+      "mode": "enforce",
+      "verdict": "pass"
+    },
+    {
+      "measure": "total_cold_kb",
+      "observed": 109.1,
+      "target": 1500,
+      "mode": "enforce",
+      "verdict": "pass"
+    },
+    {
+      "measure": "app_requests",
+      "observed": 14,
+      "target": 15,
+      "mode": "enforce",
+      "verdict": "pass"
+    },
+    {
+      "measure": "functional_seconds",
+      "observed": 8.096,
+      "target": 3.0,
+      "mode": "enforce",
+      "verdict": "FAIL"
+    },
+    {
+      "measure": "basemap_tile_requests",
+      "observed": 12,
+      "target": null,
+      "mode": "record",
+      "verdict": "record"
+    },
+    {
+      "measure": "repeat_total_kb",
+      "observed": 39.7,
+      "target": null,
+      "mode": "record",
+      "verdict": "record"
+    },
+    {
+      "measure": "repeat_functional_seconds",
+      "observed": 6.794,
+      "target": null,
+      "mode": "record",
+      "verdict": "record"
+    }
+  ]
+}
