@@ -156,6 +156,10 @@ class DroughtDashboard {
   _renderLoadingState() {
     const root = document.getElementById(this.containerId);
     if (!root) return;
+    // A URL-pinned historical Tabia can already be showing approved evidence
+    // while the map runtime loads. Preserve it until the full workspace is
+    // ready to replace it, rather than flashing back to a loading message.
+    if (root.dataset.tsirdDroughtPreview === 'ready') return;
     root.innerHTML = `<div class="drought-heading"><div><strong>${this.priorityOnly ? 'Retrospective Evidence Replay' : 'Drought intelligence'}</strong><span>Tigray · loading retained evidence</span></div></div><div class="drought-notice">Loading the approved retained evidence and map controls…</div>`;
   }
 
