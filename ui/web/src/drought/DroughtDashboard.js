@@ -131,6 +131,7 @@ class DroughtDashboard {
       this._renderShell();
       await this._restorePublicUrlState({ selectTabia: false });
       this._renderMode();
+      this._restorePublicEvidencePreview();
       void this._loadPublicGeometry().then(async () => {
         if (this.publicMode) {
           this._renderMode();
@@ -238,22 +239,23 @@ class DroughtDashboard {
         this.indicatorSnapshots[this.mode] = this.publicUrlState.month;
         this._renderMode();
       }
-      // A rainfall deep link already has a compact, retained Tabia row. Render
-      // that evidence immediately instead of making a reader wait for the
-      // larger display-geometry asset. Geometry still loads independently and
-      // supplies the outline/highlight in the second restoration pass below.
-      if (this.mode === 'observed' && this.publicUrlState.tabia) {
-        const value = this._publicEvidenceForTabia(this.publicUrlState.tabia);
-        if (value) {
-          this.selectedId = this.publicUrlState.tabia;
-          this._showPublicEvidenceSelection(value);
-        }
-      }
     }
     if (selectTabia && this.publicUrlState.tabia && this.publicGeometry.length) {
       const feature = this.publicGeometry.find(item => item && item.properties && item.properties.tsird_tabia_id === this.publicUrlState.tabia);
       if (feature) await this.selectBoundary({ type: 'tabia', id: this.publicUrlState.tabia, label: feature.properties.tabia_name_en || 'Selected Tabia' }, { writeUrl: false });
     }
+  }
+
+  _restorePublicEvidencePreview() {
+    // A rainfall deep link already has a compact, retained Tabia row. Render
+    // that evidence as soon as the mode has created its selection panel, not
+    // after the larger display-geometry asset arrives. Geometry still loads
+    // independently and supplies the outline/highlight in the second restore.
+    if (!this.publicMode || this.mode !== 'observed' || !this.publicUrlState.tabia) return;
+    const value = this._publicEvidenceForTabia(this.publicUrlState.tabia);
+    if (!value) return;
+    this.selectedId = this.publicUrlState.tabia;
+    this._showPublicEvidenceSelection(value);
   }
 
   async _loadPriorityFoundation() {
