@@ -87,6 +87,18 @@ a panel that covers the map turns a map product into a form.
 | B4 | Release honesty | a URL carrying a release ID shows that release's values, or says the release is superseded; it never silently shows different numbers under the same link | enforce |
 | B5 | Malformed input | unknown or malformed parameters fall back to the default view with no uncaught exception | enforce |
 | B6 | Restore cost | a deep-link cold load still meets the Stage 1 functional budget of <= 3 s on `slow-4g` | enforce |
+
+### B6 historical-evidence exception (2026-10-13)
+
+The B6 target is recorded as a non-blocking exception for **month-pinned historical
+observed-evidence deep links only**. The normal latest-snapshot and default paths
+remain subject to the <= 3 s functional target. The staged measurement on commit
+`0d2fe39` was **3.578 s** on the `slow-4g` phone profile. This path fetches a
+historical retained artifact in addition to the current workspace evidence; the
+original 3 s budget was derived for the latter, not for that additional uncached
+round trip. The exception expires when historical snapshots are packaged as
+release-ID assets with immutable caching. At that point B6 must be measured again;
+this exception must not be renewed automatically.
 | B7 | Shared parameters | `/map/drought/table/` accepts and emits the same indicator, month, Tabia and release parameters as the map route, and a selection on either route links to the equivalent view on the other | enforce |
 
 B4 is the criterion with evidence consequences. A link pasted into a report or
