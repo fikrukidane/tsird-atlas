@@ -441,7 +441,7 @@ def evaluate(budget: dict, result: dict) -> list[dict]:
     observed = {
         "critical_path_kb": cold["critical_path_kb"],
         "critical_total_kb": cold["critical_total_kb"],
-        "total_cold_kb": cold["application_kb"],
+        "total_cold_kb": cold["total_kb"],
         "app_requests": cold["app_requests"],
         "functional_seconds": (cold.get("functional_check") or {}).get("seconds"),
         "basemap_tile_requests": cold["basemap_tile_requests"],
