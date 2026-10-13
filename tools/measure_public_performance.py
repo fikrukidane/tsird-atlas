@@ -227,7 +227,7 @@ def run_visit(page, cdp, acct, url: str, spec: dict, cache_state: str) -> dict:
                   const card = document.querySelector(selector);
                   const panel = document.getElementById('drought-dashboard');
                   const observedAt = window.__tsirdRestoredSelectionAt ??
-                    performance.getEntriesByName('tsird-public-evidence-selection-ready').at(-1)?.startTime;
+                    performance.getEntriesByName('tsird-public-evidence-selection-ready')[0]?.startTime;
                   return Boolean(card && panel && Number.isFinite(observedAt) &&
                     !panel.classList.contains('is-hidden') &&
                     getComputedStyle(panel).display !== 'none');
@@ -240,7 +240,7 @@ def run_visit(page, cdp, acct, url: str, spec: dict, cache_state: str) -> dict:
               if (Number.isFinite(window.__tsirdRestoredSelectionAt)) {
                 return [window.__tsirdRestoredSelectionAt, 'pre-navigation-probe'];
               }
-              const mark = performance.getEntriesByName('tsird-public-evidence-selection-ready').at(-1)?.startTime;
+              const mark = performance.getEntriesByName('tsird-public-evidence-selection-ready')[0]?.startTime;
               return [mark ?? null, 'application-performance-mark'];
             }""")
             if mark is None:
