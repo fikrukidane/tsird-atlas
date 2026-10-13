@@ -226,7 +226,8 @@ def run_visit(page, cdp, acct, url: str, spec: dict, cache_state: str) -> dict:
                 """selector => {
                   const card = document.querySelector(selector);
                   const panel = document.getElementById('drought-dashboard');
-                  const observedAt = window.__tsirdRestoredSelectionAt;
+                  const observedAt = window.__tsirdRestoredSelectionAt ??
+                    performance.getEntriesByName('tsird-public-evidence-selection-ready').at(-1)?.startTime;
                   return Boolean(card && panel && Number.isFinite(observedAt) &&
                     !panel.classList.contains('is-hidden') &&
                     getComputedStyle(panel).display !== 'none');
@@ -235,14 +236,21 @@ def run_visit(page, cdp, acct, url: str, spec: dict, cache_state: str) -> dict:
                 timeout=check.get("timeout_ms", 30000),
                 polling=50,
             )
-            mark = page.evaluate("() => window.__tsirdRestoredSelectionAt ?? null")
+            mark, mark_source = page.evaluate("""() => {
+              if (Number.isFinite(window.__tsirdRestoredSelectionAt)) {
+                return [window.__tsirdRestoredSelectionAt, 'pre-navigation-probe'];
+              }
+              const mark = performance.getEntriesByName('tsird-public-evidence-selection-ready').at(-1)?.startTime;
+              return [mark ?? null, 'application-performance-mark'];
+            }""")
             if mark is None:
                 raise RuntimeError("pre-navigation restored-selection probe did not fire")
             functional.update(
                 succeeded=True,
                 seconds=round(mark / 1000, 3),
                 timing_origin="navigation-start",
-                note=f"restored selection matched {success_selector!r} via pre-navigation probe",
+                timing_source=mark_source,
+                note=f"restored selection matched {success_selector!r} from navigation start",
             )
             if clock_anchor_cdp is not None:
                 functional["completion_cdp_timestamp"] = round(
