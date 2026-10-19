@@ -43,6 +43,18 @@ EVIDENCE_DATA_ROOT = Path("/data/drought")
 PUBLIC_DROUGHT_RELEASE_ROOT = Path(
     os.environ.get("DROUGHT_PUBLIC_RELEASE_ROOT", "/data/drought/production-releases")
 )
+# This is deliberately a fixed, review-only fixture ID rather than a browser
+# parameter or a "latest" database query.  The public prototype may show only
+# this explicitly deployed Woreda context; it cannot turn a development run
+# or a provider feed into a public forecast by accident.
+PUBLIC_EXPERIMENTAL_OUTLOOK_RUN_ID = os.environ.get(
+    "TSIRD_PUBLIC_EXPERIMENTAL_OUTLOOK_RUN_ID",
+    "synthetic-seasonal-outlook-review-20261018",
+)
+PUBLIC_EXPERIMENTAL_OUTLOOK_NOTICE = (
+    "Experimental Outlook prototype — for review only. Not for operational, "
+    "public-safety, food-security, allocation, or response decisions."
+)
 # Indicator evidence has a separate, automatically maintained pointer beneath
 # the same read-only release mount.  Priority/replay releases never use it.
 PUBLIC_DROUGHT_INDICATOR_RELEASE_ROOT = Path(
@@ -375,6 +387,43 @@ DROUGHT_SEASONAL_OUTLOOK_FEATURE_SQL = """
   ) AS payload
   FROM tsird.drought_seasonal_outlook_feature
   WHERE run_id = $1 AND representation = $2
+"""
+
+# The public prototype is constrained to a one-off synthetic Woreda context.
+# It has no native-grid representation and does not expose source URLs, raw
+# inputs, provider credentials, or any other seasonal-outlook record.
+PUBLIC_EXPERIMENTAL_OUTLOOK_RUN_SQL = """
+  SELECT run_id, source_product, issued_at, valid_from, valid_to,
+         lead_start_months, lead_end_months, native_resolution,
+         geography_scope, quality_summary
+  FROM tsird.drought_seasonal_outlook_run
+  WHERE run_id = $1
+    AND variable = 'seasonal_rainfall'
+    AND status = 'degraded'
+    AND quality_summary @> '{"review_only": true, "synthetic": true, "publication_allowed": true}'::jsonb
+"""
+
+PUBLIC_EXPERIMENTAL_OUTLOOK_FEATURE_SQL = """
+  SELECT json_build_object('type', 'FeatureCollection', 'features',
+    coalesce(json_agg(json_build_object(
+      'type', 'Feature',
+      'geometry', ST_AsGeoJSON(geometry)::json,
+      'properties', json_build_object(
+        'feature_id', feature_id,
+        'representation', 'woreda_context',
+        'woreda_gid', woreda_gid,
+        'below_normal_probability', below_normal_probability,
+        'near_normal_probability', near_normal_probability,
+        'above_normal_probability', above_normal_probability,
+        'coverage_pct', coverage_pct,
+        'quality_status', quality_status,
+        'synthetic', true,
+        'review_only', true
+      )
+    ) ORDER BY feature_id), '[]'::json)
+  ) AS payload
+  FROM tsird.drought_seasonal_outlook_feature
+  WHERE run_id = $1 AND representation = 'woreda_context'
 """
 
 SEARCH_SQL = """
@@ -1386,14 +1435,110 @@ async def public_drought_dashboard_model_readiness():
     return {"schema_version": "tsird-public-model-readiness/v1", "status": "not_ready", "decision": {"status": "not-ready"}, "selection_note": "Retrospective evidence review only; production cannot score, forecast, publish or activate a model."}
 
 
+def _public_experimental_outlook_record(row):
+    """Redact the fixed review fixture into its public-only contract."""
+    quality_summary = _decode_json_value(row["quality_summary"]) or {}
+    return {
+        "run_id": row["run_id"],
+        "source_product": "Synthetic Woreda review context",
+        "issued_at": row["issued_at"].isoformat(),
+        "valid_from": row["valid_from"].isoformat(),
+        "valid_to": row["valid_to"].isoformat(),
+        "lead_start_months": row["lead_start_months"],
+        "lead_end_months": row["lead_end_months"],
+        "native_resolution": "Woreda context only",
+        "geography_scope": "Synthetic Woreda context for Tigray review only",
+        "lifecycle": _seasonal_outlook_lifecycle(row),
+        "quality_summary": {
+            "review_only": True,
+            "synthetic": True,
+            "provider_issued": False,
+            "woreda_context_only": True,
+            "feature_count": quality_summary.get("feature_count"),
+        },
+    }
+
+
+async def _public_experimental_outlook_row():
+    try:
+        conn = await asyncpg.connect(DB_DSN)
+        try:
+            return await conn.fetchrow(
+                PUBLIC_EXPERIMENTAL_OUTLOOK_RUN_SQL,
+                PUBLIC_EXPERIMENTAL_OUTLOOK_RUN_ID,
+            )
+        finally:
+            await conn.close()
+    except Exception:
+        logging.exception("Public experimental outlook query error")
+        raise HTTPException(status_code=503, detail="Experimental Outlook prototype is unavailable")
+
+
+def _public_experimental_outlook_unavailable(variable: str) -> dict:
+    return {
+        "schema_version": "tsird-public-seasonal-outlook/v1",
+        "environment": "experimental_review_only",
+        "review_only": True,
+        "review_notice": PUBLIC_EXPERIMENTAL_OUTLOOK_NOTICE,
+        "available": False,
+        "variable": variable,
+        "reason": "The Experimental Outlook prototype is not available.",
+    }
+
+
 @app.get("/drought/public/dashboard/seasonal-outlook/active")
 async def public_drought_dashboard_outlook_active(variable: str = Query("seasonal_rainfall")):
-    return {"schema_version": "tsird-public-seasonal-outlook/v1", "available": False, "variable": variable, "reason": "No reviewed seasonal outlook is included in this approved evidence release."}
+    if variable != "seasonal_rainfall":
+        raise HTTPException(status_code=404, detail="Unknown public seasonal outlook variable")
+    row = await _public_experimental_outlook_row()
+    if not row:
+        return _public_experimental_outlook_unavailable(variable)
+    return {
+        "schema_version": "tsird-public-seasonal-outlook/v1",
+        "environment": "experimental_review_only",
+        "review_only": True,
+        "review_notice": PUBLIC_EXPERIMENTAL_OUTLOOK_NOTICE,
+        "available": True,
+        "variable": variable,
+        "run": _public_experimental_outlook_record(row),
+    }
 
 
 @app.get("/drought/public/dashboard/seasonal-outlook/runs")
 async def public_drought_dashboard_outlook_runs(variable: str = Query("seasonal_rainfall")):
-    return {"schema_version": "tsird-public-seasonal-outlook/v1", "variable": variable, "runs": []}
+    if variable != "seasonal_rainfall":
+        raise HTTPException(status_code=404, detail="Unknown public seasonal outlook variable")
+    row = await _public_experimental_outlook_row()
+    return {
+        "schema_version": "tsird-public-seasonal-outlook/v1",
+        "environment": "experimental_review_only",
+        "review_only": True,
+        "review_notice": PUBLIC_EXPERIMENTAL_OUTLOOK_NOTICE,
+        "variable": variable,
+        "runs": [_public_experimental_outlook_record(row)] if row else [],
+    }
+
+
+@app.get("/drought/public/dashboard/seasonal-outlook/runs/{run_id}/features")
+async def public_drought_dashboard_outlook_features(run_id: str, representation: str = Query("woreda_context")):
+    if run_id != PUBLIC_EXPERIMENTAL_OUTLOOK_RUN_ID or representation != "woreda_context":
+        raise HTTPException(status_code=404, detail="Experimental Woreda context is unavailable")
+    row = await _public_experimental_outlook_row()
+    if not row:
+        raise HTTPException(status_code=404, detail="Experimental Outlook prototype is unavailable")
+    try:
+        conn = await asyncpg.connect(DB_DSN)
+        try:
+            payload = await conn.fetchval(PUBLIC_EXPERIMENTAL_OUTLOOK_FEATURE_SQL, run_id)
+        finally:
+            await conn.close()
+    except Exception:
+        logging.exception("Public experimental outlook feature query error")
+        raise HTTPException(status_code=503, detail="Experimental Woreda context is unavailable")
+    payload = _decode_json_value(payload)
+    if not isinstance(payload, dict) or not isinstance(payload.get("features"), list) or not payload["features"]:
+        raise HTTPException(status_code=404, detail="Experimental Woreda context is unavailable")
+    return payload
 
 
 @app.get("/gazetteer")

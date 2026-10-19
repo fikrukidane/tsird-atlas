@@ -9,6 +9,7 @@
 class DroughtDashboard {
   constructor(map, options = {}) {
     this.map = map;
+    this.publicMode = Boolean(options.publicMode);
     this.dataUrl = options.dataUrl || 'data/drought-intelligence.dev.json';
     this.observedUrl = options.observedUrl || 'api/drought/development/observed-rainfall/latest?limit=100';
     this.observedRunsUrl = options.observedRunsUrl || 'api/drought/development/observed-rainfall/runs?limit=36';
@@ -63,7 +64,10 @@ class DroughtDashboard {
     this.fewsNetLayer = null;
     this.modelReadiness = null;
     this.outlookRunId = 'active';
-    this.outlookRepresentation = 'native_grid';
+    // The published prototype contains only a Woreda-shaped synthetic context.
+    // Development may still review native provider grids, but production must
+    // never turn this fixture into a cell or Tabia forecast display.
+    this.outlookRepresentation = this.publicMode ? 'woreda_context' : 'native_grid';
     this.historyIndicator = 'ndvi';
     this.historyTabiaId = null;
     this.historyTabiaLabel = '';
@@ -81,7 +85,6 @@ class DroughtDashboard {
     this.spatialViews = { observed: 'tabia', rapid: 'raw', vegetation: 'tabia', soilWater: 'tabia', thermal: 'tabia', waterUse: 'tabia' };
     this.onEnsureContextLayers = options.onEnsureContextLayers || null;
     this.onSetEvidenceLayer = options.onSetEvidenceLayer || null;
-    this.publicMode = Boolean(options.publicMode);
     this.publicGeometryUrl = options.publicGeometryUrl || null;
     this.publicGeometry = [];
     this.publicGeometryPromise = null;
@@ -986,8 +989,9 @@ class DroughtDashboard {
 
   _renderOutlookMap() {
     const artifact = this.outlookArtifact;
+    const reviewNotice = '<div class="drought-readiness-warning drought-outlook-review-notice" role="note">Experimental Outlook prototype — for review only. Not for operational, public-safety, food-security, allocation, or response decisions.</div>';
     if (!artifact || !artifact.available) {
-      this.content.innerHTML = `<div class="drought-mode-title"><strong>Seasonal rainfall outlook</strong><span>No active provider release</span></div><div class="drought-period-stamp"><strong>Outlook unavailable</strong><span>${artifact ? artifact.reason : 'Loading outlook status.'}</span><small>No map is drawn until a reviewed provider-issued forecast with issue and validity dates is loaded.</small></div><div class="drought-map-instruction">The old illustrative Outlook fixture has been removed. This workspace will show only a provider-native forecast grid or a transparent Woreda contextual summary.</div>`;
+      this.content.innerHTML = `${this.publicMode ? reviewNotice : ''}<div class="drought-mode-title"><strong>Seasonal rainfall outlook</strong><span>No active provider release</span></div><div class="drought-period-stamp"><strong>Outlook unavailable</strong><span>${artifact ? artifact.reason : 'Loading outlook status.'}</span><small>No map is drawn until a reviewed provider-issued forecast with issue and validity dates is loaded.</small></div><div class="drought-map-instruction">This workspace shows only a provider-native forecast grid or a transparent Woreda contextual summary.</div>`;
       return;
     }
     const run = artifact.run;
@@ -996,7 +1000,10 @@ class DroughtDashboard {
       const label = `${candidate.valid_from} to ${candidate.valid_to} · ${candidate.lifecycle}`;
       return `<option value="${candidate.run_id}" ${candidate.run_id === run.run_id ? 'selected' : ''}>${label}</option>`;
     }).join('');
-    this.content.innerHTML = `<div class="drought-mode-title"><strong>Seasonal rainfall outlook</strong><span>${run.source_product}</span></div><div class="drought-period-stamp"><strong>${lifecycle} · valid ${run.valid_from} to ${run.valid_to}</strong><span>Issued ${String(run.issued_at).slice(0, 10)} · Lead: ${run.lead_start_months}–${run.lead_end_months} months</span><small>Provider geography: ${run.geography_scope} · Native resolution: ${run.native_resolution}</small></div><div class="drought-history-controls"><label>Forecast release <select data-outlook-release>${releaseOptions}</select></label><small>Archived releases are for reference only and are never selected as the default outlook.</small></div><div class="drought-spatial-control"><span>Map display</span><div><button type="button" data-outlook-representation="native_grid" class="${this.outlookRepresentation === 'native_grid' ? 'is-active' : ''}">Native forecast grid</button><button type="button" data-outlook-representation="woreda_context" class="${this.outlookRepresentation === 'woreda_context' ? 'is-active' : ''}">Woreda context</button></div><small>Woreda context is a transparent summary of provider grid cells—not a Tabia prediction.</small></div><div class="drought-map-instruction">Colours indicate the most-likely seasonal rainfall category; opacity represents its probability. Click a feature to inspect all below-, near-, and above-normal probabilities.</div><div class="drought-map-selection" data-outlook-selection>Select a forecast feature on the map to inspect its probabilities.</div>`;
+    const representationControl = this.publicMode
+      ? '<div class="drought-spatial-control"><span>Map display</span><div><span class="model-pill">SYNTHETIC WOREDA CONTEXT</span></div><small>Woreda-shaped review context only. The probabilities are synthetic, are not a provider aggregation, and are not a Tabia prediction.</small></div>'
+      : `<div class="drought-spatial-control"><span>Map display</span><div><button type="button" data-outlook-representation="native_grid" class="${this.outlookRepresentation === 'native_grid' ? 'is-active' : ''}">Native forecast grid</button><button type="button" data-outlook-representation="woreda_context" class="${this.outlookRepresentation === 'woreda_context' ? 'is-active' : ''}">Woreda context</button></div><small>Woreda context is a transparent summary of provider grid cells—not a Tabia prediction.</small></div>`;
+    this.content.innerHTML = `${this.publicMode ? reviewNotice : ''}<div class="drought-mode-title"><strong>Seasonal rainfall outlook</strong><span>${run.source_product}</span></div><div class="drought-period-stamp"><strong>${lifecycle} · valid ${run.valid_from} to ${run.valid_to}</strong><span>Issued ${String(run.issued_at).slice(0, 10)} · Lead: ${run.lead_start_months}–${run.lead_end_months} months</span><small>Provider geography: ${run.geography_scope} · Native resolution: ${run.native_resolution}</small></div><div class="drought-history-controls"><label>Forecast release <select data-outlook-release>${releaseOptions}</select></label><small>Archived releases are for reference only and are never selected as the default outlook.</small></div>${representationControl}<div class="drought-map-instruction">Colours indicate the most-likely seasonal rainfall category; opacity represents its probability. Click a feature to inspect all below-, near-, and above-normal probabilities.</div><div class="drought-map-selection" data-outlook-selection>Select a forecast feature on the map to inspect its probabilities.</div>`;
     this.content.querySelector('[data-outlook-release]').addEventListener('change', async event => {
       await this._loadOutlookArtifact(event.target.value);
       if (this.mode === 'outlook') this._renderMode();
