@@ -167,6 +167,14 @@ approved-release API, displays neutral C1--C4 retrospective draft codes and
 provider-native FEWS NET outlines, and explicitly remains unavailable until an
 approved `current.json` exists. It never falls back to development evidence.
 
+The separately documented [Experimental Outlook prototype](drought/public-experimental-outlook-prototype.md)
+is a fixed, synthetic Woreda-context interface demonstration. It is not part
+of either release pointer and is never an operational forecast. Its public API
+is constrained to one review-only fixture and its required warning explicitly
+excludes public-safety, food-security, allocation and response use. Production
+denies all `/map/api/drought/development/` routes and the development/admin
+Model, Scenario and Pipeline-Control pages.
+
 The production-only web overlay preserves the familiar public route hierarchy:
 `/map/drought/` is a searchable approved-evidence workspace over all retained
 Tabia summaries in the release; `/priority/`

@@ -196,6 +196,13 @@ layers.
   Priority Review, Scenario Laboratory and Model information. This is branch
   state pending review and deployment; it must not be described as live until
   the corresponding immutable images and production overlay have been applied.
+- The controlled Experimental Outlook prototype is documented separately in
+  [public-experimental-outlook-prototype.md](drought/public-experimental-outlook-prototype.md).
+  It is intentionally synthetic, Woreda-shaped and review-only; it is not an
+  approved evidence release, provider forecast, or operational decision
+  product. Its deployment branch must deny development APIs and the mutable
+  Model, Scenario and Pipeline-Control routes before it can be described as
+  production-ready.
 - Stage-1 public-performance implementation is branch state pending review and
   deployment. It adds a release-ID geometry descriptor and immutable gzip
   sidecars, a public Tabia-boundary fallback that never calls the unavailable
