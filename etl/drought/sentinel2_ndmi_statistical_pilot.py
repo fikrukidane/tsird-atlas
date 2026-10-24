@@ -173,5 +173,17 @@ def main():
 if __name__ == "__main__":
     try:
         main()
-    except (HTTPError, URLError) as exc:
-        raise SystemExit(f"Sentinel-2 Statistical API request failed: {type(exc).__name__} {getattr(exc, 'code', '')}".strip())
+    except HTTPError as exc:
+        # Keep the runner receipt useful without logging OAuth material or a
+        # provider echo of the submitted Tabia geometry.  CDSE validation
+        # responses normally contain a concise message/reason field.
+        detail = "no safe provider detail"
+        try:
+            response = json.loads(exc.read().decode("utf-8", errors="replace"))
+            if isinstance(response, dict):
+                detail = str(response.get("message") or response.get("reason") or response.get("error") or detail)
+        except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+            pass
+        raise SystemExit(f"Sentinel-2 Statistical API request failed: HTTP {exc.code}; {detail[:300]}")
+    except URLError as exc:
+        raise SystemExit(f"Sentinel-2 Statistical API request failed: {type(exc).__name__}")
