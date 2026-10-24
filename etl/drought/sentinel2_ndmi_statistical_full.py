@@ -19,14 +19,16 @@ import psycopg2
 
 from cdse_ndvi_tabia_summary import access_token
 from sentinel2_ndmi_statistical_pilot import (
-    MIN_VALID_COVERAGE_PCT, NATIVE_RESOLUTION, PRODUCT, STATISTICS_CRS,
+    MIN_VALID_COVERAGE_PCT, PRODUCT, STATISTICS_CRS,
     STATISTICS_URL, VALID_SCL_CLASSES, parse_statistics, settings,
 )
 
 SOURCE_ID = "cdse-sentinel2-l2a-ndmi-full-development"
-PROCESSING_VERSION = "tsird-s2-ndmi-statistical-full-dev.v1"
+PROCESSING_VERSION = "tsird-s2-ndmi-statistical-full-dev.v2"
 TABIA_COUNT = 748
 WINDOW_DAYS = 90
+ANALYTICAL_RESOLUTION_METERS = 25
+NATIVE_RESOLUTION = "25 m (full-coverage analytical grid; B11/SCL native grid is 20 m)"
 REQUEST_INTERVAL_SECONDS = 5
 MAX_RATE_LIMIT_RETRIES = 6
 MAX_RETRY_AFTER_SECONDS = 120
@@ -82,7 +84,8 @@ def request_body(geometry, start, end):
         },
         "aggregation": {
             "timeRange": {"from": start.isoformat().replace("+00:00", "Z"), "to": end.isoformat().replace("+00:00", "Z")},
-            "aggregationInterval": {"of": "P90D"}, "evalscript": evalscript(), "resx": 20, "resy": 20,
+            "aggregationInterval": {"of": "P90D"}, "evalscript": evalscript(),
+            "resx": ANALYTICAL_RESOLUTION_METERS, "resy": ANALYTICAL_RESOLUTION_METERS,
         },
         "calculations": {"ndmi": {"statistics": {"default": {"percentiles": {"k": [50]}}}}},
     }

@@ -112,3 +112,9 @@ n8n schedule, production route, public asset, or release activation path.
 The collector spaces requests by five seconds and honours a bounded CDSE
 `Retry-After` response for a single rate-limited request.  This is transport
 protection, not an automatic repeat of the regional run.
+
+The all-Tabia collector uses a **25 m analytical grid**. Sentinel-2 B11 and
+SCL remain 20 m source bands, but the provider rejects a request dimension
+above 2,500 pixels; one canonical Tabia is 2,704 pixels high at 20 m. The
+25 m grid keeps every Tabia within that hard limit and is recorded in each
+artifact. It must never be described as a 10 m or 20 m result.

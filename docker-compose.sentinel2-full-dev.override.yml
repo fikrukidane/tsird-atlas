@@ -6,7 +6,7 @@ services:
   tsird-api:
     image: tsird-atlas-tsird-api:dev-sentinel2-full-20261024
   tsird-drought-runner:
-    image: tsird-atlas-tsird-drought-runner:dev-sentinel2-full-20261024-ratelimit1
+    image: tsird-atlas-tsird-drought-runner:dev-sentinel2-full-20261024-grid25
   tsird-mapserver:
     volumes:
       - C:/docker/projects/tsird-atlas/.worktrees/vegetation-moisture-pilot/infra/mapserver/mapfiles:/etc/mapserver
