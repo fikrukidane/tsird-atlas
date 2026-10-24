@@ -28,6 +28,7 @@ PROCESSING_VERSION = "tsird-s2-ndmi-statistical-pilot.v1"
 PILOT_TABIA_LIMIT = 20
 MIN_VALID_COVERAGE_PCT = 70.0
 VALID_SCL_CLASSES = (4, 5)  # vegetation and bare-soil classes; cloud/shadow/water excluded
+STATISTICS_CRS = "http://www.opengis.net/def/crs/EPSG/0/32637"  # UTM zone 37N; metres across Tigray
 
 
 def dsn():
@@ -46,7 +47,7 @@ def settings():
 def pilot_tabias():
     """Choose a repeatable technical sample without claiming it is representative."""
     with psycopg2.connect(dsn()) as conn, conn.cursor() as cur:
-        cur.execute('''SELECT i.tsird_tabia_id, t."TABIA", t."WEREDA", ST_AsGeoJSON(t.geometry)
+        cur.execute('''SELECT i.tsird_tabia_id, t."TABIA", t."WEREDA", ST_AsGeoJSON(ST_Transform(t.geometry, 32637))
                        FROM tigray_tabias_ws t JOIN tsird.tabia_identity i USING (tsird_tabia_id)
                        ORDER BY md5(i.tsird_tabia_id)
                        LIMIT %s''', (PILOT_TABIA_LIMIT,))
@@ -81,7 +82,7 @@ function evaluatePixel(sample) {{
 def request_body(geometry, start, end):
     return {
         "input": {
-            "bounds": {"geometry": geometry, "properties": {"crs": "http://www.opengis.net/def/crs/EPSG/0/4326"}},
+            "bounds": {"geometry": geometry, "properties": {"crs": STATISTICS_CRS}},
             "data": [{"type": "sentinel-2-l2a", "dataFilter": {"mosaickingOrder": "leastCC"}}],
         },
         "aggregation": {
