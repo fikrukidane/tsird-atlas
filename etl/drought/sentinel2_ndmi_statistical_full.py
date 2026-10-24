@@ -9,6 +9,7 @@ import csv
 import json
 import os
 import sys
+import time
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from urllib.error import HTTPError, URLError
@@ -26,6 +27,9 @@ SOURCE_ID = "cdse-sentinel2-l2a-ndmi-full-development"
 PROCESSING_VERSION = "tsird-s2-ndmi-statistical-full-dev.v1"
 TABIA_COUNT = 748
 WINDOW_DAYS = 90
+REQUEST_INTERVAL_SECONDS = 5
+MAX_RATE_LIMIT_RETRIES = 6
+MAX_RETRY_AFTER_SECONDS = 120
 
 
 def dsn():
@@ -87,8 +91,23 @@ def request_body(geometry, start, end):
 def statistics(token, geometry, start, end):
     request = Request(STATISTICS_URL, data=json.dumps(request_body(geometry, start, end)).encode("utf-8"), method="POST",
                       headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json", "Accept": "application/json"})
-    with urlopen(request, timeout=120) as response:
-        payload = json.loads(response.read().decode("utf-8"))
+    for attempt in range(MAX_RATE_LIMIT_RETRIES + 1):
+        try:
+            with urlopen(request, timeout=120) as response:
+                payload = json.loads(response.read().decode("utf-8"))
+            break
+        except HTTPError as exc:
+            if exc.code != 429 or attempt >= MAX_RATE_LIMIT_RETRIES:
+                raise
+            # CDSE documents Retry-After in milliseconds.  Respect it without
+            # retaining a provider body or retrying an entire regional run.
+            try:
+                wait_seconds = float(exc.headers.get("Retry-After", "0")) / 1000
+            except (TypeError, ValueError):
+                wait_seconds = 0
+            wait_seconds = min(MAX_RETRY_AFTER_SECONDS, max(REQUEST_INTERVAL_SECONDS, wait_seconds))
+            print(json.dumps({"rate_limited": True, "retry_in_seconds": wait_seconds, "attempt": attempt + 1}), flush=True)
+            time.sleep(wait_seconds)
     data = payload.get("data") or []
     if len(data) != 1:
         raise RuntimeError("Sentinel-2 statistics response did not contain one 90-day interval")
@@ -110,6 +129,8 @@ def main():
         rows.append(row)
         if position % 25 == 0:
             print(json.dumps({"progress": position, "of": TABIA_COUNT}), flush=True)
+        if position < TABIA_COUNT:
+            time.sleep(REQUEST_INTERVAL_SECONDS)
     root = Path("/data/drought/outputs")
     root.mkdir(parents=True, exist_ok=True)
     base = root / run_id
@@ -123,6 +144,7 @@ def main():
         "status": status, "observation_start": start.isoformat(), "observation_end": end.isoformat(),
         "native_resolution": NATIVE_RESOLUTION, "mosaicking_order": "leastCC", "valid_scl_classes": list(VALID_SCL_CLASSES),
         "min_valid_coverage_pct": MIN_VALID_COVERAGE_PCT, "tabia_count": TABIA_COUNT,
+        "request_interval_seconds": REQUEST_INTERVAL_SECONDS, "max_rate_limit_retries": MAX_RATE_LIMIT_RETRIES,
         "source_retrieved_at": retrieved, "processing_version": PROCESSING_VERSION,
         "method": "CDSE Sentinel Hub Statistical API; Sentinel-2 L2A B08/B11 NDMI at 20 m with SCL 4/5 and dataMask only; one least-cloudy 90-day mosaic per Tabia.",
         "publication_note": "Development-only observed surface-condition context. Not a drought, food-security, priority, forecast, allocation, or response decision product.",

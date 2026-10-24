@@ -109,3 +109,6 @@ The run endpoint is fixed and manual only:
 date, geometry, URL, credentials, command, or SQL.  It makes one bounded
 provider request per canonical Tabia and loads no partial result; it has no
 n8n schedule, production route, public asset, or release activation path.
+The collector spaces requests by five seconds and honours a bounded CDSE
+`Retry-After` response for a single rate-limited request.  This is transport
+protection, not an automatic repeat of the regional run.
