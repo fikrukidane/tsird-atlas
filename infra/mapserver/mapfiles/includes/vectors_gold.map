@@ -118,6 +118,33 @@ LAYER
   CLASS NAME "NDVI at least 0.90" EXPRESSION ([ndvi_mean] >= 0.90) STYLE COLOR 0 104 55 OUTLINECOLOR 15 75 40 WIDTH 0.4 END END
 END
 
+# DEV-only all-Tabia Sentinel-2 NDMI surface-condition evidence.  The source
+# calculation is retained only as Tabia statistics, so this is deliberately a
+# vector map rather than a pretended 10 m raster.  Insufficient coverage is
+# visibly separate from observed values.
+LAYER
+  NAME "tigray_drought_sentinel2_ndmi_dev"
+  TYPE POLYGON
+  STATUS OFF
+  CONNECTIONTYPE POSTGIS
+  CONNECTION "host=tsird-postgis port=5432 dbname=tsird user=tsird password=change_me_strong"
+  DATA "geometry FROM (SELECT t.gid,t.geometry,t.\"TABIA\",t.\"WEREDA\",n.ndmi_mean,n.coverage_pct,COALESCE(n.quality_status,'insufficient_evidence') AS quality_status FROM tigray_tabias_ws t LEFT JOIN tsird.drought_tabia_sentinel2_ndmi n ON n.tsird_tabia_id=t.tsird_tabia_id AND n.run_id=(SELECT run_id FROM tsird.drought_sentinel2_ndmi_run WHERE run_scope='full_development' ORDER BY observation_end DESC, created_at DESC LIMIT 1)) AS sentinel2_ndmi USING UNIQUE gid USING SRID=4326"
+  METADATA
+    "wms_title" "Tigray Vegetation Moisture (Sentinel-2 NDMI, development)"
+    "wms_srs" "EPSG:3857" "wms_enable_request" "*" "wms_queryable" "true"
+    "gml_include_items" "TABIA,WEREDA,ndmi_mean,coverage_pct,quality_status"
+  END
+  TEMPLATE "dummy.html"
+  CLASS NAME "Insufficient valid coverage" EXPRESSION ("[quality_status]" = "insufficient_evidence") STYLE COLOR 191 196 204 OPACITY 35 OUTLINECOLOR 107 114 128 WIDTH 0.5 END END
+  CLASS NAME "NDMI below -0.20" EXPRESSION (("[quality_status]" = "ok") AND ([ndmi_mean] < -0.20)) STYLE COLOR 146 48 43 OUTLINECOLOR 110 40 55 WIDTH 0.4 END END
+  CLASS NAME "NDMI -0.20 to -0.10" EXPRESSION (("[quality_status]" = "ok") AND ([ndmi_mean] >= -0.20) AND ([ndmi_mean] < -0.10)) STYLE COLOR 203 91 79 OUTLINECOLOR 145 65 55 WIDTH 0.4 END END
+  CLASS NAME "NDMI -0.10 to 0.00" EXPRESSION (("[quality_status]" = "ok") AND ([ndmi_mean] >= -0.10) AND ([ndmi_mean] < 0.00)) STYLE COLOR 232 159 146 OUTLINECOLOR 175 105 85 WIDTH 0.4 END END
+  CLASS NAME "NDMI 0.00 to 0.10" EXPRESSION (("[quality_status]" = "ok") AND ([ndmi_mean] >= 0.00) AND ([ndmi_mean] < 0.10)) STYLE COLOR 229 229 229 OUTLINECOLOR 160 160 160 WIDTH 0.4 END END
+  CLASS NAME "NDMI 0.10 to 0.20" EXPRESSION (("[quality_status]" = "ok") AND ([ndmi_mean] >= 0.10) AND ([ndmi_mean] < 0.20)) STYLE COLOR 177 207 160 OUTLINECOLOR 105 145 95 WIDTH 0.4 END END
+  CLASS NAME "NDMI 0.20 to 0.30" EXPRESSION (("[quality_status]" = "ok") AND ([ndmi_mean] >= 0.20) AND ([ndmi_mean] < 0.30)) STYLE COLOR 109 171 117 OUTLINECOLOR 65 120 75 WIDTH 0.4 END END
+  CLASS NAME "NDMI at least 0.30" EXPRESSION (("[quality_status]" = "ok") AND ([ndmi_mean] >= 0.30)) STYLE COLOR 42 118 82 OUTLINECOLOR 30 80 55 WIDTH 0.4 END END
+END
+
 LAYER
   NAME "tigray_drought_swi_dev"
   TYPE POLYGON

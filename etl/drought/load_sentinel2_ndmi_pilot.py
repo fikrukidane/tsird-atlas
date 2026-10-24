@@ -42,15 +42,15 @@ def main():
     with psycopg2.connect(dsn()) as conn, conn.cursor() as cur:
         cur.execute('''INSERT INTO tsird.drought_sentinel2_ndmi_run
           (run_id, source_id, observation_start, observation_end, native_resolution, mosaicking_order,
-           valid_scl_classes, min_valid_coverage_pct, pilot_tabia_limit, source_retrieved_at,
-           processing_version, status, notes)
-          VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+           valid_scl_classes, min_valid_coverage_pct, tabia_count, source_retrieved_at,
+           processing_version, status, notes, run_scope)
+          VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
           ON CONFLICT (run_id) DO UPDATE SET source_retrieved_at=EXCLUDED.source_retrieved_at,
             status=EXCLUDED.status, notes=EXCLUDED.notes''',
           (manifest["run_id"], SOURCE_ID, manifest["observation_start"], manifest["observation_end"],
            manifest["native_resolution"], manifest["mosaicking_order"], manifest["valid_scl_classes"],
            manifest["min_valid_coverage_pct"], manifest["pilot_tabia_limit"], manifest["source_retrieved_at"],
-           manifest["processing_version"], manifest["status"], manifest["publication_note"]))
+           manifest["processing_version"], manifest["status"], manifest["publication_note"], "technical_pilot"))
         execute_values(cur, '''INSERT INTO tsird.drought_tabia_sentinel2_ndmi
           (run_id, tsird_tabia_id, ndmi_mean, ndmi_median, valid_pixel_count, grid_cell_count, coverage_pct, quality_status)
           VALUES %s ON CONFLICT (run_id, tsird_tabia_id) DO UPDATE SET ndmi_mean=EXCLUDED.ndmi_mean,

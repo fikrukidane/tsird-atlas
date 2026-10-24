@@ -1,0 +1,17 @@
+# Isolated local DEV overlay for the all-Tabia Sentinel-2 NDMI map.  It is
+# intentionally not referenced by any production compose configuration.
+services:
+  tsird-web:
+    image: tsird-atlas-tsird-web:dev-sentinel2-full-20261024
+  tsird-api:
+    image: tsird-atlas-tsird-api:dev-sentinel2-full-20261024
+  tsird-drought-runner:
+    image: tsird-atlas-tsird-drought-runner:dev-sentinel2-full-20261024
+  tsird-mapserver:
+    volumes:
+      - C:/docker/projects/tsird-atlas/.worktrees/vegetation-moisture-pilot/infra/mapserver/mapfiles:/etc/mapserver
+      - C:/docker/projects/tsird-atlas/.worktrees/vegetation-moisture-pilot/infra/mapserver/mapfiles/ms.config:/etc/mapserver.conf:ro
+      - C:/docker/projects/tsird-atlas/.worktrees/vegetation-moisture-pilot/infra/mapserver/fonts:/fonts:ro
+      - C:/docker/projects/tsird-atlas/.worktrees/vegetation-moisture-pilot/infra/mapserver/symbols:/symbols:ro
+      - C:/docker/projects/tsird-atlas/data:/data:ro
+      - tsird-mapserver-tmp:/tmp

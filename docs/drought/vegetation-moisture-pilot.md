@@ -87,3 +87,25 @@ review before any publication decision.
 - No production route, public release asset, public navigation item, or
   publication contract changes.
 - No universal moisture-stress threshold or automatic decision trigger.
+
+## All-Tabia DEV evidence map
+
+The approved next step is a separate, manual **748-Tabia DEV acquisition**.
+It does not replace or reinterpret the 20-Tabia integration pilot.  The full
+path uses a fixed, completed 90-day UTC window ending five days before the run
+and the provider's `leastCC` mosaic order.  The longer review window is
+explicitly recorded because the 30-day pilot retained too little cloud- and
+shadow-free coverage to make a useful regional map.
+
+The resulting DEV WMS layer is `tigray_drought_sentinel2_ndmi_dev`.  It is a
+Tabia-statistic layer, not a 10 m or 20 m raster: TSIRD retains only returned
+mean/median NDMI statistics, coverage, and quality metadata.  Tabias at or
+above 70% valid coverage receive source-value NDMI bands; every other Tabia is
+shown as **insufficient evidence**.  Neither colour nor absence of colour is a
+drought, food-security, priority, allocation, or response classification.
+
+The run endpoint is fixed and manual only:
+`/runs/sentinel2-ndmi-full/development-test`.  It accepts no user-supplied
+date, geometry, URL, credentials, command, or SQL.  It makes one bounded
+provider request per canonical Tabia and loads no partial result; it has no
+n8n schedule, production route, public asset, or release activation path.
