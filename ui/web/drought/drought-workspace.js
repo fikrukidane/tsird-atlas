@@ -10,6 +10,7 @@ document.addEventListener('DOMContentLoaded', function () {
     droughtSwiUrl: '../api/drought/development/swi/latest?limit=748',
     droughtLstUrl: '../api/drought/development/lst/latest?limit=748',
     droughtWaporUrl: '../api/drought/development/wapor/latest?limit=748',
+    droughtSentinel2NdmiUrl: '../api/drought/development/sentinel2-ndmi-pilot/latest?limit=20',
     droughtOutlookUrl: '../api/drought/development/seasonal-outlook',
     droughtPriorityConfigurationUrl: '../api/drought/development/priority/model-configuration',
     droughtPriorityPreviewsUrl: '../api/drought/development/priority/calibration-previews',

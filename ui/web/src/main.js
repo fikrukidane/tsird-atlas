@@ -75,6 +75,7 @@ async function initializeApplication(registryPath, options) {
         swiUrl: options.droughtSwiUrl,
         lstUrl: options.droughtLstUrl,
         waporUrl: options.droughtWaporUrl,
+        sentinel2NdmiUrl: options.droughtSentinel2NdmiUrl,
         outlookUrl: options.droughtOutlookUrl,
         priorityConfigurationUrl: options.droughtPriorityConfigurationUrl,
         priorityPreviewsUrl: options.droughtPriorityPreviewsUrl,
