@@ -1,0 +1,12 @@
+{
+  "name": "TSIRD · Sentinel-2 NDMI technical pilot v1 (development)",
+  "nodes": [
+    {"parameters": {}, "id": "cd329d4d-95ec-42d2-8f82-2746cc172fbe", "name": "Manual development run", "type": "n8n-nodes-base.manualTrigger", "typeVersion": 1, "position": [260, 300]},
+    {"parameters": {"method": "POST", "url": "http://tsird-drought-runner:8090/runs/sentinel2-ndmi-pilot/development-test", "options": {"timeout": 30000}}, "id": "d752a9e7-8d6b-4255-a949-84b0c3240d2e", "name": "Run 20-Tabia NDMI pilot", "type": "n8n-nodes-base.httpRequest", "typeVersion": 4.2, "position": [520, 300]},
+    {"parameters": {"amount": 60, "unit": "seconds"}, "id": "ed55ca10-e355-4e67-b5dd-58be48adbc8d", "name": "Wait for pilot", "type": "n8n-nodes-base.wait", "typeVersion": 1.1, "position": [780, 300]},
+    {"parameters": {"url": "=http://tsird-drought-runner:8090/runs/{{ $json.job_id }}", "options": {"timeout": 30000}}, "id": "b72b73b2-a553-41e9-b25d-4e7428523a41", "name": "Read pilot result", "type": "n8n-nodes-base.httpRequest", "typeVersion": 4.2, "position": [1040, 300]},
+    {"parameters": {"assignments": {"assignments": [{"id": "e7db5ff7-0ce6-4f96-b945-7b2fe6d7a0fb", "name": "operator_summary", "value": "=Sentinel-2 NDMI technical pilot ended {{$json.status}} at {{$json.finished_at}}. It retains masked B08/B11 statistics for at most 20 Tabias and is not a drought class, forecast, or publication.", "type": "string"}]}, "options": {}}, "id": "a5b2d0d4-60ca-460b-af7c-c8c33694f6d0", "name": "Record pilot result", "type": "n8n-nodes-base.set", "typeVersion": 3.4, "position": [1300, 300]}
+  ],
+  "connections": {"Manual development run": {"main": [[{"node": "Run 20-Tabia NDMI pilot", "type": "main", "index": 0}]]}, "Run 20-Tabia NDMI pilot": {"main": [[{"node": "Wait for pilot", "type": "main", "index": 0}]]}, "Wait for pilot": {"main": [[{"node": "Read pilot result", "type": "main", "index": 0}]]}, "Read pilot result": {"main": [[{"node": "Record pilot result", "type": "main", "index": 0}]]}},
+  "pinData": {}, "active": false, "settings": {"executionOrder": "v1", "saveManualExecutions": true, "saveExecutionProgress": true}, "meta": {"templateCredsSetupCompleted": true}, "tags": []
+}

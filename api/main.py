@@ -658,6 +658,27 @@ FROM (SELECT n.tsird_tabia_id, t."TABIA" AS tabia_name_en, t."WEREDA" AS woreda_
  ORDER BY t."TABIA" LIMIT $1) summary
 """
 
+DROUGHT_DEVELOPMENT_SENTINEL2_NDMI_SQL = """
+WITH latest_run AS (
+ SELECT run_id, source_id, observation_start, observation_end, native_resolution,
+        mosaicking_order, valid_scl_classes, min_valid_coverage_pct, pilot_tabia_limit,
+        processing_version, status, notes
+ FROM tsird.drought_sentinel2_ndmi_run ORDER BY observation_end DESC, created_at DESC LIMIT 1
+)
+SELECT (SELECT row_to_json(latest_run) FROM latest_run) AS run,
+ COALESCE(json_agg(row_to_json(summary) ORDER BY summary.tabia_name_en)
+   FILTER (WHERE summary.tsird_tabia_id IS NOT NULL), '[]'::json) AS summaries
+FROM (
+ SELECT n.tsird_tabia_id, t."TABIA" AS tabia_name_en, t."WEREDA" AS woreda_name_en,
+        n.ndmi_mean, n.ndmi_median, n.valid_pixel_count, n.grid_cell_count,
+        n.coverage_pct, n.quality_status
+ FROM tsird.drought_tabia_sentinel2_ndmi n
+ JOIN latest_run r USING (run_id)
+ JOIN tigray_tabias_ws t USING (tsird_tabia_id)
+ ORDER BY t."TABIA" LIMIT $1
+) summary
+"""
+
 DROUGHT_DEVELOPMENT_SWI_SQL = """
 WITH latest_run AS (
  SELECT run_id, source_product, observation_at AS observation_start, observation_at AS observation_end, native_resolution, status, notes
@@ -2407,6 +2428,26 @@ async def development_ndvi(limit: int = Query(748, ge=1, le=748)):
     if not row or not row["run"]: raise HTTPException(status_code=404, detail="No development NDVI artifact is available")
     decode = lambda value: json.loads(value) if isinstance(value, str) else value
     return {"schema_version":"tsird-drought-ndvi.v1", "environment":"development", "run":decode(row["run"]), "summaries":decode(row["summaries"])}
+
+
+@app.get("/drought/development/sentinel2-ndmi-pilot/latest")
+async def development_sentinel2_ndmi_pilot(limit: int = Query(20, ge=1, le=20)):
+    """Expose only the bounded development Sentinel-2 NDMI technical pilot."""
+    try:
+        conn = await asyncpg.connect(DB_DSN)
+        try:
+            row = await conn.fetchrow(DROUGHT_DEVELOPMENT_SENTINEL2_NDMI_SQL, limit)
+        finally:
+            await conn.close()
+    except Exception:
+        logging.exception("Development Sentinel-2 NDMI pilot query error")
+        raise HTTPException(status_code=503, detail="Development Sentinel-2 NDMI pilot service unavailable")
+    if not row or not row["run"]:
+        raise HTTPException(status_code=404, detail="No development Sentinel-2 NDMI pilot artifact is available")
+    decode = lambda value: json.loads(value) if isinstance(value, str) else value
+    return {"schema_version": "tsird-drought-sentinel2-ndmi-pilot.v1", "environment": "development",
+            "run": decode(row["run"]), "summaries": decode(row["summaries"]),
+            "scope": "20-Tabia technical pilot; not a regional map, drought classification, or public release"}
 
 
 @app.get("/drought/development/swi/latest")

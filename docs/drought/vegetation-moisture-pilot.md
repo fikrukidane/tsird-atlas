@@ -35,6 +35,35 @@ native resolutions differ; the analytical grid is therefore 20 m unless a
 documented resampling method is accepted.  The display must never suggest
 10 m analytical precision.
 
+## Implemented DEV technical path
+
+The first technical path uses the Copernicus Data Space Sentinel Hub
+**Statistical API**, rather than downloading Sentinel scenes.  It sends one
+Tabia geometry at a time with a fixed, completed 30-day UTC window and retains
+only returned NDMI mean, median, valid-pixel count, grid-cell count and valid
+coverage.  The provider performs B08/B11 calculation and polygon aggregation;
+TSIRD does not retain a raw scene or a regional raster for this pilot.
+
+The fixed runner endpoint is
+`/runs/sentinel2-ndmi-pilot/development-test`.  It has no request body, accepts
+no date, geometry, URL, command or SQL input, permits only one active runner
+job, and selects no more than 20 deterministic canonical Tabias.  It is
+manual-only and remains inactive in the n8n registry.
+
+The pilot uses Sentinel-2 L2A `dataMask` and only SCL classes **4**
+(vegetation) and **5** (bare soil); cloud, cloud shadow, cirrus, snow, water,
+no-data and unclassified pixels are excluded.  A row with less than 70% valid
+coverage is explicitly `insufficient_evidence`.  This is a quality rule, not
+a moisture or drought threshold.  The run manifest records the exact window,
+20 m analytical resolution, masking rule, mosaicking rule, processing version
+and Geoinfotech acknowledgement.
+
+The sample is a technical integration and quality check, **not** a
+representative regional survey or a map-ready product.  It is displayed only
+as a DEV table after a successful run.  A same-calendar reference period,
+full regional coverage design, practitioner review and a separate release
+decision are still required before any public or production use.
+
 Before a DEV run can appear in the workspace, it must retain:
 
 1. acquisition and composite windows, sensor/product identifiers and a

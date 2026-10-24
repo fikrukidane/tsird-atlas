@@ -94,6 +94,13 @@ not copied to PostGIS, artifacts, browser files, or Git.
     food-security class, an IPC determination, or a priority score. A bounded
     native-FSC asset loader requires separate approval after issue/validity
     periods, terms, schema, and provider geography are confirmed.
+18. `sentinel2-ndmi-pilot`: calls CDSE Sentinel Hub's Statistical API for no
+    more than 20 fixed canonical Tabias and one completed 30-day UTC window.
+    It calculates B08/B11 NDMI at the 20 m B11/SCL grid using `dataMask` and
+    SCL classes 4/5 only, retains compact mean/median/coverage results, and
+    marks rows below 70% valid coverage as `insufficient_evidence`. It never
+    downloads raw scenes, creates a regional raster, schedules itself, creates
+    a drought/food-security classification, or publishes a public release.
 
 ## Retention and time-series rule
 

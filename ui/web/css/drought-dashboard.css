@@ -86,6 +86,13 @@
 .drought-index-card-muted h3 { color: #334155; }
 .drought-acknowledgement { display: grid; gap: 3px; margin: 8px 0; padding: 7px 8px; border-top: 1px solid #cbd5e1; color: #64748b; font-size: 10px; line-height: 1.35; }
 .drought-acknowledgement strong { color: #475569; }
+.drought-table-wrap { overflow-x: auto; margin-top: 8px; }
+.drought-pilot-table { width: 100%; min-width: 430px; border-collapse: collapse; font-size: 11px; color: #164e63; }
+.drought-pilot-table th, .drought-pilot-table td { padding: 5px; border-top: 1px solid #bae6fd; text-align: left; vertical-align: top; }
+.drought-pilot-table th { color: #0c4a6e; font-weight: 700; }
+.drought-pilot-table small { display: block; color: #64748b; }
+.drought-pilot-tabia { min-height: 28px; padding: 0; border: 0; background: transparent; color: #075985; text-align: left; font: inherit; font-weight: 700; cursor: pointer; text-decoration: underline; }
+.drought-pilot-tabia:hover, .drought-pilot-tabia:focus-visible { color: #0c4a6e; outline: 2px solid #38bdf8; outline-offset: 2px; }
 .drought-map-selection { display: grid; gap: 2px; margin-top: 7px; padding: 7px 8px; color: #334155; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 4px; line-height: 1.35; }
 .drought-map-selection strong { color: #0f3d56; }
 .drought-map-selection span, .drought-map-selection small { display: block; }

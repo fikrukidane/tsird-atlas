@@ -19,6 +19,7 @@ class DroughtDashboard {
     this.swiUrl = options.swiUrl || 'api/drought/development/swi/latest?limit=748';
     this.lstUrl = options.lstUrl || 'api/drought/development/lst/latest?limit=748';
     this.waporUrl = options.waporUrl || 'api/drought/development/wapor/latest?limit=748';
+    this.sentinel2NdmiUrl = options.sentinel2NdmiUrl || 'api/drought/development/sentinel2-ndmi-pilot/latest?limit=20';
     // DroughtDashboard is also mounted under /map/drought/, so its fallback
     // must resolve through the parent /map/api/ route even if an older caller
     // has not yet supplied the explicit workspace URL.
@@ -51,6 +52,7 @@ class DroughtDashboard {
     this.swiArtifact = null;
     this.lstArtifact = null;
     this.waporArtifact = null;
+    this.sentinel2NdmiArtifact = null;
     this.outlookArtifact = null;
     this.outlookRuns = [];
     this.priorityConfiguration = null;
@@ -145,7 +147,7 @@ class DroughtDashboard {
       await Promise.all([
         this._loadObservedArtifact(), this._loadObservedRuns(), this._loadPreliminaryArtifact(),
         this._loadNdviArtifact(), this._loadSwiArtifact(), this._loadLstArtifact(),
-        this._loadWaporArtifact(), this._loadOutlookArtifact(), this._loadPriorityFoundation(),
+        this._loadWaporArtifact(), this._loadSentinel2NdmiArtifact(), this._loadOutlookArtifact(), this._loadPriorityFoundation(),
         this._loadFewsNetContext(), this._loadHistoryRuns(), this._loadPublicGeometry()
       ]);
       this._createBoundaryLayer();
@@ -357,6 +359,18 @@ class DroughtDashboard {
     } catch (error) {
       console.error('[DroughtDashboard] WaPOR unavailable:', error);
       this.waporArtifact = { unavailable: true, message: 'Agricultural water-use artifact is unavailable.' };
+    }
+  }
+
+  async _loadSentinel2NdmiArtifact() {
+    try {
+      const response = await fetch(this.sentinel2NdmiUrl, { cache: 'no-store' });
+      const artifact = await response.json();
+      if (!response.ok || !artifact.run || !Array.isArray(artifact.summaries)) throw new Error('invalid Sentinel-2 NDMI pilot artifact');
+      this.sentinel2NdmiArtifact = artifact;
+    } catch (error) {
+      console.info('[DroughtDashboard] Sentinel-2 NDMI pilot unavailable:', error);
+      this.sentinel2NdmiArtifact = { unavailable: true, message: 'No Sentinel-2 vegetation-moisture pilot artifact has been loaded yet.' };
     }
   }
 
@@ -785,7 +799,7 @@ class DroughtDashboard {
     if (this.mode === 'moisture') {
       this._setEvidenceLayer(null);
       this._ensureContextLayersVisible('tabia');
-      this.notice.textContent = 'Vegetation moisture is a development-only, experimental surface-condition pilot. It has no acquired NIR/SWIR source imagery yet, so no values, classifications, or map are drawn.';
+      this.notice.textContent = 'Vegetation moisture is a development-only, experimental surface-condition pilot. It displays only bounded Tabia statistics from cloud- and shadow-masked Sentinel-2 surface reflectance; it does not draw a regional raster or classification.';
       this._renderVegetationMoisturePilot();
       this._renderVegetationMoistureLegend();
       return;
@@ -1130,6 +1144,27 @@ class DroughtDashboard {
   }
 
   _renderVegetationMoisturePilot() {
+    const artifact = this.sentinel2NdmiArtifact;
+    if (artifact && !artifact.unavailable) {
+      const run = artifact.run;
+      const usable = artifact.summaries.filter(row => row.quality_status === 'ok' && Number.isFinite(Number(row.ndmi_mean)));
+      const rows = artifact.summaries.map(row => {
+        const value = Number.isFinite(Number(row.ndmi_mean)) ? Number(row.ndmi_mean).toFixed(3) : 'not available';
+        return `<tr><td><button type="button" class="drought-pilot-tabia" data-pilot-tabia="${row.tsird_tabia_id}">${row.tabia_name_en || 'Unnamed Tabia'}</button><small>${row.woreda_name_en || ''}</small></td><td>${value}</td><td>${Number(row.coverage_pct).toFixed(1)}%</td><td>${String(row.quality_status).replaceAll('_', ' ')}</td></tr>`;
+      }).join('');
+      this.content.innerHTML = `
+        <div class="drought-mode-title"><strong>Vegetation moisture</strong><span>Sentinel-2 NDMI / LSWI · development technical pilot</span></div>
+        <div class="drought-pilot-status"><strong>${run.status === 'degraded' ? 'Limited usable coverage' : 'Bounded pilot evidence'}</strong><span>${usable.length}/${artifact.summaries.length} sampled Tabias meet the ${Number(run.min_valid_coverage_pct).toFixed(0)}% valid-pixel rule.</span><small>This is a 20-Tabia technical sample, not a regional map or a completed monitoring product.</small></div>
+        <div class="drought-source-meta"><span>Observation window: ${String(run.observation_start).slice(0, 10)} to ${String(run.observation_end).slice(0, 10)}</span><span>Analytical grid: ${run.native_resolution}</span><span>Composite: ${run.mosaicking_order}</span><span>Valid SCL classes: ${(run.valid_scl_classes || []).join(', ')}</span></div>
+        <section class="drought-index-card"><h3>Masked Tabia statistics</h3><p>NDMI = <code>(NIR − SWIR) / (NIR + SWIR)</code>. Only Sentinel-2 L2A pixels meeting the provider data mask and retained scene-class rules are included. Click a sampled Tabia to highlight its boundary; no regional interpolation or colour classification is drawn.</p><div class="drought-table-wrap"><table class="drought-pilot-table"><thead><tr><th>Tabia</th><th>NDMI mean</th><th>Valid coverage</th><th>Quality</th></tr></thead><tbody>${rows}</tbody></table></div></section>
+        <section class="drought-index-card drought-index-card-muted"><h3>Interpretation boundary</h3><p>These observed surface-condition statistics have no seasonal baseline yet. They are not a drought classification, food-security classification, forecast, allocation rule, or composite score.</p></section>
+        <section class="drought-acknowledgement"><strong>Acknowledgement</strong><span>The educational index-selection framing for this pilot refers to Geoinfotech's spatial-indices explainer, shared with TSIRD on 24 October 2026. Geoinfotech does not supply this platform's imagery, methods validation, or results.</span></section>`;
+      this.content.querySelectorAll('[data-pilot-tabia]').forEach(button => button.addEventListener('click', () => {
+        const row = artifact.summaries.find(item => item.tsird_tabia_id === button.dataset.pilotTabia);
+        if (row) this.selectBoundary({ type: 'tabia', id: row.tsird_tabia_id, label: row.tabia_name_en || 'Sampled Tabia' });
+      }));
+      return;
+    }
     this.content.innerHTML = `
       <div class="drought-mode-title"><strong>Vegetation moisture</strong><span>NDMI / LSWI · experimental pilot</span></div>
       <div class="drought-pilot-status"><strong>Awaiting source imagery</strong><span>No NIR/SWIR surface-reflectance artifact has been acquired, quality-screened, or summarised for this workspace.</span><small>No Tabia value, colour, trend, or drought interpretation is shown.</small></div>
