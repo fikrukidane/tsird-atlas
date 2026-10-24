@@ -638,7 +638,11 @@ class DroughtDashboard {
     controls.className = 'drought-mode-controls';
     const modeItems = this.priorityOnly
       ? []
-      : [['observed', 'Latest'], ['rapid', 'Rapid rain'], ['vegetation', 'Vegetation'], ['soilWater', 'Soil water'], ['thermal', 'Thermal'], ['waterUse', 'Crop water use'], ['history', 'History'], ['outlook', 'Outlook'], ['vulnerability', 'Exposure']];
+      : [
+        ['observed', 'Latest'], ['rapid', 'Rapid rain'], ['vegetation', 'Vegetation'],
+        ['soilWater', 'Soil water'], ['thermal', 'Thermal'], ['waterUse', 'Crop water use'],
+        ['moisture', 'Veg. moisture'], ['history', 'History'], ['outlook', 'Outlook'], ['vulnerability', 'Exposure']
+      ].filter(([mode]) => mode !== 'moisture' || !this.publicMode);
     modeItems.forEach(([mode, label]) => {
       const button = document.createElement('button');
       button.type = 'button';
@@ -778,6 +782,14 @@ class DroughtDashboard {
       return;
     }
     if (this.mode === 'vegetation') { this._renderIndicatorMode('Vegetation condition can be shown as the retained Copernicus native raster or a Tabia zonal mean. It is not a drought or food-security classification.', () => this._renderNdviArtifact()); return; }
+    if (this.mode === 'moisture') {
+      this._setEvidenceLayer(null);
+      this._ensureContextLayersVisible('tabia');
+      this.notice.textContent = 'Vegetation moisture is a development-only, experimental surface-condition pilot. It has no acquired NIR/SWIR source imagery yet, so no values, classifications, or map are drawn.';
+      this._renderVegetationMoisturePilot();
+      this._renderVegetationMoistureLegend();
+      return;
+    }
     if (this.mode === 'soilWater') { this._renderIndicatorMode('Soil water can be shown as the coarse Copernicus native grid or a Tabia zonal mean. It is context, not a Tabia-scale observation, drought class, or food-security prediction.', () => this._renderSwiArtifact()); return; }
     if (this.mode === 'thermal') { this._renderIndicatorMode('Land-surface temperature can be shown as the retained native raster or a Tabia zonal mean. It is not measured air temperature, a drought class, or a food-security prediction.', () => this._renderLstArtifact()); return; }
     if (this.mode === 'waterUse') { this._renderIndicatorMode('Crop water use shows FAO WaPOR transpiration—a vegetation water-use measure—alongside actual evapotranspiration context. It is not current crop extent, yield, drought severity, food-security, or a priority classification.', () => this._renderWaporArtifact()); return; }
@@ -1115,6 +1127,33 @@ class DroughtDashboard {
     this._renderSpatialControl();
     this._renderIndicatorSnapshotControl();
     this._renderLegend();
+  }
+
+  _renderVegetationMoisturePilot() {
+    this.content.innerHTML = `
+      <div class="drought-mode-title"><strong>Vegetation moisture</strong><span>NDMI / LSWI · experimental pilot</span></div>
+      <div class="drought-pilot-status"><strong>Awaiting source imagery</strong><span>No NIR/SWIR surface-reflectance artifact has been acquired, quality-screened, or summarised for this workspace.</span><small>No Tabia value, colour, trend, or drought interpretation is shown.</small></div>
+      <section class="drought-index-card" aria-label="Vegetation moisture pilot method">
+        <h3>What this would measure</h3>
+        <p><code>(NIR − SWIR) / (NIR + SWIR)</code></p>
+        <p>NDMI and LSWI are overlapping names for this NIR–SWIR moisture-sensitive index. It may add context where vegetation remains green in NDVI but is retaining less moisture than is typical for the season.</p>
+      </section>
+      <section class="drought-index-card" aria-label="Required evidence safeguards">
+        <h3>Required before any map</h3>
+        <ul><li>Cloud, shadow and invalid-pixel masking on surface reflectance—not display imagery or raw digital numbers.</li><li>Sentinel-2 NIR B08 with SWIR B11; analysis must respect B11's 20 m native resolution.</li><li>Tabia summaries with valid-pixel coverage and a same-calendar-period historical reference.</li><li>Stored source, observation date, sensor, processing version and an explicit insufficient-evidence state.</li></ul>
+      </section>
+      <section class="drought-index-card drought-index-card-muted" aria-label="Interpretation boundary">
+        <h3>Interpretation boundary</h3>
+        <p>This is surface-condition evidence only. It will not become a drought classification, food-security classification, forecast, allocation rule or composite score.</p>
+      </section>
+      <section class="drought-acknowledgement" aria-label="Acknowledgement">
+        <strong>Acknowledgement</strong><span>The educational index-selection framing for this pilot refers to Geoinfotech's spatial-indices explainer, shared with TSIRD on 24 October 2026. Geoinfotech does not supply this platform's imagery, methods validation, or results.</span>
+      </section>`;
+  }
+
+  _renderVegetationMoistureLegend() {
+    if (!this.legend) return;
+    this.legend.innerHTML = `<div class="drought-legend-heading"><strong>Experimental pilot status</strong><span>no data displayed</span></div><p>When an approved DEV artifact exists, the legend will describe observed index values, valid coverage, and comparison with the same seasonal reference. It will not use universal moisture-stress thresholds.</p>`;
   }
 
   _indicatorLabel(kind) {
