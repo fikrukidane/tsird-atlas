@@ -100,6 +100,11 @@ provider retry policy. It cannot create a public-release or production asset.
 Completion still requires row-count, provenance, API, WMS and browser checks
 before the DEV map is usable for review.
 
+For a clearly identified HLS COG transport-range failure, the full collector
+retries the same Tabia at most twice after 15- and 30-second waits. It does not
+retry a whole regional run, alter the month or mask, or treat a provider/data
+error as transport. A persistent failure stops with the checkpoint intact.
+
 The fixed, internal runner endpoint is
 `/runs/hls-ndmi-monthly-pilot/development-test`. It accepts no date, geometry,
 URL, command, database statement or credential from a caller and requires one

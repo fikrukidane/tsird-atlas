@@ -9,6 +9,7 @@ schedule, public-release path, or production behaviour.
 import argparse
 import csv
 import json
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -24,6 +25,7 @@ from hls_ndmi_monthly_pilot import (
 SOURCE_ID = "nasa-hls-v2-ndmi-monthly-full-development"
 PROCESSING_VERSION = "tsird-hls-ndmi-monthly-full-dev.v1-spatial-coverage"
 TABIA_COUNT = 748
+MAX_TABIA_TRANSPORT_ATTEMPTS = 3
 
 
 def full_tabias():
@@ -88,6 +90,24 @@ def row_from_profiles(tabia_id, tabia, woreda, profiles):
     return row
 
 
+def summarize_with_transport_retry(geometry, start, end, token):
+    """Retry only a transient COG range-read failure for one checkpointed Tabia.
+
+    A retry re-reads the same fixed month, geometry, and two masking profiles;
+    it never changes the evidence rule, extends the time window, or skips a
+    Tabia. Any persistent provider failure remains a failed, resumable run.
+    """
+    for attempt in range(1, MAX_TABIA_TRANSPORT_ATTEMPTS + 1):
+        try:
+            return summarize_tabia(geometry, start, end, token)
+        except RuntimeError as exc:
+            if "HLS COG range read failed" not in str(exc) or attempt == MAX_TABIA_TRANSPORT_ATTEMPTS:
+                raise
+            wait_seconds = 15 * attempt
+            print(json.dumps({"transport_retry": attempt, "retry_in_seconds": wait_seconds}), flush=True)
+            time.sleep(wait_seconds)
+
+
 def main():
     parser = argparse.ArgumentParser(description="Run the fixed all-Tabia HLS monthly NDMI DEV acquisition")
     parser.add_argument("--dry-run", action="store_true", help="print the fixed contract without database or Earthdata access")
@@ -122,7 +142,7 @@ def main():
     for position, (tabia_id, tabia, woreda, geometry) in enumerate(tabias, start=1):
         if tabia_id in completed_ids:
             continue
-        rows.append(row_from_profiles(tabia_id, tabia, woreda, summarize_tabia(geometry, start, end, token)))
+        rows.append(row_from_profiles(tabia_id, tabia, woreda, summarize_with_transport_retry(geometry, start, end, token)))
         write_rows(checkpoint, rows)
         if len(rows) % 10 == 0 or len(rows) == TABIA_COUNT:
             print(json.dumps({"progress": len(rows), "of": TABIA_COUNT}), flush=True)
