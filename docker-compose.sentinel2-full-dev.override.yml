@@ -1,15 +1,21 @@
-# Isolated local DEV overlay for the all-Tabia Sentinel-2 NDMI map.  It is
+# Isolated local DEV overlay for the all-Tabia HLS monthly NDMI map. It is
 # intentionally not referenced by any production compose configuration.
 services:
   tsird-web:
-    image: tsird-atlas-tsird-web:dev-sentinel2-full-20261024
+    build:
+      context: C:/docker/projects/tsird-atlas/.worktrees/vegetation-moisture-pilot/ui/web
+      dockerfile: Dockerfile
+    image: tsird-atlas-tsird-web:dev-hls-ndmi-full-20261025-5
   tsird-api:
-    image: tsird-atlas-tsird-api:dev-sentinel2-full-20261024
+    build:
+      context: C:/docker/projects/tsird-atlas/.worktrees/vegetation-moisture-pilot/api
+      dockerfile: Dockerfile
+    image: tsird-atlas-tsird-api:dev-hls-ndmi-full-20261025-5
   tsird-drought-runner:
     build:
       context: C:/docker/projects/tsird-atlas/.worktrees/vegetation-moisture-pilot/etl
       dockerfile: Dockerfile
-    image: tsird-atlas-tsird-drought-runner:dev-hls-ndmi-pilot-20261025-4
+    image: tsird-atlas-tsird-drought-runner:dev-hls-ndmi-full-20261025-5
     env_file: !override
       - C:/docker/projects/tsird-atlas/.env.tsird
       - C:/docker/projects/tsird-atlas/.env.tsird.cdse

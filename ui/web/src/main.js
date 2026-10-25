@@ -75,7 +75,7 @@ async function initializeApplication(registryPath, options) {
         swiUrl: options.droughtSwiUrl,
         lstUrl: options.droughtLstUrl,
         waporUrl: options.droughtWaporUrl,
-        sentinel2NdmiUrl: options.droughtSentinel2NdmiUrl,
+        hlsNdmiUrl: options.droughtHlsNdmiUrl,
         outlookUrl: options.droughtOutlookUrl,
         priorityConfigurationUrl: options.droughtPriorityConfigurationUrl,
         priorityPreviewsUrl: options.droughtPriorityPreviewsUrl,
@@ -93,7 +93,7 @@ async function initializeApplication(registryPath, options) {
         onEnsureContextLayers: layerIds => layerIds.forEach(layerId => interaction.setLayerVisible(layerId, true)),
         onSetEvidenceLayer: activeLayerId => {
           ['tigray_drought_chirps_dev', 'tigray_drought_chirps_raw_dev', 'tigray_drought_chirps_rapid_raw_dev',
-           'tigray_drought_chirps_rapid_tabia_dev', 'tigray_drought_ndvi_dev', 'tigray_drought_sentinel2_ndmi_dev', 'tigray_drought_ndvi_raw_dev',
+           'tigray_drought_chirps_rapid_tabia_dev', 'tigray_drought_ndvi_dev', 'tigray_drought_sentinel2_ndmi_dev', 'tigray_drought_hls_ndmi_dev', 'tigray_drought_ndvi_raw_dev',
            'tigray_drought_swi_dev', 'tigray_drought_swi_raw_dev', 'tigray_drought_lst_dev', 'tigray_drought_lst_raw_dev',
            'tigray_drought_wapor_dev', 'tigray_drought_wapor_raw_dev',
            'tigray_drought_chirps_raw_public', 'tigray_drought_chirps_rapid_raw_public',

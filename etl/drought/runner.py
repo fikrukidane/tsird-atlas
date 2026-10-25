@@ -46,6 +46,7 @@ CONTROL_WORKFLOWS = (
     {"key": "sentinel2-ndmi-pilot", "label": "Sentinel-2 vegetation-moisture pilot", "cadence": "Manual development verification; 20 Tabias only", "policy_state": "inactive"},
     {"key": "sentinel2-ndmi-full", "label": "Sentinel-2 vegetation-moisture all-Tabia evidence", "cadence": "Manual DEV acquisition only; no schedule", "policy_state": "inactive"},
     {"key": "hls-ndmi-monthly-pilot", "label": "HLS monthly vegetation-moisture feasibility pilot", "cadence": "Manual development verification; 20 Tabias only", "policy_state": "inactive"},
+    {"key": "hls-ndmi-monthly-full", "label": "HLS monthly vegetation-moisture all-Tabia evidence", "cadence": "Manual DEV acquisition only; resumable local checkpoint; no schedule", "policy_state": "inactive"},
     {"key": "swi", "label": "Copernicus SWI source probe", "cadence": "Daily 06:50 Addis; metadata only", "policy_state": "active"},
     {"key": "lst-history", "label": "Thermal historical evidence (CLMS LST v2)", "cadence": "Manual history only; upstream product superseded", "policy_state": "inactive"},
     {"key": "seasonal-outlook", "label": "ICPAC seasonal-outlook catalogue probe", "cadence": "Weekly 07:10 Addis; no schedule activated", "policy_state": "inactive"},
@@ -556,6 +557,32 @@ def run_hls_ndmi_monthly_pilot(job_id: str):
         status, error, output = "failed", "HLS monthly NDMI pilot exceeded the two-hour development timeout", []
     except Exception as exc:
         status, error, output = "failed", f"Unexpected HLS monthly NDMI pilot error: {type(exc).__name__}", []
+    with jobs_lock:
+        jobs[job_id].update(status=status, finished_at=now(), error=error, output_tail="\n".join(output)[-5000:])
+
+
+def run_hls_ndmi_monthly_full(job_id: str):
+    """Run one fixed, resumable all-Tabia HLS DEV acquisition; never publish it."""
+    with jobs_lock:
+        jobs[job_id].update(status="running", started_at=now())
+    try:
+        summary = subprocess.run(["python3", str(WORK_DIR / "hls_ndmi_monthly_full.py")], cwd=WORK_DIR,
+            text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=True, timeout=129600)
+        first_json = summary.stdout.rfind('{\n  "run_id"')
+        if first_json < 0:
+            raise ValueError("HLS full-development acquisition did not report a run ID")
+        result = json.JSONDecoder().raw_decode(summary.stdout[first_json:])[0]
+        run_id = result["run_id"]
+        loaded = subprocess.run(["python3", str(WORK_DIR / "load_hls_ndmi_monthly_full.py"), str(DATA_ROOT / "outputs" / run_id)],
+            cwd=WORK_DIR, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=True, timeout=900)
+        loaded_json = json.JSONDecoder().raw_decode(loaded.stdout[loaded.stdout.find("{"):])[0]
+        status, error, output = loaded_json.get("artifact_status", "succeeded"), None, [summary.stdout[-3000:], loaded.stdout[-2000:]]
+    except subprocess.CalledProcessError as exc:
+        status, error, output = "failed", "HLS monthly full-development acquisition failed", [(exc.stdout or "")[-3000:]]
+    except subprocess.TimeoutExpired:
+        status, error, output = "failed", "HLS monthly full-development acquisition exceeded the 36-hour DEV timeout", []
+    except Exception as exc:
+        status, error, output = "failed", f"Unexpected HLS monthly full-development error: {type(exc).__name__}", []
     with jobs_lock:
         jobs[job_id].update(status=status, finished_at=now(), error=error, output_tail="\n".join(output)[-5000:])
 
@@ -1113,6 +1140,20 @@ def start_hls_ndmi_monthly_pilot():
                         "requested_at": now(), "request": {}, "run_id": None, "started_at": None,
                         "finished_at": None, "error": None, "output_tail": None}
     threading.Thread(target=run_hls_ndmi_monthly_pilot, args=(job_id,), daemon=True).start()
+    return jobs[job_id]
+
+
+@app.post("/runs/hls-ndmi-monthly-full/development-test", status_code=202)
+def start_hls_ndmi_monthly_full():
+    """Run one fixed, all-Tabia HLS monthly DEV acquisition inside the private network."""
+    with jobs_lock:
+        if any(job["status"] in {"queued", "running"} for job in jobs.values()):
+            raise HTTPException(status_code=409, detail="A drought refresh job is already active")
+        job_id = str(uuid.uuid4())
+        jobs[job_id] = {"job_id": job_id, "workflow": "hls-ndmi-monthly-full", "status": "queued",
+                        "requested_at": now(), "request": {}, "run_id": None, "started_at": None,
+                        "finished_at": None, "error": None, "output_tail": None}
+    threading.Thread(target=run_hls_ndmi_monthly_full, args=(job_id,), daemon=True).start()
     return jobs[job_id]
 
 @app.post("/runs/swi-tabia-summary/development-test", status_code=202)

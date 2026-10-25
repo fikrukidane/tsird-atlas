@@ -75,14 +75,14 @@ def main():
         cur.execute('''INSERT INTO tsird.drought_hls_ndmi_run
           (run_id, source_id, observation_start, observation_end, native_resolution, source_collections, validity_mask,
            coverage_definition, min_valid_observation_coverage_pct, min_valid_observation_pixels, min_usable_acquisition_count,
-           pilot_tabia_limit, source_retrieved_at, processing_version, status, notes)
-          VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+           tabia_count, source_retrieved_at, processing_version, status, notes, run_scope)
+          VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
           ON CONFLICT (run_id) DO UPDATE SET source_retrieved_at=EXCLUDED.source_retrieved_at, status=EXCLUDED.status, notes=EXCLUDED.notes''',
           (manifest["run_id"], SOURCE_ID, manifest["observation_start"], manifest["observation_end"], manifest["native_resolution"],
            manifest["source_collections"], manifest["validity_mask"], manifest["coverage_definition"],
            manifest["min_valid_observation_coverage_pct"], manifest["min_valid_observation_pixels"],
            manifest["min_usable_acquisition_count"], manifest["pilot_tabia_limit"], manifest["source_retrieved_at"],
-           manifest["processing_version"], manifest["status"], manifest["publication_note"]))
+           manifest["processing_version"], manifest["status"], manifest["publication_note"], "technical_pilot"))
         execute_values(cur, '''INSERT INTO tsird.drought_tabia_hls_ndmi
           (run_id, tsird_tabia_id, ndmi_mean, ndmi_median, valid_observation_pixel_count, candidate_observation_pixel_count,
            coverage_pct, candidate_acquisition_count, usable_acquisition_count, first_acquisition_at, last_acquisition_at,

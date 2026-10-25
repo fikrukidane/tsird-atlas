@@ -1358,6 +1358,9 @@
     "tigray_drought_sentinel2_ndmi_dev": {
       "label": "Vegetation Moisture (Sentinel-2 NDMI · development)", "type": "vector", "geometry_type": "polygon", "published": true, "default_visible": false, "opacity": 0.76, "min_scale": 5000000, "max_scale": 50000, "queryable": true, "wms_name": "tigray_drought_sentinel2_ndmi_dev", "identify_fields": ["TABIA", "WEREDA", "ndmi_mean", "coverage_pct", "quality_status"], "attribution": "Copernicus Sentinel-2 L2A B08/B11 NDMI · masked Tabia evidence, development only"
     },
+    "tigray_drought_hls_ndmi_dev": {
+      "label": "Vegetation Moisture (HLS monthly NDMI · development)", "type": "vector", "geometry_type": "polygon", "published": true, "default_visible": false, "opacity": 0.76, "min_scale": 5000000, "max_scale": 50000, "queryable": true, "wms_name": "tigray_drought_hls_ndmi_dev", "identify_fields": ["TABIA", "WEREDA", "ndmi_mean", "coverage_pct", "quality_status"], "attribution": "NASA HLS v2 L30/S30 NDMI · monthly masked Tabia evidence, development only"
+    },
     "tigray_drought_ndvi_raw_dev": {
       "label": "Vegetation Condition (NDVI native grid · development)", "type": "raster", "published": true, "default_visible": false, "opacity": 0.76, "min_scale": 10000000, "max_scale": 50000, "queryable": false, "wms_name": "tigray_drought_ndvi_raw_dev", "attribution": "Copernicus CLMS NDVI v3 · native ~300 m grid · development only"
     },

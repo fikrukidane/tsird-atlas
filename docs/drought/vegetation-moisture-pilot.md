@@ -57,9 +57,9 @@ unmasked values. The pilot stores no raw HLS scenes or provider URLs; it uses
 authenticated Cloud Optimized GeoTIFF range reads and retains only compact
 Tabia statistics.
 
-The first HLS run is a fixed **20-Tabia** technical feasibility sample: five
-repeatable canonical Tabias from each area quartile. It has no schedule, no
-public API or WMS layer, and no release/publish path. Every row records:
+The first HLS run was a fixed **20-Tabia** technical feasibility sample: five
+repeatable canonical Tabias from each area quartile. It had no schedule,
+public API or WMS layer, or release/publish path. Every row records:
 
 1. spatial coverage: eligible 30 m Tabia pixels with at least one valid
    observation in the target calendar month;
@@ -75,7 +75,30 @@ then a Tabia statistic. It is not a median over every observation in the
 Tabia. The initial DEV review tiers are **adequate** at 70% spatial coverage,
 **limited** at 30–69.9%, and **insufficient** below 30% (or below 30 valid
 pixels/two usable acquisitions). They are review thresholds, not universal
-science or a decision rule, and must be calibrated before any full run.
+science or a decision rule, and must be calibrated before any operational use.
+
+### Authorized DEV-only full regional run
+
+Following the successful 20-Tabia spatial-coverage comparison, the project
+authorised exactly one **748-Tabia HLS monthly DEV acquisition** for the same
+completed calendar month. It is a separately labelled `full_development`
+artifact that uses the same 30 m grid, mask profiles, spatial-coverage
+definition and no-gap-fill rule as the pilot.
+
+It writes a local checkpoint after every completed Tabia. That checkpoint holds
+only compact, already-authorised statistics and lets an interrupted manual job
+resume; it is not a database run, WMS layer, or release asset. The artifact is
+loaded only after all 748 canonical Tabias validate. Adequate coverage is shown
+in source-value NDMI bands, while limited and insufficient coverage remain
+visibly distinct.
+
+The fixed internal endpoint is
+`/runs/hls-ndmi-monthly-full/development-test`. It accepts no request body,
+date, geometry, URL, command, credential or database statement. Its 36-hour
+limit is a containment limit for one resumable local job, not a schedule or
+provider retry policy. It cannot create a public-release or production asset.
+Completion still requires row-count, provenance, API, WMS and browser checks
+before the DEV map is usable for review.
 
 The fixed, internal runner endpoint is
 `/runs/hls-ndmi-monthly-pilot/development-test`. It accepts no date, geometry,
@@ -89,8 +112,8 @@ runner environment by creating the untracked
 `C:/docker/projects/tsird-atlas/.env.tsird.earthdata` file from the tracked
 `.env.tsird.earthdata.example` and setting `EARTHDATA_TOKEN`. No token belongs
 in Git, a mapfile, a workflow export, or production configuration. The pilot
-must be reviewed against retained CLMS NDVI before any proposal for a full
-748-Tabia run or map.
+must be reviewed against retained CLMS NDVI before any operational proposal or
+release decision.
 
 ## Implemented DEV technical path
 
