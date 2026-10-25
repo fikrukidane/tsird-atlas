@@ -102,6 +102,17 @@ not copied to PostGIS, artifacts, browser files, or Git.
     downloads raw scenes, creates a regional raster, schedules itself, creates
     a drought/food-security classification, or publishes a public release.
 
+19. `hls-ndmi-monthly-pilot`: discovers NASA HLS v2.0 L30/S30 COGs through
+    CMR-STAC for one completed calendar month and reads only the windows needed
+    for twenty fixed canonical Tabias. It requires a local DEV-only
+    `EARTHDATA_TOKEN`, masks Fmask cloud, adjacent cloud/shadow, shadow,
+    snow/ice, water and high aerosol, and retains compact observation-level
+    NDMI mean/median, valid/candidate observation-pixel counts, acquisition
+    count and first/last/median acquisition time. It requires 30 valid pixels,
+    70% observation coverage and two contributing acquisitions for `ok`; it
+    never schedules itself, retains raw scenes, serves a WMS/API layer, or
+    publishes a release.
+
 ## Retention and time-series rule
 
 Each source observation has a deterministic source-time run ID. New source

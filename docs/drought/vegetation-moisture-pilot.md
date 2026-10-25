@@ -27,13 +27,62 @@ This acknowledgement credits that explainer for its educational framing only.
 Geoinfotech does not provide the imagery, validate the method, endorse the
 platform, or supply any TSIRD result.
 
-## Candidate source and processing contract
+## Initial Sentinel-2 candidate — retained for audit, not the active design
 
 The first candidate is a cloud- and shadow-masked Sentinel-2 Level-2A
 surface-reflectance composite.  It must use B08 (NIR) and B11 (SWIR), whose
 native resolutions differ; the analytical grid is therefore 20 m unless a
 documented resampling method is accepted.  The display must never suggest
 10 m analytical precision.
+
+That initial candidate is retained as a bounded integration experiment only.
+It must not become a monthly evidence map: a 90-day temporal composite would
+measure seasonal surface condition rather than a particular month's condition.
+The stopped full-region test did not load or publish a replacement artifact.
+
+## Active design: HLS monthly feasibility pilot
+
+The active DEV design uses NASA's **Harmonized Landsat and Sentinel-2 (HLS)
+v2.0** L30 and S30 surface-reflectance products. HLS supplies harmonised 30 m
+narrow-NIR and SWIR1 bands from both sensors, allowing a completed
+calendar-month evidence window without silently extending it across a season.
+The pilot uses the common HLS pairs: S30 B8A/B11 and L30 B05/B06.
+
+It applies the HLS Fmask quality flags conservatively: cloud, the 150 m
+cloud/shadow-adjacent buffer, cloud shadow, snow/ice, water, fill, saturation
+and high aerosol are excluded. It does **not** infer clear observations from
+unmasked values. The pilot stores no raw HLS scenes or provider URLs; it uses
+authenticated Cloud Optimized GeoTIFF range reads and retains only compact
+Tabia statistics.
+
+The first HLS run is a fixed **20-Tabia** technical feasibility sample: five
+repeatable canonical Tabias from each area quartile. It has no schedule, no
+public API or WMS layer, and no release/publish path. Every row records:
+
+1. candidate and valid observation-pixel counts and their percentage;
+2. candidate and usable-acquisition counts;
+3. first, last and median contributing acquisition time; and
+4. an explicit quality reason: insufficient valid pixels, observation coverage
+   or acquisition count, rather than an interpolated value.
+
+An `ok` result requires all three thresholds: at least **30** valid observation
+pixels, **70%** valid observation coverage, and **two** contributing
+acquisitions. Coverage is explicitly defined as valid observation pixels
+divided by candidate observation pixels across the queried acquisitions; it is
+not presented as gap-filled composite coverage. This makes the uncertainty
+inspectable for small and large Tabias alike.
+
+The fixed, internal runner endpoint is
+`/runs/hls-ndmi-monthly-pilot/development-test`. It accepts no date, geometry,
+URL, command, database statement or credential from a caller and requires one
+locally injected `EARTHDATA_TOKEN`. The token is DEV-only, untracked and never
+printed, persisted in an artifact, or sent to a browser.
+
+NASA Earthdata authentication is required only to read HLS data. Before the
+first DEV run, the operator must inject an Earthdata token into the local
+runner environment; no token belongs in Git, a mapfile, a workflow export, or
+production configuration. The pilot must be reviewed against retained CLMS
+NDVI before any proposal for a full 748-Tabia run or map.
 
 ## Implemented DEV technical path
 
@@ -88,11 +137,12 @@ review before any publication decision.
   publication contract changes.
 - No universal moisture-stress threshold or automatic decision trigger.
 
-## All-Tabia DEV evidence map
+## Superseded all-Tabia Sentinel-2 experiment
 
-The approved next step is a separate, manual **748-Tabia DEV acquisition**.
+The earlier proposed separate, manual **748-Tabia DEV acquisition** remains
+in the repository solely for audit and rollback of its technical experiment.
 It does not replace or reinterpret the 20-Tabia integration pilot.  The full
-path uses a fixed, completed 90-day UTC window ending five days before the run
+path used a fixed, completed 90-day UTC window ending five days before the run
 and a pixel-wise temporal-median composite across valid `ORBIT` observations
 (with the provider's `leastCC` selection per day). The longer review window is
 explicitly recorded because the 30-day pilot retained too little cloud- and
@@ -126,3 +176,7 @@ SCL remain 20 m source bands, but the provider rejects a request dimension
 above 2,500 pixels; one canonical Tabia is 2,704 pixels high at 20 m. The
 25 m grid keeps every Tabia within that hard limit and is recorded in each
 artifact. It must never be described as a 10 m or 20 m result.
+
+No further run of this 90-day path is authorised by this design. If retained
+for later seasonal-context research, it must be renamed and displayed as a
+completed-window surface-condition composite, never a monthly HLS replacement.
