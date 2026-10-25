@@ -6,7 +6,10 @@ services:
   tsird-api:
     image: tsird-atlas-tsird-api:dev-sentinel2-full-20261024
   tsird-drought-runner:
-    image: tsird-atlas-tsird-drought-runner:dev-hls-ndmi-pilot-20261024-1
+    build:
+      context: C:/docker/projects/tsird-atlas/.worktrees/vegetation-moisture-pilot/etl
+      dockerfile: Dockerfile
+    image: tsird-atlas-tsird-drought-runner:dev-hls-ndmi-pilot-20261024-3
     env_file: !override
       - C:/docker/projects/tsird-atlas/.env.tsird
       - C:/docker/projects/tsird-atlas/.env.tsird.cdse

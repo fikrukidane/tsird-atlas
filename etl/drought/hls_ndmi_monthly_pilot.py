@@ -152,7 +152,15 @@ def scene_values(item, geometry, token):
                 nir_data, _ = mask(nir, [projected], crop=True, filled=False)
                 swir_data, _ = mask(swir, [projected], crop=True, filled=False)
                 qa_data, _ = mask(qa, [projected], crop=True, filled=False)
-    except (rasterio.errors.RasterioError, ValueError) as exc:
+    except ValueError as exc:
+        # CMR-STAC selects on a geographic bounding box.  At an HLS tile edge
+        # that can yield a scene whose actual pixel grid has no overlap with a
+        # small Tabia.  It is not a failed acquisition and must not abort the
+        # entire bounded pilot; it contributes neither pixels nor NDMI values.
+        if "do not overlap raster" in str(exc).lower():
+            return 0, np.array([], dtype=np.float32)
+        raise RuntimeError("HLS pixel-window extraction failed") from exc
+    except rasterio.errors.RasterioError as exc:
         raise RuntimeError("HLS COG range read failed") from exc
     if nir_data.shape != swir_data.shape or nir_data.shape != qa_data.shape:
         raise RuntimeError("HLS granule bands do not share a grid")
