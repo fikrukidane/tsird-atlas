@@ -24,7 +24,7 @@ from sentinel2_ndmi_statistical_pilot import (
 )
 
 SOURCE_ID = "cdse-sentinel2-l2a-ndmi-full-development"
-PROCESSING_VERSION = "tsird-s2-ndmi-statistical-full-dev.v2"
+PROCESSING_VERSION = "tsird-s2-ndmi-statistical-full-dev.v3"
 TABIA_COUNT = 748
 WINDOW_DAYS = 90
 ANALYTICAL_RESOLUTION_METERS = 25
@@ -32,6 +32,7 @@ NATIVE_RESOLUTION = "25 m (full-coverage analytical grid; B11/SCL native grid is
 REQUEST_INTERVAL_SECONDS = 5
 MAX_RATE_LIMIT_RETRIES = 6
 MAX_RETRY_AFTER_SECONDS = 120
+MAX_TOKEN_REFRESHES = 3
 
 
 def dsn():
@@ -91,16 +92,22 @@ def request_body(geometry, start, end):
     }
 
 
-def statistics(token, geometry, start, end):
-    request = Request(STATISTICS_URL, data=json.dumps(request_body(geometry, start, end)).encode("utf-8"), method="POST",
-                      headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json", "Accept": "application/json"})
-    for attempt in range(MAX_RATE_LIMIT_RETRIES + 1):
+def statistics(token_state, geometry, start, end):
+    rate_limit_retries = token_refreshes = 0
+    while True:
+        request = Request(STATISTICS_URL, data=json.dumps(request_body(geometry, start, end)).encode("utf-8"), method="POST",
+                          headers={"Authorization": f"Bearer {token_state['token']}", "Content-Type": "application/json", "Accept": "application/json"})
         try:
             with urlopen(request, timeout=120) as response:
                 payload = json.loads(response.read().decode("utf-8"))
             break
         except HTTPError as exc:
-            if exc.code != 429 or attempt >= MAX_RATE_LIMIT_RETRIES:
+            if exc.code == 401 and token_refreshes < MAX_TOKEN_REFRESHES:
+                token_state["token"] = access_token(settings())
+                token_refreshes += 1
+                print(json.dumps({"token_refreshed": True, "attempt": token_refreshes}), flush=True)
+                continue
+            if exc.code != 429 or rate_limit_retries >= MAX_RATE_LIMIT_RETRIES:
                 raise
             # CDSE documents Retry-After in milliseconds.  Respect it without
             # retaining a provider body or retrying an entire regional run.
@@ -109,7 +116,8 @@ def statistics(token, geometry, start, end):
             except (TypeError, ValueError):
                 wait_seconds = 0
             wait_seconds = min(MAX_RETRY_AFTER_SECONDS, max(REQUEST_INTERVAL_SECONDS, wait_seconds))
-            print(json.dumps({"rate_limited": True, "retry_in_seconds": wait_seconds, "attempt": attempt + 1}), flush=True)
+            rate_limit_retries += 1
+            print(json.dumps({"rate_limited": True, "retry_in_seconds": wait_seconds, "attempt": rate_limit_retries}), flush=True)
             time.sleep(wait_seconds)
     data = payload.get("data") or []
     if len(data) != 1:
@@ -122,21 +130,37 @@ def statistics(token, geometry, start, end):
 
 def main():
     start, end = completed_window(datetime.now(timezone.utc))
-    token = access_token(settings())
     tabias = full_tabias()
     run_id = f"cdse-s2-l2a-ndmi-full-dev-{start:%Y%m%d}-{end:%Y%m%d}"
-    rows = []
-    for position, (tabia_id, tabia, woreda, geometry) in enumerate(tabias, start=1):
-        row = {"tsird_tabia_id": tabia_id, "tabia_name_en": tabia, "woreda_name_en": woreda}
-        row.update(parse_statistics(statistics(token, geometry, start, end)))
-        rows.append(row)
-        if position % 25 == 0:
-            print(json.dumps({"progress": position, "of": TABIA_COUNT}), flush=True)
-        if position < TABIA_COUNT:
-            time.sleep(REQUEST_INTERVAL_SECONDS)
     root = Path("/data/drought/outputs")
     root.mkdir(parents=True, exist_ok=True)
     base = root / run_id
+    checkpoint = base.with_suffix(".partial.csv")
+    rows = []
+    if checkpoint.is_file():
+        with checkpoint.open(encoding="utf-8") as handle:
+            rows = list(csv.DictReader(handle))
+        if any(not row.get("tsird_tabia_id", "").startswith("tsird-tabia-v1-") for row in rows):
+            raise RuntimeError("Sentinel-2 checkpoint has an invalid canonical Tabia ID")
+    if len(rows) > TABIA_COUNT:
+        raise RuntimeError("Sentinel-2 checkpoint exceeds the canonical Tabia count")
+    completed_ids = {row["tsird_tabia_id"] for row in rows}
+    token_state = {"token": access_token(settings())}
+    for position, (tabia_id, tabia, woreda, geometry) in enumerate(tabias, start=1):
+        if tabia_id in completed_ids:
+            continue
+        row = {"tsird_tabia_id": tabia_id, "tabia_name_en": tabia, "woreda_name_en": woreda}
+        row.update(parse_statistics(statistics(token_state, geometry, start, end)))
+        rows.append(row)
+        # A private DEV checkpoint contains only already-permitted compact
+        # statistics. It is not a DB run, WMS layer, or release artifact.
+        with checkpoint.open("w", newline="", encoding="utf-8") as handle:
+            writer = csv.DictWriter(handle, fieldnames=rows[0].keys())
+            writer.writeheader(); writer.writerows(rows)
+        if position % 25 == 0:
+            print(json.dumps({"progress": len(rows), "of": TABIA_COUNT}), flush=True)
+        if position < TABIA_COUNT:
+            time.sleep(REQUEST_INTERVAL_SECONDS)
     with base.with_suffix(".csv").open("w", newline="", encoding="utf-8") as handle:
         writer = csv.DictWriter(handle, fieldnames=rows[0].keys())
         writer.writeheader(); writer.writerows(rows)
@@ -154,6 +178,7 @@ def main():
         "geoinfotech_acknowledgement": "The educational index-selection framing refers to Geoinfotech's Spatial Indices Analysis explainer shared with TSIRD on 2026-10-24. Geoinfotech does not supply imagery, validation, or results.",
     }
     base.with_suffix(".manifest.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
+    checkpoint.unlink(missing_ok=True)
     print(json.dumps({"run_id": run_id, "status": status, "rows": len(rows), "quality_ok_rows": sum(row["quality_status"] == "ok" for row in rows)}))
 
 

@@ -113,6 +113,12 @@ The collector spaces requests by five seconds and honours a bounded CDSE
 `Retry-After` response for a single rate-limited request.  This is transport
 protection, not an automatic repeat of the regional run.
 
+The DEV collector refreshes its OAuth access token only when CDSE reports it
+expired, and keeps a private compact-statistics checkpoint until the complete
+748-Tabia artifact validates. A checkpoint is neither a database run nor a
+served WMS/release asset; it exists solely to resume a bounded manual run
+after a provider-side interruption without re-requesting completed Tabias.
+
 The all-Tabia collector uses a **25 m analytical grid**. Sentinel-2 B11 and
 SCL remain 20 m source bands, but the provider rejects a request dimension
 above 2,500 pixels; one canonical Tabia is 2,704 pixels high at 20 m. The

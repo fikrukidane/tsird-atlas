@@ -360,7 +360,7 @@ def run_preliminary_baseline(job_id: str):
         jobs[job_id].update(status="running", started_at=now())
     try:
         completed = subprocess.run(["python3", str(WORK_DIR / "build_chirps_prelim_baseline.py")], cwd=WORK_DIR,
-            text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=True, timeout=7200)
+            text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=True, timeout=14400)
         status, error, output = "succeeded", None, completed.stdout[-4000:]
     except subprocess.CalledProcessError as exc:
         status, error, output = "failed", "CHIRPS preliminary baseline build failed", (exc.stdout or "")[-4000:]
@@ -525,7 +525,7 @@ def run_sentinel2_ndmi_full(job_id: str):
     except subprocess.CalledProcessError as exc:
         status, error, output = "failed", "Sentinel-2 NDMI full DEV acquisition failed", [(exc.stdout or "")[-2500:]]
     except subprocess.TimeoutExpired:
-        status, error, output = "failed", "Sentinel-2 NDMI full DEV acquisition exceeded the two-hour timeout", []
+        status, error, output = "failed", "Sentinel-2 NDMI full DEV acquisition exceeded the four-hour timeout", []
     except Exception as exc:
         status, error, output = "failed", f"Unexpected Sentinel-2 NDMI full DEV error: {type(exc).__name__}", []
     with jobs_lock:
