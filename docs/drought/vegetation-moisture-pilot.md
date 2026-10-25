@@ -48,9 +48,11 @@ narrow-NIR and SWIR1 bands from both sensors, allowing a completed
 calendar-month evidence window without silently extending it across a season.
 The pilot uses the common HLS pairs: S30 B8A/B11 and L30 B05/B06.
 
-It applies the HLS Fmask quality flags conservatively: cloud, the 150 m
-cloud/shadow-adjacent buffer, cloud shadow, snow/ice, water, fill, saturation
-and high aerosol are excluded. It does **not** infer clear observations from
+It compares two transparent HLS Fmask profiles: a strict profile excluding
+cloud, the 150 m cloud/shadow-adjacent buffer, cloud shadow, snow/ice, water,
+fill, saturation and high aerosol; and an operational profile which retains
+only the adjacent-buffer pixels while reporting them separately. Both profiles
+exclude actual cloud and shadow. It does **not** infer clear observations from
 unmasked values. The pilot stores no raw HLS scenes or provider URLs; it uses
 authenticated Cloud Optimized GeoTIFF range reads and retains only compact
 Tabia statistics.
@@ -59,18 +61,21 @@ The first HLS run is a fixed **20-Tabia** technical feasibility sample: five
 repeatable canonical Tabias from each area quartile. It has no schedule, no
 public API or WMS layer, and no release/publish path. Every row records:
 
-1. candidate and valid observation-pixel counts and their percentage;
-2. candidate and usable-acquisition counts;
-3. first, last and median contributing acquisition time; and
-4. an explicit quality reason: insufficient valid pixels, observation coverage
-   or acquisition count, rather than an interpolated value.
+1. spatial coverage: eligible 30 m Tabia pixels with at least one valid
+   observation in the target calendar month;
+2. spatial coverage with at least two valid observations and median clear
+   observation count;
+3. candidate and usable-acquisition counts, plus first, last and median
+   contributing acquisition time; and
+4. an explicit evidence tier: adequate, limited, or insufficient. No temporal
+   interpolation or gap filling is used.
 
-An `ok` result requires all three thresholds: at least **30** valid observation
-pixels, **70%** valid observation coverage, and **two** contributing
-acquisitions. Coverage is explicitly defined as valid observation pixels
-divided by candidate observation pixels across the queried acquisitions; it is
-not presented as gap-filled composite coverage. This makes the uncertainty
-inspectable for small and large Tabias alike.
+The primary monthly value is a per-pixel median of paired NIR/SWIR NDMI values,
+then a Tabia statistic. It is not a median over every observation in the
+Tabia. The initial DEV review tiers are **adequate** at 70% spatial coverage,
+**limited** at 30–69.9%, and **insufficient** below 30% (or below 30 valid
+pixels/two usable acquisitions). They are review thresholds, not universal
+science or a decision rule, and must be calibrated before any full run.
 
 The fixed, internal runner endpoint is
 `/runs/hls-ndmi-monthly-pilot/development-test`. It accepts no date, geometry,

@@ -9,7 +9,7 @@ services:
     build:
       context: C:/docker/projects/tsird-atlas/.worktrees/vegetation-moisture-pilot/etl
       dockerfile: Dockerfile
-    image: tsird-atlas-tsird-drought-runner:dev-hls-ndmi-pilot-20261024-3
+    image: tsird-atlas-tsird-drought-runner:dev-hls-ndmi-pilot-20261025-4
     env_file: !override
       - C:/docker/projects/tsird-atlas/.env.tsird
       - C:/docker/projects/tsird-atlas/.env.tsird.cdse
