@@ -7,6 +7,12 @@ services:
     image: tsird-atlas-tsird-api:dev-sentinel2-full-20261024
   tsird-drought-runner:
     image: tsird-atlas-tsird-drought-runner:dev-hls-ndmi-pilot-20261024-1
+    env_file: !override
+      - C:/docker/projects/tsird-atlas/.env.tsird
+      - C:/docker/projects/tsird-atlas/.env.tsird.cdse
+      - C:/docker/projects/tsird-atlas/.env.tsird.cds
+      - path: C:/docker/projects/tsird-atlas/.env.tsird.earthdata
+        required: false
   tsird-mapserver:
     volumes:
       - C:/docker/projects/tsird-atlas/.worktrees/vegetation-moisture-pilot/infra/mapserver/mapfiles:/etc/mapserver

@@ -80,9 +80,12 @@ printed, persisted in an artifact, or sent to a browser.
 
 NASA Earthdata authentication is required only to read HLS data. Before the
 first DEV run, the operator must inject an Earthdata token into the local
-runner environment; no token belongs in Git, a mapfile, a workflow export, or
-production configuration. The pilot must be reviewed against retained CLMS
-NDVI before any proposal for a full 748-Tabia run or map.
+runner environment by creating the untracked
+`C:/docker/projects/tsird-atlas/.env.tsird.earthdata` file from the tracked
+`.env.tsird.earthdata.example` and setting `EARTHDATA_TOKEN`. No token belongs
+in Git, a mapfile, a workflow export, or production configuration. The pilot
+must be reviewed against retained CLMS NDVI before any proposal for a full
+748-Tabia run or map.
 
 ## Implemented DEV technical path
 
