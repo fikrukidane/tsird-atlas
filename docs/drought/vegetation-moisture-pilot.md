@@ -93,9 +93,11 @@ review before any publication decision.
 The approved next step is a separate, manual **748-Tabia DEV acquisition**.
 It does not replace or reinterpret the 20-Tabia integration pilot.  The full
 path uses a fixed, completed 90-day UTC window ending five days before the run
-and the provider's `leastCC` mosaic order.  The longer review window is
+and a pixel-wise temporal-median composite across valid `ORBIT` observations
+(with the provider's `leastCC` selection per day). The longer review window is
 explicitly recorded because the 30-day pilot retained too little cloud- and
-shadow-free coverage to make a useful regional map.
+shadow-free coverage to make a useful regional map. This is a completed-window
+surface-condition composite, not a single-date snapshot.
 
 The resulting DEV WMS layer is `tigray_drought_sentinel2_ndmi_dev`.  It is a
 Tabia-statistic layer, not a 10 m or 20 m raster: TSIRD retains only returned

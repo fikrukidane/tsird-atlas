@@ -24,7 +24,7 @@ from sentinel2_ndmi_statistical_pilot import (
 )
 
 SOURCE_ID = "cdse-sentinel2-l2a-ndmi-full-development"
-PROCESSING_VERSION = "tsird-s2-ndmi-statistical-full-dev.v3"
+PROCESSING_VERSION = "tsird-s2-ndmi-statistical-full-dev.v4"
 TABIA_COUNT = 748
 WINDOW_DAYS = 90
 ANALYTICAL_RESOLUTION_METERS = 25
@@ -63,17 +63,28 @@ def evalscript():
 function setup() {
   return {
     input: [{bands:["B08", "B11", "SCL", "dataMask"]}],
+    mosaicking: "ORBIT",
     output: [
       {id:"ndmi", bands:1, sampleType:"FLOAT32"},
       {id:"dataMask", bands:1, sampleType:"UINT8"}
     ]
   };
 }
-function evaluatePixel(sample) {
-  const validClass = sample.SCL === 4 || sample.SCL === 5;
-  const denominator = sample.B08 + sample.B11;
-  const valid = sample.dataMask === 1 && validClass && denominator > 0;
-  return {ndmi:[valid ? (sample.B08 - sample.B11) / denominator : 0], dataMask:[valid ? 1 : 0]};
+function evaluatePixel(samples) {
+  var values = [];
+  for (var i = 0; i < samples.length; i++) {
+    var sample = samples[i];
+    var validClass = sample.SCL === 4 || sample.SCL === 5;
+    var denominator = sample.B08 + sample.B11;
+    if (sample.dataMask === 1 && validClass && denominator > 0) {
+      values.push((sample.B08 - sample.B11) / denominator);
+    }
+  }
+  if (values.length === 0) return {ndmi:[0], dataMask:[0]};
+  values.sort(function(a, b) { return a - b; });
+  var middle = Math.floor(values.length / 2);
+  var median = values.length % 2 ? values[middle] : (values[middle - 1] + values[middle]) / 2;
+  return {ndmi:[median], dataMask:[1]};
 }'''
 
 
@@ -131,7 +142,7 @@ def statistics(token_state, geometry, start, end):
 def main():
     start, end = completed_window(datetime.now(timezone.utc))
     tabias = full_tabias()
-    run_id = f"cdse-s2-l2a-ndmi-full-dev-{start:%Y%m%d}-{end:%Y%m%d}"
+    run_id = f"cdse-s2-l2a-ndmi-full-dev-{start:%Y%m%d}-{end:%Y%m%d}-orbit-median"
     root = Path("/data/drought/outputs")
     root.mkdir(parents=True, exist_ok=True)
     base = root / run_id
@@ -169,11 +180,11 @@ def main():
     manifest = {
         "run_id": run_id, "source_id": SOURCE_ID, "run_scope": "full_development", "source_product": PRODUCT,
         "status": status, "observation_start": start.isoformat(), "observation_end": end.isoformat(),
-        "native_resolution": NATIVE_RESOLUTION, "mosaicking_order": "leastCC", "valid_scl_classes": list(VALID_SCL_CLASSES),
+        "native_resolution": NATIVE_RESOLUTION, "mosaicking_order": "ORBIT temporal median; leastCC per day", "valid_scl_classes": list(VALID_SCL_CLASSES),
         "min_valid_coverage_pct": MIN_VALID_COVERAGE_PCT, "tabia_count": TABIA_COUNT,
         "request_interval_seconds": REQUEST_INTERVAL_SECONDS, "max_rate_limit_retries": MAX_RATE_LIMIT_RETRIES,
         "source_retrieved_at": retrieved, "processing_version": PROCESSING_VERSION,
-        "method": "CDSE Sentinel Hub Statistical API; Sentinel-2 L2A B08/B11 NDMI at 20 m with SCL 4/5 and dataMask only; one least-cloudy 90-day mosaic per Tabia.",
+        "method": "CDSE Sentinel Hub Statistical API; Sentinel-2 L2A B08/B11 NDMI on a 25 m analytical grid; pixel-wise median across valid SCL 4/5 and dataMask observations over a completed 90-day window, with least-cloudy source selection per day.",
         "publication_note": "Development-only observed surface-condition context. Not a drought, food-security, priority, forecast, allocation, or response decision product.",
         "geoinfotech_acknowledgement": "The educational index-selection framing refers to Geoinfotech's Spatial Indices Analysis explainer shared with TSIRD on 2026-10-24. Geoinfotech does not supply imagery, validation, or results.",
     }
