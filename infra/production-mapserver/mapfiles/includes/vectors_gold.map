@@ -1,0 +1,2414 @@
+# Raw vector layers from /data/gold/atlas_4326/
+# Generated for TSIRD mapserver - canonical EPSG:4326 shapefile atlas
+#
+# CHANGELOG 2026-02-21:
+# - Fixed all OGR DATA field names (now correctly reference actual shapefile layer names)
+# - Removed all PROJECTION blocks (data is canonically EPSG:4326, MAP-level projection handles reprojection)
+# - Verified all CONNECTION paths map to existing files in /data/gold/atlas_4326/
+#
+# GetFeatureInfo Metadata Strategy:
+# - GetFeatureInfo is enabled via METADATA keywords: wms_include_items, gml_include_items, wms_feature_info_mime_type
+# - Each layer includes TEMPLATE "/etc/mapserver/dummy.html" for HTML output format
+# - The DUMP keyword (unsupported in MapServer 8.6.0) has been removed; METADATA + TEMPLATE provide feature attributes
+# - Each layer includes curated field lists for meaningful attribute queries
+# - See docs/atlas/vector_featureinfo_plan.yml for field curation rationale
+#
+# Projection Handling:
+# - All data is EPSG:4326 (WGS 84 geographic)
+# - MAP-level PROJECTION is EPSG:4326, no layer-level projection blocks needed
+# - OGR layers do not have PROJECTION declarations (relies on MAP-level projection)
+# - MapServer automatically handles CRS conversion from EPSG:4326 as needed
+
+LAYER
+  NAME "ethiopia_zones"
+  STATUS ON
+  TYPE POLYGON
+  CONNECTIONTYPE OGR
+  CONNECTION "/data/gold/atlas_4326/bound03.shp"
+  DATA "bound03"
+  LABELITEM "ZONES"
+  LABELMAXSCALEDENOM 3000000
+  METADATA
+    "wms_title" "Ethiopia - Zones (pre-91)"
+    "wms_srs" "EPSG:3857 EPSG:4326"
+    "wms_enable_request" "*"
+    "wms_queryable" "true"
+    "wms_feature_info_mime_type" "text/plain"
+    "gml_include_items" "ZONES,AREA,PERIMETER,ETZONES01C,ETZONES01C_1"
+    "wms_include_items" "ZONES,AREA,PERIMETER,ETZONES01C,ETZONES01C_1"
+  END
+  TEMPLATE "/etc/mapserver/dummy.html"
+  CLASS
+    NAME "Zones"
+    STYLE
+      COLOR 171 170 107
+      OUTLINECOLOR 0 0 0
+      OPACITY 50
+    END
+    LABEL
+      COLOR 50 50 50
+      OUTLINECOLOR 255 255 255
+      OUTLINEWIDTH 2
+      FONT "arial"
+      TYPE TRUETYPE
+      SIZE 9
+      POSITION AUTO
+      PARTIALS FALSE
+    END
+  END
+END
+
+# Development-only drought layers are omitted from the production WMS.
+# Public retained rasters are defined separately in drought_public_rasters.map.
+
+LAYER
+  NAME "ethiopia_woredas"
+  STATUS ON
+  TYPE POLYGON
+  CONNECTIONTYPE OGR
+  CONNECTION "/data/gold/atlas_4326/ethiopia/EthioWoredasNew.shp"
+  DATA "EthioWoredasNew"
+  LABELITEM "W_NAME"
+  LABELMAXSCALEDENOM 2000000
+  LABELMINSCALEDENOM 100000
+  METADATA
+    "wms_title" "Ethiopia - Woredas"
+    "wms_srs" "EPSG:3857 EPSG:4326"
+    "wms_enable_request" "*"
+    "wms_queryable" "true"
+    "wms_feature_info_mime_type" "text/plain"
+    "gml_include_items" "W_NAME,REGION_R2I,Area_km2,Pop_04,Pop_Den,Admin_Unit"
+    "wms_include_items" "W_NAME,REGION_R2I,Area_km2,Pop_04,Pop_Den,Admin_Unit"
+  END
+  TEMPLATE "/etc/mapserver/dummy.html"
+  CLASS
+    NAME "Woredas"
+    STYLE
+      COLOR 240 240 230
+      OUTLINECOLOR 80 80 80
+      WIDTH 0.5
+      OPACITY 40
+    END
+    LABEL
+      COLOR 50 50 50
+      OUTLINECOLOR 255 255 255
+      OUTLINEWIDTH 1
+      FONT "arial"
+      TYPE TRUETYPE
+      SIZE 8
+      POSITION AUTO
+      PARTIALS FALSE
+    END
+  END
+END
+
+LAYER
+  NAME "ethiopia_roads_raw"
+  STATUS OFF
+  TYPE LINE
+  CONNECTIONTYPE OGR
+  CONNECTION "/data/gold/atlas_4326/Ethio_roads.shp"
+  DATA "Ethio_roads"
+  CLASSITEM "RDLNTYPETX"
+  METADATA
+    "wms_title" "Ethiopia - Roads"
+    "wms_srs" "EPSG:3857 EPSG:4326"
+    "wms_enable_request" "*"
+    "wms_queryable" "true"
+    "wms_feature_info_mime_type" "text/plain"
+    "gml_include_items" "RDLNTYPETX,RDLNSTATTX,RDLNTYPE,RDLNSTAT,LENGTH"
+    "wms_include_items" "RDLNTYPETX,RDLNSTATTX,RDLNTYPE,RDLNSTAT,LENGTH"
+  END
+  TEMPLATE "/etc/mapserver/dummy.html"
+  # Classified by RDLNTYPETX — actual values: "Primary and secondary roads", "Connector"
+  CLASS
+    NAME "Primary and secondary roads"
+    EXPRESSION "Primary and secondary roads"
+    STYLE
+      COLOR 166 64 49
+      WIDTH 2
+    END
+  END
+  CLASS
+    NAME "Connector"
+    EXPRESSION "Connector"
+    STYLE
+      COLOR 150 150 150
+      WIDTH 1
+      PATTERN 4 3 END
+    END
+  END
+  CLASS
+    NAME "Other Roads"
+    STYLE
+      COLOR 180 180 180
+      WIDTH 1
+    END
+  END
+END
+
+LAYER
+  NAME "tigray_tabias_ti_en_pg"
+  TYPE POLYGON
+  STATUS ON
+
+  CONNECTIONTYPE POSTGIS
+  CONNECTION "host=tsird-postgis port=5432 dbname=tsird user=tsird password=change_me_strong"
+  DATA "geometry FROM tigray_tabias_ws USING UNIQUE gid USING SRID=4326"
+
+  METADATA
+    "wms_title" "Tigray - Tabias (TI + EN)"
+    "wms_srs" "EPSG:3857"
+    "wms_enable_request" "*"
+    "wms_queryable" "true"
+    "wms_feature_info_mime_type" "text/plain"
+    "gml_include_items" "tsird_tabia_id,TABIA,tabia_tig,WEREDA,ZONES,SQ_KM,HECTARES,DENSITY"
+    "wms_include_items" "tsird_tabia_id,TABIA,tabia_tig,WEREDA,ZONES,SQ_KM,HECTARES,DENSITY"
+  END
+  TEMPLATE "/etc/mapserver/dummy.html"
+
+  CLASS
+    NAME "tabias"
+
+    STYLE
+      OUTLINECOLOR 120 120 120
+      WIDTH 0.5
+    END
+
+    LABEL
+      TYPE TRUETYPE
+      FONT "noto-ethiopic"
+      SIZE 10
+      COLOR 30 30 30
+      OUTLINECOLOR 255 255 255
+      OUTLINEWIDTH 2
+      POSITION CC
+      PARTIALS FALSE
+      OFFSET 0 -7
+
+      MAXSCALEDENOM 500000
+      MINSCALEDENOM 10000
+
+      FORCE TRUE
+      TEXT "[tabia_tig]"
+    END
+
+    LABEL
+      TYPE TRUETYPE
+      FONT "arial"
+      SIZE 9
+      COLOR 30 30 30
+      OUTLINECOLOR 255 255 255
+      OUTLINEWIDTH 2
+      POSITION CC
+      PARTIALS FALSE
+      OFFSET 0 7
+
+      MAXSCALEDENOM 500000
+      MINSCALEDENOM 10000
+
+      FORCE TRUE
+      TEXT "[TABIA]"
+    END
+  END
+END
+
+LAYER
+  NAME "tigray_tabias"
+  STATUS OFF
+  TYPE POLYGON
+  CONNECTIONTYPE OGR
+  CONNECTION "/data/gold/atlas_4326/TigraiTabiasNew.shp"
+  DATA "TigraiTabiasNew"
+  LABELITEM "TABIA"
+  LABELMAXSCALEDENOM 500000
+  LABELMINSCALEDENOM 10000
+  METADATA
+    "wms_title" "Tigray - Tabias (Admin)"
+    "wms_srs" "EPSG:3857 EPSG:4326"
+    "wms_enable_request" "*"
+    "wms_queryable" "true"
+    "wms_feature_info_mime_type" "text/plain"
+    "gml_include_items" "TABIA,WEREDA,ZONES,SQ_KM,HECTARES,DENSITY"
+    "wms_include_items" "TABIA,WEREDA,ZONES,SQ_KM,HECTARES,DENSITY"
+  END
+  TEMPLATE "/etc/mapserver/dummy.html"
+  # Graduated by area (HECTARES)
+  CLASS
+    NAME "Small (<500 ha)"
+    EXPRESSION ([HECTARES] < 500)
+    STYLE
+      COLOR 250 250 240
+      OUTLINECOLOR 120 120 120
+      OPACITY 60
+    END
+    LABEL
+      COLOR 50 50 50
+      OUTLINECOLOR 255 255 255
+      OUTLINEWIDTH 1
+      FONT "arial"
+      TYPE TRUETYPE
+      SIZE 8
+      POSITION AUTO
+      PARTIALS FALSE
+    END
+  END
+  CLASS
+    NAME "Medium (500-1000 ha)"
+    EXPRESSION ([HECTARES] >= 500 AND [HECTARES] < 1000)
+    STYLE
+      COLOR 230 230 220
+      OUTLINECOLOR 100 100 100
+      OPACITY 70
+    END
+    LABEL
+      COLOR 50 50 50
+      OUTLINECOLOR 255 255 255
+      OUTLINEWIDTH 1
+      FONT "arial"
+      TYPE TRUETYPE
+      SIZE 8
+      POSITION AUTO
+      PARTIALS FALSE
+    END
+  END
+  CLASS
+    NAME "Large (>1000 ha)"
+    EXPRESSION ([HECTARES] >= 1000)
+    STYLE
+      COLOR 210 210 200
+      OUTLINECOLOR 80 80 80
+      OPACITY 80
+    END
+    LABEL
+      COLOR 50 50 50
+      OUTLINECOLOR 255 255 255
+      OUTLINEWIDTH 1
+      FONT "arial"
+      TYPE TRUETYPE
+      SIZE 8
+      POSITION AUTO
+      PARTIALS FALSE
+    END
+  END
+END
+
+LAYER
+  NAME "tigray_contour"
+  STATUS OFF
+  TYPE LINE
+  CONNECTIONTYPE OGR
+  CONNECTION "/data/gold/atlas_4326/TigrayContour.shp"
+  DATA "TigrayContour"
+  METADATA
+    "wms_title" "Tigray - Contour Lines"
+    "wms_srs" "EPSG:3857 EPSG:4326"
+    "wms_enable_request" "*"
+    "wms_queryable" "true"
+    "wms_feature_info_mime_type" "text/plain"
+    "gml_include_items" "ELEVATION,LENGTH"
+    "wms_include_items" "ELEVATION,LENGTH"
+  END
+  TEMPLATE "/etc/mapserver/dummy.html"
+  CLASS
+    NAME "Contour Lines"
+    STYLE
+      COLOR 129 7 204
+      WIDTH 0.5
+    END
+  END
+END
+
+# LAYER
+#   NAME "tigray_health_2006"
+#   TYPE POINT
+#   STATUS ON
+#   # Note: Some features may have invalid coordinates; filter in client if needed
+#   CONNECTIONTYPE OGR
+#   CONNECTION "/data/gold/atlas_4326/TigrayHealth2006.shp"
+#   DATA "TigrayHealth2006"
+#   METADATA
+#     "wms_title" "Tigray - Health Facilities (2006)"
+#     "wms_srs" "EPSG:3857 EPSG:4326"
+#     "wms_enable_request" "*"
+#     "wms_queryable" "true"
+#     "wms_feature_info_mime_type" "text/plain"
+#     "gml_include_items" "Woreda_Nam,Woreda_ID,Type_of_in,Institutio,X_Coordina,Y_Coordina"
+#     "wms_include_items" "Woreda_Nam,Woreda_ID,Type_of_in,Institutio,X_Coordina,Y_Coordina"
+#   END
+#   TEMPLATE "/etc/mapserver/dummy.html"
+#   CLASS
+#     STYLE
+#       SYMBOL "circle"
+#       SIZE 8
+#       COLOR 200 50 50
+#     END
+#   END
+#   TYPE POLYGON
+#   STATUS OFF
+#   CONNECTIONTYPE OGR
+#   CONNECTION "/data/gold/atlas_4326/TigrayNewWoredas.shp"
+#   DATA "TigrayNewWoredas"
+#   METADATA
+#     "wms_title" "Tigray - Woredas (New)"
+#     "wms_srs" "EPSG:3857 EPSG:4326"
+#     "wms_enable_request" "*"
+#     "wms_queryable" "true"
+#     "wms_feature_info_mime_type" "text/plain"
+#     "gml_include_items" "WEREDA,ZONE_NAME,Tot_Popula,SUM_SQ_KM,SUM_HECTAR,wor_name"
+#     "wms_include_items" "WEREDA,ZONE_NAME,Tot_Popula,SUM_SQ_KM,SUM_HECTAR,wor_name"
+#   END
+#   TEMPLATE "/etc/mapserver/dummy.html"
+#   CLASS
+#     STYLE
+#       OUTLINECOLOR 100 100 100
+#       COLOR 220 220 220
+#       WIDTH 1
+#     END
+#   END
+# END
+
+LAYER
+  NAME "tigray_roads_2006t"
+  STATUS OFF
+  TYPE LINE
+  STATUS OFF
+  CONNECTIONTYPE OGR
+  CONNECTION "/data/gold/atlas_4326/TigrayRoads2006t.shp"
+  DATA "TigrayRoads2006t"
+  METADATA
+    "wms_title" "Tigray - Roads (2006t)"
+    "wms_srs" "EPSG:3857 EPSG:4326"
+    "wms_enable_request" "*"
+    "wms_queryable" "true"
+    "wms_feature_info_mime_type" "text/plain"
+    "gml_include_items" "NAME,OWNER,ZONE_,RDID,length_KM,LAYER"
+    "wms_include_items" "NAME,OWNER,ZONE_,RDID,length_KM,LAYER"
+  END
+  TEMPLATE "/etc/mapserver/dummy.html"
+  CLASS
+    NAME "Roads (Alt)"
+    STYLE
+      COLOR 150 150 150
+      WIDTH 1
+    END
+  END
+END
+
+LAYER
+  NAME "tigray_roads_2006"
+  STATUS ON
+  TYPE LINE
+  CONNECTIONTYPE OGR
+  CONNECTION "/data/gold/atlas_4326/TigrayRoadsIn2006.shp"
+  DATA "TigrayRoadsIn2006"
+  CLASSITEM "OWNER"
+  METADATA
+    "wms_title" "Tigray - Roads (2006)"
+    "wms_srs" "EPSG:3857 EPSG:4326"
+    "wms_enable_request" "*"
+    "wms_queryable" "true"
+    "wms_feature_info_mime_type" "text/plain"
+    "gml_include_items" "NAME,TYPE,OWNER,ZONE_,LENGTH_KM,NEAR_DIST"
+    "wms_include_items" "NAME,TYPE,OWNER,ZONE_,LENGTH_KM,NEAR_DIST"
+  END
+  TEMPLATE "/etc/mapserver/dummy.html"
+  # Classified by owner
+  CLASS
+    NAME "ERA Roads (Federal)"
+    EXPRESSION "ERA"
+    STYLE
+      COLOR 255 0 0
+      WIDTH 3
+    END
+    LABEL
+      TYPE TRUETYPE
+      FONT "arial"
+      SIZE 9
+      COLOR 0 0 0
+      OUTLINECOLOR 255 255 255
+      OUTLINEWIDTH 2
+      POSITION AUTO
+      PARTIALS FALSE
+    END
+  END
+  CLASS
+    NAME "TRRA Roads (Regional)"
+    EXPRESSION "TRRA"
+    STYLE
+      COLOR 250 100 0
+      WIDTH 2
+    END
+  END
+  CLASS
+    NAME "Community Roads"
+    EXPRESSION "Community"
+    STYLE
+      COLOR 100 100 100
+      WIDTH 1
+    END
+  END
+  CLASS
+    NAME "Other Roads"
+    STYLE
+      COLOR 150 150 150
+      WIDTH 1
+    END
+  END
+END
+
+LAYER
+  NAME "tigray_schools_2006"
+  STATUS ON
+  TYPE POINT
+  CONNECTIONTYPE OGR
+  CONNECTION "/data/gold/atlas_4326/TigraySchools2006.shp"
+  DATA "TigraySchools2006"
+  LABELITEM "Name"
+  LABELMAXSCALEDENOM 200000
+  CLASSITEM "Type"
+  METADATA
+    "wms_title" "Tigray - Schools (2006)"
+    "wms_srs" "EPSG:3857 EPSG:4326"
+    "wms_enable_request" "*"
+    "wms_queryable" "true"
+    "wms_feature_info_mime_type" "text/plain"
+    "gml_include_items" "Name,Type,Zone_Name,Woreda_Nam,T_Name,X"
+    "wms_include_items" "Name,Type,Zone_Name,Woreda_Nam,T_Name,X"
+  END
+  TEMPLATE "/etc/mapserver/dummy.html"
+  # Classified by school type
+  CLASS
+    NAME "Highschool"
+    EXPRESSION "Highschool"
+    STYLE
+      SYMBOL "triangle"
+      SIZE 7
+      COLOR 255 0 0
+      OUTLINECOLOR 100 0 0
+    END
+    LABEL
+      COLOR 0 0 0
+      OUTLINECOLOR 255 255 0
+      OUTLINEWIDTH 1
+      FONT "arial"
+      TYPE TRUETYPE
+      SIZE 8
+      POSITION AUTO
+      PARTIALS FALSE
+      BUFFER 5
+    END
+  END
+  CLASS
+    NAME "Highschool+Preparatory"
+    EXPRESSION "Highschool+Preparatory"
+    STYLE
+      SYMBOL "triangle"
+      SIZE 8
+      COLOR 230 76 0
+      OUTLINECOLOR 100 30 0
+    END
+    LABEL
+      COLOR 0 0 0
+      OUTLINECOLOR 255 255 0
+      OUTLINEWIDTH 1
+      FONT "arial"
+      TYPE TRUETYPE
+      SIZE 8
+      POSITION AUTO
+      PARTIALS FALSE
+      BUFFER 5
+    END
+  END
+  CLASS
+    NAME "Preparatory"
+    EXPRESSION "Preparatory"
+    STYLE
+      SYMBOL "triangle"
+      SIZE 6
+      COLOR 76 230 0
+      OUTLINECOLOR 30 100 0
+    END
+    LABEL
+      COLOR 0 0 0
+      OUTLINECOLOR 255 255 0
+      OUTLINEWIDTH 1
+      FONT "arial"
+      TYPE TRUETYPE
+      SIZE 8
+      POSITION AUTO
+      PARTIALS FALSE
+      BUFFER 5
+    END
+  END
+  CLASS
+    NAME "Primary"
+    EXPRESSION "Primary"
+    STYLE
+      SYMBOL "cross"
+      SIZE 5
+      COLOR 0 92 230
+    END
+  END
+  CLASS
+    NAME "Other Schools"
+    STYLE
+      SYMBOL "circle"
+      SIZE 4
+      COLOR 150 150 150
+    END
+  END
+END
+
+LAYER
+  NAME "tigray_woredas_ti_en_pg"
+  TYPE POLYGON
+  STATUS ON
+
+  CONNECTIONTYPE POSTGIS
+  CONNECTION "host=tsird-postgis port=5432 dbname=tsird user=tsird password=change_me_strong"
+  DATA "geometry FROM tigray_woredas_ws USING UNIQUE gid USING SRID=4326"
+
+  METADATA
+    "wms_title" "Tigray - Woredas (TI + EN)"
+    "wms_srs" "EPSG:3857"
+    "wms_enable_request" "*"
+    "wms_queryable" "true"
+    "wms_feature_info_mime_type" "text/plain"
+    "gml_include_items" "WEREDA,woreda_tig,ZONE_NAME,Tot_Popula,SUM_SQ_KM,SUM_HECTAR,wor_name"
+    "wms_include_items" "WEREDA,woreda_tig,ZONE_NAME,Tot_Popula,SUM_SQ_KM,SUM_HECTAR,wor_name"
+  END
+  TEMPLATE "/etc/mapserver/dummy.html"
+  CLASSITEM "ZONE_NAME"
+
+  # Central Zone — soft blue
+  CLASS
+    NAME "Central"
+    EXPRESSION "Central"
+    STYLE
+      COLOR 200 220 245
+      OUTLINECOLOR 75 105 150
+      WIDTH 1.5
+      OPACITY 65
+    END
+    LABEL
+      TYPE TRUETYPE
+      FONT "noto-ethiopic"
+      SIZE 12
+      COLOR 20 20 20
+      OUTLINECOLOR 255 255 255
+      OUTLINEWIDTH 3
+      POSITION CC
+      PARTIALS FALSE
+      OFFSET 0 -8
+      MAXSCALEDENOM 2000000
+      MINSCALEDENOM 100000
+      FORCE TRUE
+      TEXT "[woreda_tig]"
+    END
+    LABEL
+      TYPE TRUETYPE
+      FONT "arial"
+      SIZE 10
+      COLOR 20 20 20
+      OUTLINECOLOR 255 255 255
+      OUTLINEWIDTH 3
+      POSITION CC
+      PARTIALS FALSE
+      OFFSET 0 8
+      MAXSCALEDENOM 2000000
+      MINSCALEDENOM 100000
+      FORCE TRUE
+      TEXT "[WEREDA]"
+    END
+  END
+
+  # Eastern Zone — soft green-mint
+  CLASS
+    NAME "Eastern"
+    EXPRESSION "Eastern"
+    STYLE
+      COLOR 195 235 210
+      OUTLINECOLOR 60 120 85
+      WIDTH 1.5
+      OPACITY 65
+    END
+    LABEL
+      TYPE TRUETYPE
+      FONT "noto-ethiopic"
+      SIZE 12
+      COLOR 20 20 20
+      OUTLINECOLOR 255 255 255
+      OUTLINEWIDTH 3
+      POSITION CC
+      PARTIALS FALSE
+      OFFSET 0 -8
+      MAXSCALEDENOM 2000000
+      MINSCALEDENOM 100000
+      FORCE TRUE
+      TEXT "[woreda_tig]"
+    END
+    LABEL
+      TYPE TRUETYPE
+      FONT "arial"
+      SIZE 10
+      COLOR 20 20 20
+      OUTLINECOLOR 255 255 255
+      OUTLINEWIDTH 3
+      POSITION CC
+      PARTIALS FALSE
+      OFFSET 0 8
+      MAXSCALEDENOM 2000000
+      MINSCALEDENOM 100000
+      FORCE TRUE
+      TEXT "[WEREDA]"
+    END
+  END
+
+  # Mekelle Zone — muted peach/orange
+  CLASS
+    NAME "Mekelle"
+    EXPRESSION "Mekelle"
+    STYLE
+      COLOR 255 222 195
+      OUTLINECOLOR 145 95 55
+      WIDTH 1.5
+      OPACITY 65
+    END
+    LABEL
+      TYPE TRUETYPE
+      FONT "noto-ethiopic"
+      SIZE 12
+      COLOR 20 20 20
+      OUTLINECOLOR 255 255 255
+      OUTLINEWIDTH 3
+      POSITION CC
+      PARTIALS FALSE
+      OFFSET 0 -8
+      MAXSCALEDENOM 2000000
+      MINSCALEDENOM 100000
+      FORCE TRUE
+      TEXT "[woreda_tig]"
+    END
+    LABEL
+      TYPE TRUETYPE
+      FONT "arial"
+      SIZE 10
+      COLOR 20 20 20
+      OUTLINECOLOR 255 255 255
+      OUTLINEWIDTH 3
+      POSITION CC
+      PARTIALS FALSE
+      OFFSET 0 8
+      MAXSCALEDENOM 2000000
+      MINSCALEDENOM 100000
+      FORCE TRUE
+      TEXT "[WEREDA]"
+    END
+  END
+
+  # North Western Zone — muted lavender
+  CLASS
+    NAME "North Western"
+    EXPRESSION "North Western"
+    STYLE
+      COLOR 215 200 240
+      OUTLINECOLOR 100 78 148
+      WIDTH 1.5
+      OPACITY 65
+    END
+    LABEL
+      TYPE TRUETYPE
+      FONT "noto-ethiopic"
+      SIZE 12
+      COLOR 20 20 20
+      OUTLINECOLOR 255 255 255
+      OUTLINEWIDTH 3
+      POSITION CC
+      PARTIALS FALSE
+      OFFSET 0 -8
+      MAXSCALEDENOM 2000000
+      MINSCALEDENOM 100000
+      FORCE TRUE
+      TEXT "[woreda_tig]"
+    END
+    LABEL
+      TYPE TRUETYPE
+      FONT "arial"
+      SIZE 10
+      COLOR 20 20 20
+      OUTLINECOLOR 255 255 255
+      OUTLINEWIDTH 3
+      POSITION CC
+      PARTIALS FALSE
+      OFFSET 0 8
+      MAXSCALEDENOM 2000000
+      MINSCALEDENOM 100000
+      FORCE TRUE
+      TEXT "[WEREDA]"
+    END
+  END
+
+  # South Eastern Zone — muted tan/sand
+  CLASS
+    NAME "South Eastern"
+    EXPRESSION "South Eastern"
+    STYLE
+      COLOR 235 215 182
+      OUTLINECOLOR 128 102 50
+      WIDTH 1.5
+      OPACITY 65
+    END
+    LABEL
+      TYPE TRUETYPE
+      FONT "noto-ethiopic"
+      SIZE 12
+      COLOR 20 20 20
+      OUTLINECOLOR 255 255 255
+      OUTLINEWIDTH 3
+      POSITION CC
+      PARTIALS FALSE
+      OFFSET 0 -8
+      MAXSCALEDENOM 2000000
+      MINSCALEDENOM 100000
+      FORCE TRUE
+      TEXT "[woreda_tig]"
+    END
+    LABEL
+      TYPE TRUETYPE
+      FONT "arial"
+      SIZE 10
+      COLOR 20 20 20
+      OUTLINECOLOR 255 255 255
+      OUTLINEWIDTH 3
+      POSITION CC
+      PARTIALS FALSE
+      OFFSET 0 8
+      MAXSCALEDENOM 2000000
+      MINSCALEDENOM 100000
+      FORCE TRUE
+      TEXT "[WEREDA]"
+    END
+  END
+
+  # Southern Zone — muted rose
+  CLASS
+    NAME "Southern"
+    EXPRESSION "Southern"
+    STYLE
+      COLOR 240 200 215
+      OUTLINECOLOR 138 68 90
+      WIDTH 1.5
+      OPACITY 65
+    END
+    LABEL
+      TYPE TRUETYPE
+      FONT "noto-ethiopic"
+      SIZE 12
+      COLOR 20 20 20
+      OUTLINECOLOR 255 255 255
+      OUTLINEWIDTH 3
+      POSITION CC
+      PARTIALS FALSE
+      OFFSET 0 -8
+      MAXSCALEDENOM 2000000
+      MINSCALEDENOM 100000
+      FORCE TRUE
+      TEXT "[woreda_tig]"
+    END
+    LABEL
+      TYPE TRUETYPE
+      FONT "arial"
+      SIZE 10
+      COLOR 20 20 20
+      OUTLINECOLOR 255 255 255
+      OUTLINEWIDTH 3
+      POSITION CC
+      PARTIALS FALSE
+      OFFSET 0 8
+      MAXSCALEDENOM 2000000
+      MINSCALEDENOM 100000
+      FORCE TRUE
+      TEXT "[WEREDA]"
+    END
+  END
+
+  # Western Zone — muted olive green
+  CLASS
+    NAME "Western"
+    EXPRESSION "Western"
+    STYLE
+      COLOR 205 235 192
+      OUTLINECOLOR 70 122 58
+      WIDTH 1.5
+      OPACITY 65
+    END
+    LABEL
+      TYPE TRUETYPE
+      FONT "noto-ethiopic"
+      SIZE 12
+      COLOR 20 20 20
+      OUTLINECOLOR 255 255 255
+      OUTLINEWIDTH 3
+      POSITION CC
+      PARTIALS FALSE
+      OFFSET 0 -8
+      MAXSCALEDENOM 2000000
+      MINSCALEDENOM 100000
+      FORCE TRUE
+      TEXT "[woreda_tig]"
+    END
+    LABEL
+      TYPE TRUETYPE
+      FONT "arial"
+      SIZE 10
+      COLOR 20 20 20
+      OUTLINECOLOR 255 255 255
+      OUTLINEWIDTH 3
+      POSITION CC
+      PARTIALS FALSE
+      OFFSET 0 8
+      MAXSCALEDENOM 2000000
+      MINSCALEDENOM 100000
+      FORCE TRUE
+      TEXT "[WEREDA]"
+    END
+  END
+
+  # Fallback (unclassified zone)
+  CLASS
+    NAME "Other"
+    STYLE
+      COLOR 220 220 220
+      OUTLINECOLOR 85 90 95
+      WIDTH 1.5
+      OPACITY 65
+    END
+    LABEL
+      TYPE TRUETYPE
+      FONT "noto-ethiopic"
+      SIZE 12
+      COLOR 20 20 20
+      OUTLINECOLOR 255 255 255
+      OUTLINEWIDTH 3
+      POSITION CC
+      PARTIALS FALSE
+      OFFSET 0 -8
+      MAXSCALEDENOM 2000000
+      MINSCALEDENOM 100000
+      FORCE TRUE
+      TEXT "[woreda_tig]"
+    END
+    LABEL
+      TYPE TRUETYPE
+      FONT "arial"
+      SIZE 10
+      COLOR 20 20 20
+      OUTLINECOLOR 255 255 255
+      OUTLINEWIDTH 3
+      POSITION CC
+      PARTIALS FALSE
+      OFFSET 0 8
+      MAXSCALEDENOM 2000000
+      MINSCALEDENOM 100000
+      FORCE TRUE
+      TEXT "[WEREDA]"
+    END
+  END
+END
+
+LAYER
+  NAME "tigray_woreda"
+  STATUS OFF
+  TYPE POLYGON
+  CONNECTIONTYPE OGR
+  CONNECTION "/data/gold/atlas_4326/TigrayNewWoredas.shp"
+  DATA "TigrayNewWoredas"
+  LABELITEM "WEREDA"
+  LABELMAXSCALEDENOM 2000000
+  LABELMINSCALEDENOM 100000
+  METADATA
+    "wms_title" "Tigray - Woreda"
+    "wms_srs" "EPSG:3857 EPSG:4326"
+    "wms_enable_request" "*"
+    "wms_queryable" "true"
+    "wms_feature_info_mime_type" "text/plain"
+    "gml_include_items" "WEREDA,ZONE_NAME,Tot_Popula,SUM_SQ_KM,SUM_HECTAR,wor_name"
+    "wms_include_items" "WEREDA,ZONE_NAME,Tot_Popula,SUM_SQ_KM,SUM_HECTAR,wor_name"
+  END
+  TEMPLATE "/etc/mapserver/dummy.html"
+  CLASS
+    NAME "Woredas"
+    STYLE
+      COLOR 230 230 220
+      OUTLINECOLOR 60 60 60
+      WIDTH 1
+      OPACITY 50
+    END
+    LABEL
+      COLOR 40 40 40
+      OUTLINECOLOR 255 255 255
+      OUTLINEWIDTH 2
+      FONT "arial"
+      TYPE TRUETYPE
+      SIZE 10
+      POSITION AUTO
+      PARTIALS FALSE
+    END
+  END
+END
+
+LAYER
+  NAME "tigray_towns"
+  STATUS ON
+  TYPE POINT
+  CONNECTIONTYPE OGR
+  CONNECTION "/data/gold/atlas_4326/Tigray_Towns.shp"
+  DATA "Tigray_Towns"
+  LABELITEM "TOWN_NAME"
+  LABELMAXSCALEDENOM 2000000
+  METADATA
+    "wms_title" "Tigray - Towns (by Population)"
+    "wms_srs" "EPSG:3857 EPSG:4326"
+    "wms_enable_request" "*"
+    "wms_queryable" "true"
+    "wms_feature_info_mime_type" "text/plain"
+    "gml_include_items" "TOWN_NAME,WEREDA,REGION,ZONES,POP,POPTOT"
+    "wms_include_items" "TOWN_NAME,WEREDA,REGION,ZONES,POP,POPTOT"
+  END
+  TEMPLATE "/etc/mapserver/dummy.html"
+  # Graduated symbols by population - Red stars
+  CLASS
+    NAME "0 - 50,000"
+    EXPRESSION ([POPTOT] <= 50000)
+    STYLE
+      SYMBOL "star"
+      SIZE 6
+      COLOR 200 30 30
+      OUTLINECOLOR 100 20 20
+    END
+    LABEL
+      COLOR 132 31 31
+      OUTLINECOLOR 255 255 255
+      OUTLINEWIDTH 2
+      FONT "arial"
+      TYPE TRUETYPE
+      SIZE 9
+      POSITION AUTO
+      PARTIALS FALSE
+      BUFFER 4
+    END
+  END
+  CLASS
+    NAME "50,000 - 80,000"
+    EXPRESSION ([POPTOT] > 50000 AND [POPTOT] <= 80000)
+    STYLE
+      SYMBOL "star"
+      SIZE 8
+      COLOR 220 30 30
+      OUTLINECOLOR 100 20 20
+    END
+    LABEL
+      COLOR 132 31 31
+      OUTLINECOLOR 255 255 255
+      OUTLINEWIDTH 2
+      FONT "arial"
+      TYPE TRUETYPE
+      SIZE 9
+      POSITION AUTO
+      PARTIALS FALSE
+      BUFFER 4
+    END
+  END
+  CLASS
+    NAME "80,000 - 120,000"
+    EXPRESSION ([POPTOT] > 80000 AND [POPTOT] <= 120000)
+    STYLE
+      SYMBOL "star"
+      SIZE 10
+      COLOR 230 20 20
+      OUTLINECOLOR 80 10 10
+    END
+    LABEL
+      COLOR 132 31 31
+      OUTLINECOLOR 255 255 255
+      OUTLINEWIDTH 2
+      FONT "arial"
+      TYPE TRUETYPE
+      SIZE 10
+      POSITION AUTO
+      PARTIALS FALSE
+      BUFFER 4
+    END
+  END
+  CLASS
+    NAME "120,000 - 200,000"
+    EXPRESSION ([POPTOT] > 120000 AND [POPTOT] <= 200000)
+    STYLE
+      SYMBOL "star"
+      SIZE 12
+      COLOR 240 15 15
+      OUTLINECOLOR 80 10 10
+    END
+    LABEL
+      COLOR 132 31 31
+      OUTLINECOLOR 255 255 255
+      OUTLINEWIDTH 2
+      FONT "arial"
+      TYPE TRUETYPE
+      SIZE 10
+      POSITION AUTO
+      PARTIALS FALSE
+      BUFFER 4
+    END
+  END
+  CLASS
+    NAME "> 200,000"
+    EXPRESSION ([POPTOT] > 200000)
+    STYLE
+      SYMBOL "star"
+      SIZE 14
+      COLOR 255 0 0
+      OUTLINECOLOR 80 10 10
+    END
+    LABEL
+      COLOR 132 31 31
+      OUTLINECOLOR 255 255 255
+      OUTLINEWIDTH 2
+      FONT "arial-bold"
+      TYPE TRUETYPE
+      SIZE 11
+      POSITION AUTO
+      PARTIALS FALSE
+      BUFFER 4
+    END
+  END
+END
+
+LAYER
+  NAME "ethiopia_admin"
+  STATUS OFF
+  TYPE POLYGON
+  STATUS OFF
+  CONNECTIONTYPE OGR
+  CONNECTION "/data/gold/atlas_4326/admin.shp"
+  DATA "admin"
+  METADATA
+    "wms_title" "Ethiopia - Admin Boundaries"
+    "wms_srs" "EPSG:3857 EPSG:4326"
+    "wms_enable_request" "*"
+    "wms_queryable" "true"
+    "wms_feature_info_mime_type" "text/plain"
+    "gml_include_items" "NAME1,NAME2,NAME3,COUNTRY,CODE,SQKM"
+    "wms_include_items" "NAME1,NAME2,NAME3,COUNTRY,CODE,SQKM"
+  END
+  TEMPLATE "/etc/mapserver/dummy.html"
+  CLASS
+    NAME "Admin Boundaries"
+    STYLE
+      OUTLINECOLOR 100 100 100
+      COLOR 220 220 220
+      WIDTH 1
+    END
+  END
+END
+
+LAYER
+  NAME "ethiopia_basins"
+  STATUS OFF
+  TYPE POLYGON
+  CONNECTIONTYPE OGR
+  CONNECTION "/data/gold/atlas_4326/basins.shp"
+  DATA "basins"
+  CLASSITEM "BASIN_NAME"
+  METADATA
+    "wms_title" "Ethiopia - Major Basins"
+    "wms_srs" "EPSG:3857 EPSG:4326"
+    "wms_enable_request" "*"
+    "wms_queryable" "true"
+    "wms_feature_info_mime_type" "text/plain"
+    "gml_include_items" "BASIN_NAME,BASIN_NR,BASIN,SQKM,BASIN_COD"
+    "wms_include_items" "BASIN_NAME,BASIN_NR,BASIN,SQKM,BASIN_COD"
+  END
+  TEMPLATE "/etc/mapserver/dummy.html"
+  # Unique values by basin name
+  CLASS
+    NAME "Abay (Blue Nile)"
+    EXPRESSION "Abay"
+    STYLE
+      COLOR 192 101 73
+      OUTLINECOLOR 0 0 0
+      OPACITY 60
+    END
+  END
+  CLASS
+    NAME "Angereb"
+    EXPRESSION "Angereb"
+    STYLE
+      COLOR 255 215 0
+      OUTLINECOLOR 0 0 0
+      OPACITY 60
+    END
+  END
+  CLASS
+    NAME "Atbara"
+    EXPRESSION "Atbara"
+    STYLE
+      COLOR 189 183 107
+      OUTLINECOLOR 0 0 0
+      OPACITY 60
+    END
+  END
+  CLASS
+    NAME "Awash"
+    EXPRESSION "Awash"
+    STYLE
+      COLOR 247 181 103
+      OUTLINECOLOR 0 0 0
+      OPACITY 60
+    END
+  END
+  CLASS
+    NAME "Baro"
+    EXPRESSION "Baro"
+    STYLE
+      COLOR 206 195 149
+      OUTLINECOLOR 0 0 0
+      OPACITY 60
+    END
+  END
+  CLASS
+    NAME "Bilate"
+    EXPRESSION "Bilate"
+    STYLE
+      COLOR 205 155 29
+      OUTLINECOLOR 0 0 0
+      OPACITY 60
+    END
+  END
+  CLASS
+    NAME "Danakil"
+    EXPRESSION "Danakil"
+    STYLE
+      COLOR 240 230 140
+      OUTLINECOLOR 0 0 0
+      OPACITY 60
+    END
+  END
+  CLASS
+    NAME "Genalle"
+    EXPRESSION "Genalle"
+    STYLE
+      COLOR 167 175 94
+      OUTLINECOLOR 0 0 0
+      OPACITY 60
+    END
+  END
+  CLASS
+    NAME "Golina"
+    EXPRESSION "Golina"
+    STYLE
+      COLOR 192 144 88
+      OUTLINECOLOR 0 0 0
+      OPACITY 60
+    END
+  END
+  CLASS
+    NAME "Mereb"
+    EXPRESSION "Mereb"
+    STYLE
+      COLOR 139 69 19
+      OUTLINECOLOR 0 0 0
+      OPACITY 60
+    END
+  END
+  CLASS
+    NAME "Omo"
+    EXPRESSION "Omo"
+    STYLE
+      COLOR 172 150 0
+      OUTLINECOLOR 0 0 0
+      OPACITY 60
+    END
+  END
+  CLASS
+    NAME "Red Sea Coast"
+    EXPRESSION "Red Sea Coast"
+    STYLE
+      COLOR 105 139 105
+      OUTLINECOLOR 0 0 0
+      OPACITY 60
+    END
+  END
+  CLASS
+    NAME "Segen"
+    EXPRESSION "Segen"
+    STYLE
+      COLOR 139 105 20
+      OUTLINECOLOR 0 0 0
+      OPACITY 60
+    END
+  END
+  CLASS
+    NAME "Shebelle"
+    EXPRESSION "Shebelle"
+    STYLE
+      COLOR 139 139 0
+      OUTLINECOLOR 0 0 0
+      OPACITY 60
+    END
+  END
+  CLASS
+    NAME "Tekeze"
+    EXPRESSION "Tekeze"
+    STYLE
+      COLOR 255 251 195
+      OUTLINECOLOR 0 0 0
+      OPACITY 60
+    END
+  END
+  CLASS
+    NAME "Ziway/Abijata"
+    EXPRESSION "Ziway/Abijata"
+    STYLE
+      COLOR 189 176 86
+      OUTLINECOLOR 0 0 0
+      OPACITY 60
+    END
+  END
+  CLASS
+    NAME "Other Basins"
+    STYLE
+      COLOR 200 200 200
+      OUTLINECOLOR 0 0 0
+      OPACITY 60
+    END
+  END
+END
+
+LAYER
+  NAME "ethiopia_boundary_level1"
+  STATUS OFF
+  TYPE POLYGON
+  STATUS OFF
+  CONNECTIONTYPE OGR
+  CONNECTION "/data/gold/atlas_4326/bound01.shp"
+  DATA "bound01"
+  METADATA
+    "wms_title" "Ethiopia - Boundary Level 1"
+    "wms_srs" "EPSG:3857 EPSG:4326"
+    "wms_enable_request" "*"
+    "wms_queryable" "true"
+    "wms_feature_info_mime_type" "text/plain"
+    "gml_include_items" "AREA,PERIMETER"
+    "wms_include_items" "AREA,PERIMETER"
+  END
+  TEMPLATE "/etc/mapserver/dummy.html"
+  CLASS
+    NAME "Country Boundary"
+    STYLE
+      OUTLINECOLOR 20 20 20
+      WIDTH 3
+    END
+  END
+END
+
+LAYER
+  NAME "ethiopia_boundary_level2"
+  STATUS OFF
+  TYPE POLYGON
+  STATUS OFF
+  CONNECTIONTYPE OGR
+  CONNECTION "/data/gold/atlas_4326/bound02.shp"
+  DATA "bound02"
+  CLASSITEM "REGION"
+  LABELITEM "REGION"
+  METADATA
+    "wms_title" "Ethiopia - Boundary Level 2"
+    "wms_srs" "EPSG:3857 EPSG:4326"
+    "wms_enable_request" "*"
+    "wms_queryable" "true"
+    "wms_feature_info_mime_type" "text/plain"
+    "gml_include_items" "REGION,AREA,PERIMETER"
+    "wms_include_items" "REGION,AREA,PERIMETER"
+  END
+  TEMPLATE "/etc/mapserver/dummy.html"
+
+  CLASS
+    NAME "Tigray"
+    EXPRESSION "TIGRAY"
+    STYLE
+      COLOR 200 180 210
+      OUTLINECOLOR 90 55 80
+      WIDTH 2
+      OPACITY 45
+    END
+    LABEL
+      TYPE TRUETYPE
+      FONT "arial"
+      SIZE 10
+      COLOR 35 35 35
+      OUTLINECOLOR 255 255 255
+      OUTLINEWIDTH 2
+      POSITION CC
+      PARTIALS FALSE
+      MAXSCALEDENOM 12000000
+      MINSCALEDENOM 200000
+      FORCE FALSE
+    END
+  END
+
+  CLASS
+    NAME "Amhara"
+    EXPRESSION "AMHARA"
+    STYLE
+      COLOR 180 210 240
+      OUTLINECOLOR 50 80 130
+      WIDTH 2
+      OPACITY 45
+    END
+    LABEL
+      TYPE TRUETYPE
+      FONT "arial"
+      SIZE 10
+      COLOR 35 35 35
+      OUTLINECOLOR 255 255 255
+      OUTLINEWIDTH 2
+      POSITION CC
+      PARTIALS FALSE
+      MAXSCALEDENOM 12000000
+      MINSCALEDENOM 200000
+      FORCE FALSE
+    END
+  END
+
+  CLASS
+    NAME "Benishangul-Gumuz"
+    EXPRESSION "BENISHANGUL-GUM"
+    STYLE
+      COLOR 190 220 190
+      OUTLINECOLOR 55 115 60
+      WIDTH 2
+      OPACITY 45
+    END
+    LABEL
+      TYPE TRUETYPE
+      FONT "arial"
+      SIZE 10
+      COLOR 35 35 35
+      OUTLINECOLOR 255 255 255
+      OUTLINEWIDTH 2
+      POSITION CC
+      PARTIALS FALSE
+      MAXSCALEDENOM 12000000
+      MINSCALEDENOM 200000
+      FORCE FALSE
+    END
+  END
+
+  CLASS
+    NAME "Oromia"
+    EXPRESSION "OROMIA"
+    STYLE
+      COLOR 235 215 175
+      OUTLINECOLOR 120 98 40
+      WIDTH 2
+      OPACITY 45
+    END
+    LABEL
+      TYPE TRUETYPE
+      FONT "arial"
+      SIZE 10
+      COLOR 35 35 35
+      OUTLINECOLOR 255 255 255
+      OUTLINEWIDTH 2
+      POSITION CC
+      PARTIALS FALSE
+      MAXSCALEDENOM 12000000
+      MINSCALEDENOM 200000
+      FORCE FALSE
+    END
+  END
+
+  CLASS
+    NAME "Dire Dawa"
+    EXPRESSION "DIRE DAWA"
+    STYLE
+      COLOR 245 225 200
+      OUTLINECOLOR 140 108 72
+      WIDTH 2
+      OPACITY 45
+    END
+    LABEL
+      TYPE TRUETYPE
+      FONT "arial"
+      SIZE 9
+      COLOR 35 35 35
+      OUTLINECOLOR 255 255 255
+      OUTLINEWIDTH 2
+      POSITION CC
+      PARTIALS FALSE
+      MAXSCALEDENOM 5000000
+      MINSCALEDENOM 100000
+      FORCE FALSE
+    END
+  END
+
+  CLASS
+    NAME "Harari"
+    EXPRESSION "HARARI"
+    STYLE
+      COLOR 220 195 230
+      OUTLINECOLOR 108 75 130
+      WIDTH 2
+      OPACITY 45
+    END
+    LABEL
+      TYPE TRUETYPE
+      FONT "arial"
+      SIZE 9
+      COLOR 35 35 35
+      OUTLINECOLOR 255 255 255
+      OUTLINEWIDTH 2
+      POSITION CC
+      PARTIALS FALSE
+      MAXSCALEDENOM 5000000
+      MINSCALEDENOM 100000
+      FORCE FALSE
+    END
+  END
+
+  CLASS
+    NAME "Southern Region"
+    EXPRESSION "SOUTHERN REGION"
+    STYLE
+      COLOR 190 230 215
+      OUTLINECOLOR 50 118 100
+      WIDTH 2
+      OPACITY 45
+    END
+    LABEL
+      TYPE TRUETYPE
+      FONT "arial"
+      SIZE 10
+      COLOR 35 35 35
+      OUTLINECOLOR 255 255 255
+      OUTLINEWIDTH 2
+      POSITION CC
+      PARTIALS FALSE
+      MAXSCALEDENOM 12000000
+      MINSCALEDENOM 200000
+      FORCE FALSE
+    END
+  END
+
+  CLASS
+    NAME "Gambella"
+    EXPRESSION "GAMBELLA"
+    STYLE
+      COLOR 210 235 190
+      OUTLINECOLOR 85 122 55
+      WIDTH 2
+      OPACITY 45
+    END
+    LABEL
+      TYPE TRUETYPE
+      FONT "arial"
+      SIZE 10
+      COLOR 35 35 35
+      OUTLINECOLOR 255 255 255
+      OUTLINEWIDTH 2
+      POSITION CC
+      PARTIALS FALSE
+      MAXSCALEDENOM 12000000
+      MINSCALEDENOM 200000
+      FORCE FALSE
+    END
+  END
+
+  CLASS
+    NAME "Afar"
+    EXPRESSION "AFAR"
+    STYLE
+      COLOR 245 220 185
+      OUTLINECOLOR 135 102 48
+      WIDTH 2
+      OPACITY 45
+    END
+    LABEL
+      TYPE TRUETYPE
+      FONT "arial"
+      SIZE 10
+      COLOR 35 35 35
+      OUTLINECOLOR 255 255 255
+      OUTLINEWIDTH 2
+      POSITION CC
+      PARTIALS FALSE
+      MAXSCALEDENOM 12000000
+      MINSCALEDENOM 200000
+      FORCE FALSE
+    END
+  END
+
+  CLASS
+    NAME "Somali Region"
+    EXPRESSION "SOMALI REGION"
+    STYLE
+      COLOR 235 215 200
+      OUTLINECOLOR 120 98 78
+      WIDTH 2
+      OPACITY 45
+    END
+    LABEL
+      TYPE TRUETYPE
+      FONT "arial"
+      SIZE 10
+      COLOR 35 35 35
+      OUTLINECOLOR 255 255 255
+      OUTLINEWIDTH 2
+      POSITION CC
+      PARTIALS FALSE
+      MAXSCALEDENOM 12000000
+      MINSCALEDENOM 200000
+      FORCE FALSE
+    END
+  END
+
+  CLASS
+    NAME "Addis Abeba"
+    EXPRESSION "ADDIS ABEBA"
+    STYLE
+      COLOR 245 205 205
+      OUTLINECOLOR 140 72 72
+      WIDTH 2
+      OPACITY 45
+    END
+    LABEL
+      TYPE TRUETYPE
+      FONT "arial"
+      SIZE 9
+      COLOR 35 35 35
+      OUTLINECOLOR 255 255 255
+      OUTLINEWIDTH 2
+      POSITION CC
+      PARTIALS FALSE
+      MAXSCALEDENOM 5000000
+      MINSCALEDENOM 100000
+      FORCE FALSE
+    END
+  END
+
+  CLASS
+    NAME "Other Region"
+    STYLE
+      COLOR 220 220 220
+      OUTLINECOLOR 80 80 80
+      WIDTH 2
+      OPACITY 45
+    END
+    LABEL
+      TYPE TRUETYPE
+      FONT "arial"
+      SIZE 10
+      COLOR 35 35 35
+      OUTLINECOLOR 255 255 255
+      OUTLINEWIDTH 2
+      POSITION CC
+      PARTIALS FALSE
+      MAXSCALEDENOM 12000000
+      MINSCALEDENOM 200000
+      FORCE FALSE
+    END
+  END
+END
+
+LAYER
+  NAME "ethiopia_boundary_level3"
+  STATUS OFF
+  TYPE POLYGON
+  STATUS OFF
+  CONNECTIONTYPE OGR
+  CONNECTION "/data/gold/atlas_4326/bound03.shp"
+  DATA "bound03"
+  METADATA
+    "wms_title" "Ethiopia - Boundary Level 3"
+    "wms_srs" "EPSG:3857 EPSG:4326"
+    "wms_enable_request" "*"
+    "wms_queryable" "true"
+    "wms_feature_info_mime_type" "text/plain"
+    "gml_include_items" "ZONES,AREA,PERIMETER"
+    "wms_include_items" "ZONES,AREA,PERIMETER"
+  END
+  TEMPLATE "/etc/mapserver/dummy.html"
+  CLASS
+    NAME "Level 3 Boundary"
+    STYLE
+      OUTLINECOLOR 100 100 100
+      COLOR 220 220 220
+      WIDTH 1
+    END
+  END
+END
+
+LAYER
+  NAME "ethiopia_contour"
+  STATUS OFF
+  TYPE LINE
+  STATUS OFF
+  CONNECTIONTYPE OGR
+  CONNECTION "/data/gold/atlas_4326/contour.shp"
+  DATA "contour"
+  METADATA
+    "wms_title" "Ethiopia - Contour Lines"
+    "wms_srs" "EPSG:3857 EPSG:4326"
+    "wms_enable_request" "*"
+    "wms_queryable" "true"
+    "wms_feature_info_mime_type" "text/plain"
+    "gml_include_items" "ELEVATION,LENGTH"
+    "wms_include_items" "ELEVATION,LENGTH"
+  END
+  TEMPLATE "/etc/mapserver/dummy.html"
+  CLASS
+    NAME "Contour Lines"
+    STYLE
+      COLOR 150 150 150
+      WIDTH 1
+    END
+  END
+END
+
+# LAYER
+#   NAME "ethiopia_wereda"
+#   TYPE POLYGON
+#   STATUS ON
+#   CONNECTIONTYPE OGR
+#   CONNECTION "/data/gold/atlas_4326/ethio_wereda.shp"
+#   DATA "ethio_wereda"
+#   METADATA
+#     "wms_title" "Ethiopia - Wereda"
+#     "wms_srs" "EPSG:3857 EPSG:4326"
+#     "wms_enable_request" "*"
+#     "wms_queryable" "true"
+#     "wms_feature_info_mime_type" "text/plain"
+#     "gml_include_items" "all"
+#     "wms_include_items" "all"
+#   END
+#   TEMPLATE "/etc/mapserver/dummy.html"
+#   CLASS
+#     STYLE
+#       OUTLINECOLOR 100 100 100
+#       COLOR 220 220 220
+#       WIDTH 1
+#     END
+#   END
+# END
+
+# QUARANTINED: 2026-02-19 - Normalization failed for ethio_wereda_Project.shp (input file corruption)
+#LAYER
+#  NAME "ethiopia_wereda_projected"
+#  TYPE POLYGON
+#  STATUS OFF
+#  CONNECTIONTYPE OGR
+#  CONNECTION "/data/gold/atlas_4326/ethio_wereda_Project.shp"
+#  DATA "ethio_wereda_Project"
+#  METADATA
+#    "wms_title" "Ethiopia - Wereda (Projected)"
+#    "wms_srs" "EPSG:3857 EPSG:4326"
+#    "wms_enable_request" "*"
+#    "wms_queryable" "true"
+#    "wms_feature_info_mime_type" "text/plain"
+#    "gml_include_items" "all"
+#    "wms_include_items" "all"
+#  END
+#  CLASS
+#    STYLE
+#      OUTLINECOLOR 100 100 100
+#      COLOR 220 220 220
+#      WIDTH 1
+#    END
+#  END
+#END
+
+LAYER
+  NAME "ethiopia_isoheight"
+  STATUS OFF
+  TYPE LINE
+  STATUS OFF
+  CONNECTIONTYPE OGR
+  CONNECTION "/data/gold/atlas_4326/isoght.shp"
+  DATA "isoght"
+  METADATA
+    "wms_title" "Ethiopia - Isoheight Lines"
+    "wms_srs" "EPSG:3857 EPSG:4326"
+    "wms_enable_request" "*"
+    "wms_queryable" "true"
+    "wms_feature_info_mime_type" "text/plain"
+    "gml_include_items" "CONTOUR,LENGTH"
+    "wms_include_items" "CONTOUR,LENGTH"
+  END
+  TEMPLATE "/etc/mapserver/dummy.html"
+  CLASS
+    NAME "Isoheight Lines"
+    STYLE
+      COLOR 150 150 150
+      WIDTH 1
+    END
+  END
+END
+
+LAYER
+  NAME "ethiopia_lakes"
+  STATUS OFF
+  TYPE POLYGON
+  CONNECTIONTYPE OGR
+  CONNECTION "/data/gold/atlas_4326/lakes.shp"
+  DATA "lakes"
+  METADATA
+    "wms_title" "Ethiopia - Lakes"
+    "wms_srs" "EPSG:3857 EPSG:4326"
+    "wms_enable_request" "*"
+    "wms_queryable" "true"
+    "wms_feature_info_mime_type" "text/plain"
+    "gml_include_items" "CODE,WATER,ACRES,HECTARES"
+    "wms_include_items" "CODE,WATER,ACRES,HECTARES"
+  END
+  TEMPLATE "/etc/mapserver/dummy.html"
+  CLASS
+    NAME "Lakes"
+    STYLE
+      COLOR 102 153 255
+      OUTLINECOLOR 0 0 100
+    END
+  END
+END
+
+LAYER
+  NAME "ethiopia_major_basins"
+  STATUS OFF
+  TYPE POLYGON
+  STATUS OFF
+  CONNECTIONTYPE OGR
+  CONNECTION "/data/gold/atlas_4326/mbasins.shp"
+  DATA "mbasins"
+  METADATA
+    "wms_title" "Ethiopia - Major Basins"
+    "wms_srs" "EPSG:3857 EPSG:4326"
+    "wms_enable_request" "*"
+    "wms_queryable" "true"
+    "wms_feature_info_mime_type" "text/plain"
+    "gml_include_items" "NAME,BASINNAME,TYPE,HY_BAS,HY_SBA,WATRANK"
+    "wms_include_items" "NAME,BASINNAME,TYPE,HY_BAS,HY_SBA,WATRANK"
+  END
+  TEMPLATE "/etc/mapserver/dummy.html"
+  CLASS
+    NAME "Major Basins"
+    STYLE
+      OUTLINECOLOR 100 100 100
+      COLOR 220 220 220
+      WIDTH 1
+    END
+  END
+END
+
+LAYER
+  NAME "ethiopia_soils"
+  STATUS OFF
+  TYPE POLYGON
+  CONNECTIONTYPE OGR
+  CONNECTION "/data/gold/atlas_4326/msoils.shp"
+  DATA "msoils"
+  CLASSITEM "SOILTYPE"
+  METADATA
+    "wms_title" "Ethiopia - Soils"
+    "wms_srs" "EPSG:3857 EPSG:4326"
+    "wms_enable_request" "*"
+    "wms_queryable" "true"
+    "wms_feature_info_mime_type" "text/plain"
+    "gml_include_items" "NAME,FAOSOIL,TAXON,SOILTYPE,PHASE1,PHASE2"
+    "wms_include_items" "NAME,FAOSOIL,TAXON,SOILTYPE,PHASE1,PHASE2"
+  END
+  TEMPLATE "/etc/mapserver/dummy.html"
+  # Classified by soil type
+  CLASS
+    NAME "Calcids"
+    EXPRESSION "Calcids"
+    STYLE
+      COLOR 112 0 255
+      OUTLINECOLOR 0 0 0
+      OPACITY 60
+    END
+  END
+  CLASS
+    NAME "Cambids"
+    EXPRESSION "Cambids"
+    STYLE
+      COLOR 255 0 156
+      OUTLINECOLOR 0 0 0
+      OPACITY 60
+    END
+  END
+  CLASS
+    NAME "Fluvents"
+    EXPRESSION "Fluvents"
+    STYLE
+      COLOR 183 255 0
+      OUTLINECOLOR 0 0 0
+      OPACITY 60
+    END
+  END
+  CLASS
+    NAME "Tropepts"
+    EXPRESSION "Tropepts"
+    STYLE
+      COLOR 0 255 139
+      OUTLINECOLOR 0 0 0
+      OPACITY 60
+    END
+  END
+  CLASS
+    NAME "Ustalfs"
+    EXPRESSION "Ustalfs"
+    STYLE
+      COLOR 102 255 0
+      OUTLINECOLOR 0 0 0
+      OPACITY 60
+    END
+  END
+  CLASS
+    NAME "Usterts"
+    EXPRESSION "Usterts"
+    STYLE
+      COLOR 21 255 0
+      OUTLINECOLOR 0 0 0
+      OPACITY 60
+    END
+  END
+  CLASS
+    NAME "Water"
+    EXPRESSION "Water"
+    STYLE
+      COLOR 100 150 255
+      OUTLINECOLOR 0 0 0
+      OPACITY 60
+    END
+  END
+  CLASS
+    NAME "Other Soils"
+    STYLE
+      COLOR 200 180 150
+      OUTLINECOLOR 0 0 0
+      OPACITY 60
+    END
+  END
+END
+
+LAYER
+  NAME "ethiopia_ecology"
+  STATUS OFF
+  TYPE POLYGON
+  CONNECTIONTYPE OGR
+  CONNECTION "/data/gold/atlas_4326/necolog.shp"
+  DATA "necolog"
+  CLASSITEM "LCPYTYPETX"
+  METADATA
+    "wms_title" "Ethiopia - Ecological Zones"
+    "wms_srs" "EPSG:3857 EPSG:4326"
+    "wms_enable_request" "*"
+    "wms_queryable" "true"
+    "wms_feature_info_mime_type" "text/plain"
+    "gml_include_items" "LCPYTYPETX,HECTARES"
+    "wms_include_items" "LCPYTYPETX,HECTARES"
+  END
+  TEMPLATE "/etc/mapserver/dummy.html"
+  # Classified by ecological type
+  CLASS
+    NAME "Undifferentiated wetlands"
+    EXPRESSION "Undifferentiated wetlands"
+    STYLE
+      COLOR 1 100 0
+      OUTLINECOLOR 0 0 0
+      OPACITY 60
+    END
+  END
+  CLASS
+    NAME "Unconsolidated materials"
+    EXPRESSION "Unconsolidated materials"
+    STYLE
+      COLOR 2 220 0
+      OUTLINECOLOR 0 0 0
+      OPACITY 60
+    END
+  END
+  CLASS
+    NAME "Inundated areas"
+    EXPRESSION "Inundated areas"
+    STYLE
+      COLOR 146 174 47
+      OUTLINECOLOR 0 0 0
+      OPACITY 60
+    END
+  END
+  CLASS
+    NAME "Distorted surface areas"
+    EXPRESSION "Distorted surface areas"
+    STYLE
+      COLOR 0 219 255
+      OUTLINECOLOR 0 0 0
+      OPACITY 60
+    END
+  END
+  CLASS
+    NAME "Other Zones"
+    STYLE
+      COLOR 166 255 165
+      OUTLINECOLOR 0 0 0
+      OPACITY 60
+    END
+  END
+END
+
+# REMOVED: Duplicate layer - ethiopia_national_forests displays better coverage
+# Original: ethiopia_national_forest (nforest.shp) - inferior to ethiopia_national_forests (nforests.shp)
+
+LAYER
+  NAME "ethiopia_national_forests"
+  STATUS OFF
+  TYPE POLYGON
+  STATUS OFF
+  CONNECTIONTYPE OGR
+  CONNECTION "/data/gold/atlas_4326/nforests.shp"
+  DATA "nforests"
+  METADATA
+    "wms_title" "Ethiopia - National Forests"
+    "wms_srs" "EPSG:3857 EPSG:4326"
+    "wms_enable_request" "*"
+    "wms_queryable" "true"
+    "wms_feature_info_mime_type" "text/plain"
+    "gml_include_items" "VEGNTX,VEGN,HECTARES"
+    "wms_include_items" "VEGNTX,VEGN,HECTARES"
+  END
+  TEMPLATE "/etc/mapserver/dummy.html"
+  CLASS
+    NAME "National Forests"
+    STYLE
+      COLOR 207 97 5
+      OUTLINECOLOR 0 0 0
+      OPACITY 70
+    END
+  END
+END
+
+LAYER
+  NAME "ethiopia_national_parks"
+  STATUS OFF
+  TYPE POLYGON
+  CONNECTIONTYPE OGR
+  CONNECTION "/data/gold/atlas_4326/nparks.shp"
+  DATA "nparks"
+  LABELITEM "AREANAME"
+  LABELMAXSCALEDENOM 5000000
+  METADATA
+    "wms_title" "Ethiopia - National Parks"
+    "wms_srs" "EPSG:3857 EPSG:4326"
+    "wms_enable_request" "*"
+    "wms_queryable" "true"
+    "wms_feature_info_mime_type" "text/plain"
+    "gml_include_items" "AREANAME,IUCNCAT,DESIGNATE,YEAR,SIZE,CNTRYNAME"
+    "wms_include_items" "AREANAME,IUCNCAT,DESIGNATE,YEAR,SIZE,CNTRYNAME"
+  END
+  TEMPLATE "/etc/mapserver/dummy.html"
+  CLASS
+    NAME "National Parks"
+    STYLE
+      COLOR 180 220 180
+      OUTLINECOLOR 0 100 0
+      OPACITY 70
+    END
+    LABEL
+      COLOR 0 80 0
+      OUTLINECOLOR 255 255 255
+      OUTLINEWIDTH 2
+      FONT "arial"
+      TYPE TRUETYPE
+      SIZE 9
+      POSITION AUTO
+      PARTIALS FALSE
+    END
+  END
+END
+
+LAYER
+  NAME "ethiopia_rainfall_pattern"
+  STATUS OFF
+  TYPE POLYGON
+  STATUS OFF
+  CONNECTIONTYPE OGR
+  CONNECTION "/data/gold/atlas_4326/rain_patrn.shp"
+  DATA "rain_patrn"
+  METADATA
+    "wms_title" "Ethiopia - Rainfall Pattern"
+    "wms_srs" "EPSG:3857 EPSG:4326"
+    "wms_enable_request" "*"
+    "wms_queryable" "true"
+    "wms_feature_info_mime_type" "text/plain"
+    "gml_include_items" "PATTER,PATTERN_G"
+    "wms_include_items" "PATTER,PATTERN_G"
+  END
+  TEMPLATE "/etc/mapserver/dummy.html"
+  CLASS
+    NAME "Rainfall Pattern"
+    STYLE
+      OUTLINECOLOR 100 100 100
+      COLOR 220 220 220
+      WIDTH 1
+    END
+  END
+END
+
+LAYER
+  NAME "ethiopia_rainfall_stations"
+  STATUS OFF
+  TYPE POINT
+  CONNECTIONTYPE OGR
+  CONNECTION "/data/gold/atlas_4326/rain_stat.shp"
+  DATA "rain_stat"
+  METADATA
+    "wms_title" "Ethiopia - Rainfall Stations"
+    "wms_srs" "EPSG:3857 EPSG:4326"
+    "wms_enable_request" "*"
+    "wms_queryable" "true"
+    "wms_feature_info_mime_type" "text/plain"
+    "gml_include_items" "TOWN_NAME,STATION_CO,MAIN_TOWN,RAIN_SUM,N_YEARS,JAN"
+    "wms_include_items" "TOWN_NAME,STATION_CO,MAIN_TOWN,RAIN_SUM,N_YEARS,JAN"
+  END
+  TEMPLATE "/etc/mapserver/dummy.html"
+  CLASS
+    NAME "Rainfall Stations"
+    STYLE
+      SYMBOL "circle"
+      SIZE 6
+      COLOR 35 110 180
+      OUTLINECOLOR 255 255 255
+    END
+  END
+END
+
+LAYER
+  NAME "ethiopia_rivers"
+  STATUS OFF
+  TYPE LINE
+  CONNECTIONTYPE OGR
+  CONNECTION "/data/gold/atlas_4326/rivers.shp"
+  DATA "rivers"
+  CLASSITEM "RIV_ORDER"
+  METADATA
+    "wms_title" "Ethiopia - Rivers"
+    "wms_srs" "EPSG:3857 EPSG:4326"
+    "wms_enable_request" "*"
+    "wms_queryable" "true"
+    "wms_feature_info_mime_type" "text/plain"
+    "gml_include_items" "RIV_NAME,TYPE,CLASS,RIV_ORDER,LENGTH"
+    "wms_include_items" "RIV_NAME,TYPE,CLASS,RIV_ORDER,LENGTH"
+  END
+  TEMPLATE "/etc/mapserver/dummy.html"
+  # Classified by river order
+  CLASS
+    NAME "Tributary"
+    EXPRESSION ([RIV_ORDER] = 1)
+    STYLE
+      COLOR 164 184 221
+      WIDTH 1
+    END
+  END
+  CLASS
+    NAME "2nd Order River"
+    EXPRESSION ([RIV_ORDER] = 2)
+    STYLE
+      COLOR 101 135 197
+      WIDTH 2
+    END
+  END
+  CLASS
+    NAME "Major River"
+    EXPRESSION ([RIV_ORDER] = 3)
+    STYLE
+      COLOR 53 84 142
+      WIDTH 3
+    END
+  END
+  CLASS
+    NAME "Other Rivers"
+    STYLE
+      COLOR 100 150 200
+      WIDTH 1
+    END
+  END
+END
+
+LAYER
+  NAME "ethiopia_roads_baseline"
+  STATUS OFF
+  TYPE LINE
+  STATUS OFF
+  CONNECTIONTYPE OGR
+  CONNECTION "/data/gold/atlas_4326/roads.shp"
+  DATA "roads"
+  METADATA
+    "wms_title" "Ethiopia - Roads (Baseline)"
+    "wms_srs" "EPSG:3857 EPSG:4326"
+    "wms_enable_request" "*"
+    "wms_queryable" "true"
+    "wms_feature_info_mime_type" "text/plain"
+    "gml_include_items" "ROAD_TYPE,TYPE,CLASS,LENGTH"
+    "wms_include_items" "ROAD_TYPE,TYPE,CLASS,LENGTH"
+  END
+  TEMPLATE "/etc/mapserver/dummy.html"
+  CLASS
+    NAME "Roads (Baseline)"
+    STYLE
+      COLOR 150 150 150
+      WIDTH 1
+    END
+  END
+END
+
+LAYER
+  NAME "ethiopia_streams"
+  STATUS OFF
+  TYPE LINE
+  CONNECTIONTYPE OGR
+  CONNECTION "/data/gold/atlas_4326/streams.shp"
+  DATA "streams"
+  METADATA
+    "wms_title" "Ethiopia - Streams"
+    "wms_srs" "EPSG:3857 EPSG:4326"
+    "wms_enable_request" "*"
+    "wms_queryable" "true"
+    "wms_feature_info_mime_type" "text/plain"
+    "gml_include_items" "LENGTH,HYDDNETALL"
+    "wms_include_items" "LENGTH,HYDDNETALL"
+  END
+  TEMPLATE "/etc/mapserver/dummy.html"
+  CLASS
+    NAME "Streams"
+    STYLE
+      COLOR 160 190 220
+      WIDTH 0.5
+    END
+  END
+END
+
+LAYER
+  NAME "ethiopia_towns"
+  STATUS ON
+  TYPE POINT
+  CONNECTIONTYPE OGR
+  CONNECTION "/data/gold/atlas_4326/towns.shp"
+  DATA "towns"
+  LABELITEM "TOWN_NAME"
+  LABELMAXSCALEDENOM 2000000
+  METADATA
+    "wms_title" "Ethiopia - Towns (by Population)"
+    "wms_srs" "EPSG:3857 EPSG:4326"
+    "wms_enable_request" "*"
+    "wms_queryable" "true"
+    "wms_feature_info_mime_type" "text/plain"
+    "gml_include_items" "TOWN_NAME,WEREDA,REGION,ZONES,POP,POPTOT"
+    "wms_include_items" "TOWN_NAME,WEREDA,REGION,ZONES,POP,POPTOT"
+  END
+  TEMPLATE "/etc/mapserver/dummy.html"
+  # Graduated symbols by population
+  CLASS
+    NAME "0 - 50,000"
+    EXPRESSION ([POPTOT] <= 50000)
+    STYLE
+      SYMBOL "circle"
+      SIZE 5
+      COLOR 255 203 197
+      OUTLINECOLOR 100 50 50
+    END
+    LABEL
+      COLOR 132 31 31
+      OUTLINECOLOR 255 255 255
+      OUTLINEWIDTH 2
+      FONT "arial"
+      TYPE TRUETYPE
+      SIZE 9
+      POSITION AUTO
+      PARTIALS FALSE
+      BUFFER 4
+    END
+  END
+  CLASS
+    NAME "50,000 - 80,000"
+    EXPRESSION ([POPTOT] > 50000 AND [POPTOT] <= 80000)
+    STYLE
+      SYMBOL "circle"
+      SIZE 7
+      COLOR 255 175 169
+      OUTLINECOLOR 100 50 50
+    END
+    LABEL
+      COLOR 132 31 31
+      OUTLINECOLOR 255 255 255
+      OUTLINEWIDTH 2
+      FONT "arial"
+      TYPE TRUETYPE
+      SIZE 9
+      POSITION AUTO
+      PARTIALS FALSE
+      BUFFER 4
+    END
+  END
+  CLASS
+    NAME "80,000 - 150,000"
+    EXPRESSION ([POPTOT] > 80000 AND [POPTOT] <= 150000)
+    STYLE
+      SYMBOL "circle"
+      SIZE 9
+      COLOR 255 144 141
+      OUTLINECOLOR 100 50 50
+    END
+    LABEL
+      COLOR 132 31 31
+      OUTLINECOLOR 255 255 255
+      OUTLINEWIDTH 2
+      FONT "arial"
+      TYPE TRUETYPE
+      SIZE 10
+      POSITION AUTO
+      PARTIALS FALSE
+      BUFFER 4
+    END
+  END
+  CLASS
+    NAME "> 150,000"
+    EXPRESSION ([POPTOT] > 150000)
+    STYLE
+      SYMBOL "circle"
+      SIZE 12
+      COLOR 255 31 26
+      OUTLINECOLOR 100 50 50
+    END
+    LABEL
+      COLOR 132 31 31
+      OUTLINECOLOR 255 255 255
+      OUTLINEWIDTH 2
+      FONT "arial-bold"
+      TYPE TRUETYPE
+      SIZE 11
+      POSITION AUTO
+      PARTIALS FALSE
+      BUFFER 4
+    END
+  END
+END
+
+LAYER
+  NAME "ethiopia_wetlands"
+  STATUS OFF
+  TYPE POLYGON
+  CONNECTIONTYPE OGR
+  CONNECTION "/data/gold/atlas_4326/wetlands.shp"
+  DATA "wetlands"
+  METADATA
+    "wms_title" "Ethiopia - Wetlands"
+    "wms_srs" "EPSG:3857 EPSG:4326"
+    "wms_enable_request" "*"
+    "wms_queryable" "true"
+    "wms_feature_info_mime_type" "text/plain"
+    "gml_include_items" "NAME,CLASS,CLASSTX,DESCRIP,LOCATION,HECTARES"
+    "wms_include_items" "NAME,CLASS,CLASSTX,DESCRIP,LOCATION,HECTARES"
+  END
+  TEMPLATE "/etc/mapserver/dummy.html"
+  CLASS
+    NAME "Wetlands"
+    STYLE
+      COLOR 166 255 59
+      OUTLINECOLOR 0 100 0
+      OPACITY 70
+    END
+  END
+END
+
+# --- Canonical Health Layer (Authoritative Replacement) ---
+LAYER
+  NAME "tigray_health_facilities_2006"
+  STATUS ON
+  TYPE POINT
+  CONNECTIONTYPE OGR
+  CONNECTION "/data/gold/atlas_4326/tigray/Health_Institutions.shp"
+  DATA "Health_Institutions"
+  LABELITEM "Institutio"
+  LABELMAXSCALEDENOM 200000
+  CLASSITEM "TYPE_OF_IN"
+  TEMPLATE "/etc/mapserver/dummy.html"
+  METADATA
+    "wms_title" "Tigray Health Facilities (2006)"
+    "wms_enable_request" "*"
+    "wms_queryable" "true"
+    "gml_include_items" "Institutio,TYPE_OF_IN,Woreda_Nam"
+    "wms_include_items" "Institutio,TYPE_OF_IN,Woreda_Nam"
+  END
+  # Classified by facility type
+  CLASS
+    NAME "Hospital"
+    EXPRESSION "Hospital"
+    STYLE
+      SYMBOL "plus"
+      SIZE 9
+      COLOR 0 0 230
+      OUTLINECOLOR 0 0 100
+    END
+    LABEL
+      COLOR 0 0 0
+      OUTLINECOLOR 255 255 0
+      OUTLINEWIDTH 1
+      FONT "arial"
+      TYPE TRUETYPE
+      SIZE 8
+      POSITION AUTO
+      PARTIALS FALSE
+      BUFFER 5
+    END
+  END
+  CLASS
+    NAME "Health Center"
+    EXPRESSION "Health Center"
+    STYLE
+      SYMBOL "plus"
+      SIZE 6
+      COLOR 230 76 0
+      OUTLINECOLOR 100 30 0
+    END
+    LABEL
+      COLOR 0 0 0
+      OUTLINECOLOR 255 255 0
+      OUTLINEWIDTH 1
+      FONT "arial"
+      TYPE TRUETYPE
+      SIZE 8
+      POSITION AUTO
+      PARTIALS FALSE
+      BUFFER 5
+    END
+  END
+  CLASS
+    NAME "Health Post"
+    EXPRESSION "Health Post"
+    STYLE
+      SYMBOL "plus"
+      SIZE 4
+      COLOR 76 230 0
+      OUTLINECOLOR 30 100 0
+    END
+  END
+  CLASS
+    NAME "Other Facility"
+    STYLE
+      SYMBOL "plus"
+      SIZE 4
+      COLOR 150 150 150
+    END
+  END
+END
