@@ -5,7 +5,7 @@ schedule is enabled.
 
 This workflow is the automatic counterpart to the manual reviewed-release
 publisher. It has one narrow job: after the development evidence store has
-updated, it builds a compact package containing the current six source-derived
+updated, it builds a compact package containing the six scheduled source-derived
 Tabia summaries and six display-ready native-grid TIFFs, then publishes it only
 when the package passes its technical gate and its fingerprint differs from
 the last successful automatic publication.
@@ -86,6 +86,6 @@ reused from `tsird-drought-publisher-keys`; no administrator key is involved.
 When active, its fixed schedule is 10:30 `Africa/Addis_Ababa` daily. This runs
 after the currently scheduled source checks. It is intentionally a coalescing
 check rather than six independent production transfers: new retained evidence
-becomes public at the next run only if the entire six-stream technical gate is
+becomes public at the next run only if the entire scheduled-source technical gate is
 complete. The persistent fingerprint prevents a duplicate daily release when
 nothing changed.

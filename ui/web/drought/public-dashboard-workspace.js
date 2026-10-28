@@ -43,6 +43,7 @@ async function bootPublicDroughtWorkspace() {
     observedRunBaseUrl: '../api/drought/public/dashboard/observed-rainfall/runs',
     preliminaryUrl: '../api/drought/public/dashboard/indicator/rapid',
     ndviUrl: '../api/drought/public/dashboard/indicator/vegetation',
+    hlsNdmiUrl: '../api/drought/public/dashboard/indicator/vegetation_moisture',
     swiUrl: '../api/drought/public/dashboard/indicator/soil_water',
     lstUrl: '../api/drought/public/dashboard/indicator/thermal',
     waporUrl: '../api/drought/public/dashboard/indicator/water_use',

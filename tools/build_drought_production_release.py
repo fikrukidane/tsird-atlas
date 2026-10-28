@@ -31,6 +31,7 @@ WORKSPACE_PATHS = {
     "observed": "/map/api/drought/development/observed-rainfall/latest?limit=748",
     "rapid": "/map/api/drought/development/preliminary-rainfall/latest?limit=748",
     "vegetation": "/map/api/drought/development/ndvi/latest?limit=748",
+    "vegetation_moisture": "/map/api/drought/development/hls-ndmi/latest?limit=748",
     "soil_water": "/map/api/drought/development/swi/latest?limit=748",
     "thermal": "/map/api/drought/development/lst/latest?limit=748",
     "water_use": "/map/api/drought/development/wapor/latest?limit=748",
@@ -39,7 +40,7 @@ OBSERVED_RUNS_PATH = "/map/api/drought/development/observed-rainfall/runs?limit=
 OBSERVED_RUN_PATH = "/map/api/drought/development/observed-rainfall/runs/{run_id}?limit=748"
 OBSERVED_FEATURE_PATH = "/map/api/drought/development/observed-rainfall/runs/{run_id}/features"
 # These are retained, Tabia-level observations.  They are deliberately
-# separate from the six current-workspace payloads above: the public History
+# separate from the current-workspace payloads above: the public History
 # controls need a compact record for every retained source run, not a copy of
 # a raw raster or a development URL.
 HISTORY_SOURCES = ("rapid", "ndvi", "swi", "lst", "wapor")
@@ -192,6 +193,7 @@ WORKSPACE_SUMMARY_FIELDS = {
     "observed": ("conditions", ("tsird_tabia_id", "tabia_name_en", "woreda_name_en", "rainfall_mm", "baseline_median_mm", "percentile", "condition_class", "coverage_pct", "quality_status")),
     "rapid": ("summaries", ("tsird_tabia_id", "tabia_name_en", "woreda_name_en", "rainfall_mm", "baseline_median_mm", "provisional_percentile", "comparison_status", "coverage_pct", "quality_status")),
     "vegetation": ("summaries", ("tsird_tabia_id", "tabia_name_en", "woreda_name_en", "ndvi_mean", "ndvi_median", "coverage_pct", "quality_status")),
+    "vegetation_moisture": ("summaries", ("tsird_tabia_id", "tabia_name_en", "woreda_name_en", "ndmi_mean", "ndmi_median", "coverage_pct", "quality_status")),
     "soil_water": ("summaries", ("tsird_tabia_id", "tabia_name_en", "woreda_name_en", "swi010_mean", "swi040_mean", "swi100_mean", "coverage_pct", "quality_status")),
     "thermal": ("summaries", ("tsird_tabia_id", "tabia_name_en", "woreda_name_en", "lst_c_mean", "errorbar_c_mean", "coverage_pct", "quality_status")),
     "water_use": ("summaries", ("tsird_tabia_id", "tabia_name_en", "woreda_name_en", "transpiration_mm", "aeti_mm", "coverage_pct", "quality_status")),
@@ -365,17 +367,24 @@ def public_workspace_summary(payloads: dict[str, dict[str, Any]]) -> dict[str, A
         run = payload.get("run")
         if not isinstance(rows, list) or not isinstance(run, dict):
             raise RuntimeError(f"{indicator} workspace payload is incomplete")
+        public_run = {
+            key: run.get(key)
+            for key in (
+                "run_id", "source_product", "source_version", "status",
+                "analysis_year", "season_months", "period_start", "period_end",
+                "observation_start", "observation_end", "source_period_start",
+                "source_period_end", "native_resolution", "run_scope",
+                "source_collections", "min_valid_observation_coverage_pct",
+            )
+            if run.get(key) is not None
+        }
+        if indicator == "vegetation_moisture":
+            # Do not carry a development-state marker into public evidence.
+            # The UI supplies the stronger experimental/non-operational notice.
+            public_run["status"] = "experimental retained evidence"
+            public_run["run_scope"] = "experimental_public"
         indicators[indicator] = {
-            "run": {
-                key: run.get(key)
-                for key in (
-                    "run_id", "source_product", "source_version", "status",
-                    "analysis_year", "season_months", "period_start", "period_end",
-                    "observation_start", "observation_end", "source_period_start",
-                    "source_period_end", "native_resolution",
-                )
-                if run.get(key) is not None
-            },
+            "run": public_run,
             "summaries": [
                 {field: row.get(field) for field in fields if field in row}
                 for row in rows if isinstance(row, dict)

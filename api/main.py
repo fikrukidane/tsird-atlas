@@ -1312,7 +1312,7 @@ async def public_drought_dashboard_overview():
 
 @app.get("/drought/public/dashboard/indicator/{indicator}")
 async def public_drought_dashboard_indicator(indicator: str):
-    if indicator not in {"observed", "rapid", "vegetation", "soil_water", "thermal", "water_use"}:
+    if indicator not in {"observed", "rapid", "vegetation", "vegetation_moisture", "soil_water", "thermal", "water_use"}:
         raise HTTPException(status_code=404, detail="Unknown public dashboard indicator")
     payload = _public_workspace_indicator(indicator)
     rows = [row for row in payload["summaries"] if isinstance(row, dict)]

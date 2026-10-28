@@ -183,6 +183,7 @@ class DroughtDashboard {
   _publicModeFromUrl(value) {
     const modes = {
       latest: 'observed', observed: 'observed', rapid: 'rapid', vegetation: 'vegetation',
+      vegetation_moisture: 'moisture', 'vegetation-moisture': 'moisture', moisture: 'moisture',
       soil_water: 'soilWater', 'soil-water': 'soilWater', thermal: 'thermal',
       water_use: 'waterUse', 'crop-water-use': 'waterUse', history: 'history',
       outlook: 'outlook', exposure: 'vulnerability'
@@ -192,7 +193,7 @@ class DroughtDashboard {
 
   _publicUrlIndicator(mode = this.mode) {
     return {
-      observed: 'observed', rapid: 'rapid', vegetation: 'vegetation', soilWater: 'soil_water',
+      observed: 'observed', rapid: 'rapid', vegetation: 'vegetation', moisture: 'vegetation_moisture', soilWater: 'soil_water',
       thermal: 'thermal', waterUse: 'water_use', history: 'history', outlook: 'outlook',
       vulnerability: 'exposure'
     }[mode] || 'observed';
@@ -525,6 +526,7 @@ class DroughtDashboard {
         soilWater: () => this._loadPublicOnce('soilWater', () => Promise.all([this._loadSwiArtifact(), this._loadHistoryRuns(['swi'])])),
         thermal: () => this._loadPublicOnce('thermal', () => Promise.all([this._loadLstArtifact(), this._loadHistoryRuns(['lst'])])),
         waterUse: () => this._loadPublicOnce('waterUse', () => Promise.all([this._loadWaporArtifact(), this._loadHistoryRuns(['wapor'])])),
+        moisture: () => this._loadPublicOnce('moisture', () => this._loadHlsNdmiArtifact()),
         history: () => this._loadPublicOnce('history', () => Promise.all([this._loadObservedRuns(), this._loadHistoryRuns()])),
         outlook: () => this._loadPublicOnce('outlook', () => this._loadOutlookArtifact()),
       };
@@ -657,7 +659,7 @@ class DroughtDashboard {
         ['observed', 'Latest'], ['rapid', 'Rapid rain'], ['vegetation', 'Vegetation'],
         ['moisture', 'Veg. moisture'], ['soilWater', 'Soil water'], ['waterUse', 'Crop water use'],
         ['thermal', 'Thermal'], ['history', 'History'], ['outlook', 'Outlook'], ['vulnerability', 'Exposure']
-      ].filter(([mode]) => mode !== 'moisture' || !this.publicMode);
+      ];
     modeItems.forEach(([mode, label]) => {
       const button = document.createElement('button');
       button.type = 'button';
@@ -723,7 +725,7 @@ class DroughtDashboard {
 
   _activeFreshnessKey() {
     const keys = {
-      observed: 'observed', rapid: 'rapid', vegetation: 'vegetation', soilWater: 'soil_water',
+      observed: 'observed', rapid: 'rapid', vegetation: 'vegetation', moisture: 'vegetation_moisture', soilWater: 'soil_water',
       thermal: 'thermal', waterUse: 'water_use',
       history: { rainfall: 'observed', rapid: 'rapid', ndvi: 'vegetation', swi: 'soil_water', lst: 'thermal', wapor: 'water_use' }[this.historyIndicator]
     };
@@ -801,12 +803,12 @@ class DroughtDashboard {
     if (this.mode === 'vegetation') { this._renderIndicatorMode('Vegetation condition can be shown as the retained Copernicus native raster or a Tabia zonal mean. It is not a drought or food-security classification.', () => this._renderNdviArtifact()); return; }
     if (this.mode === 'moisture') {
       const hasFullMap = this.hlsNdmiArtifact && !this.hlsNdmiArtifact.unavailable &&
-        this.hlsNdmiArtifact.run && this.hlsNdmiArtifact.run.run_scope === 'full_development';
-      this._setEvidenceLayer(hasFullMap ? 'tigray_drought_hls_ndmi_dev' : null);
+        this.hlsNdmiArtifact.run && (this.publicMode || this.hlsNdmiArtifact.run.run_scope === 'full_development');
+      this._setEvidenceLayer(hasFullMap ? (this.publicMode ? 'public_hls_ndmi' : 'tigray_drought_hls_ndmi_dev') : null);
       this._ensureContextLayersVisible('tabia');
       this.notice.textContent = hasFullMap
-        ? 'Vegetation moisture is a development-only, experimental Tabia map of cloud- and shadow-masked NASA HLS monthly surface-condition evidence. It is not a native raster, drought class, forecast, or decision product.'
-        : 'Vegetation moisture is a development-only, experimental monthly HLS surface-condition product. It does not draw a regional raster or classification until a complete all-Tabia artifact validates.';
+        ? 'Experimental vegetation moisture map: cloud- and shadow-masked NASA HLS monthly Tabia evidence. For review only; not a drought class, forecast, or decision product.'
+        : 'Vegetation moisture is an experimental monthly HLS surface-condition product. It does not draw a regional raster or classification until a complete all-Tabia artifact validates.';
       this._renderVegetationMoisturePilot();
       this._renderVegetationMoistureLegend();
       return;
@@ -1165,12 +1167,12 @@ class DroughtDashboard {
         ? `<details class="drought-index-card drought-data-list"><summary>Tabia data list (optional)</summary><div class="drought-table-wrap"><table class="drought-pilot-table"><thead><tr><th>Tabia</th><th>NDMI mean</th><th>Valid coverage</th><th>Quality</th></tr></thead><tbody>${rows}</tbody></table></div></details>`
         : `<section class="drought-index-card"><h3>Masked monthly Tabia statistics</h3><div class="drought-table-wrap"><table class="drought-pilot-table"><thead><tr><th>Tabia</th><th>NDMI mean</th><th>Valid coverage</th><th>Quality</th></tr></thead><tbody>${rows}</tbody></table></div></section>`;
       this.content.innerHTML = `
-        <div class="drought-mode-title"><strong>Vegetation moisture</strong><span>HLS monthly NDMI / LSWI · development ${isFullMap ? 'Tabia evidence map' : 'technical pilot'}</span></div>
+        ${this.publicMode ? '<div class="drought-readiness-warning" role="note">Experimental Vegetation Moisture (HLS NDMI) — for review only. Not for operational, public-safety, food-security, allocation, or response decisions.</div>' : ''}<div class="drought-mode-title"><strong>Vegetation moisture</strong><span>HLS monthly NDMI / LSWI · ${this.publicMode ? 'experimental public Tabia evidence' : `development ${isFullMap ? 'Tabia evidence map' : 'technical pilot'}`}</span></div>
         <div class="drought-pilot-status"><strong>${run.status === 'degraded' ? 'Limited usable coverage' : isFullMap ? 'Observed Tabia evidence map' : 'Bounded pilot evidence'}</strong><span>${usable.length}/${artifact.summaries.length} ${isFullMap ? 'Tabias' : 'sampled Tabias'} meet the ${Number(run.min_valid_observation_coverage_pct).toFixed(0)}% spatial-coverage rule.</span><small>${isFullMap ? 'Colour shows adequate observed coverage. Amber is limited evidence and grey is insufficient evidence; select a Tabia boundary to inspect its retained statistic.' : 'This is a 20-Tabia technical sample, not a regional map or a completed monitoring product.'}</small></div>
         <div class="drought-source-meta"><span>Observation window: ${String(run.observation_start).slice(0, 10)} to ${String(run.observation_end).slice(0, 10)}</span><span>Analytical grid: ${run.native_resolution}</span><span>Source collections: ${(run.source_collections || []).join(', ')}</span></div>
         <section class="drought-index-card"><h3>Masked monthly Tabia evidence</h3><p>NDMI = <code>(NIR − SWIR) / (NIR + SWIR)</code>. HLS harmonises Landsat and Sentinel-2 surface reflectance. The monthly value is a per-pixel median over valid observations before Tabia statistics; no gap filling or temporal interpolation is used. ${isFullMap ? 'The map uses source-value bands only; it does not classify drought.' : 'Click a sampled Tabia to highlight its boundary; no regional interpolation or colour classification is drawn.'}</p>${isFullMap ? '<div class="drought-map-selection" data-hls-selection>Select a Tabia boundary to inspect its retained statistic.</div>' : ''}</section>
         ${tableMarkup}
-        <section class="drought-index-card drought-index-card-muted"><h3>Interpretation boundary</h3><p>These observed surface-condition statistics have no seasonal baseline yet. They are not a drought classification, food-security classification, forecast, allocation rule, or composite score.</p></section>
+        <section class="drought-index-card drought-index-card-muted"><h3>Interpretation boundary</h3><p>These observed surface-condition statistics have no seasonal baseline yet. They are not a drought classification, food-security classification, forecast, allocation rule, response trigger, or composite score.</p></section>
         <section class="drought-acknowledgement"><strong>Acknowledgement</strong><span>The educational index-selection framing for this pilot refers to Geoinfotech's spatial-indices explainer, shared with TSIRD on 24 October 2026. Geoinfotech does not supply this platform's imagery, methods validation, or results.</span></section>`;
       this.content.querySelectorAll('[data-pilot-tabia]').forEach(button => button.addEventListener('click', () => {
         const row = artifact.summaries.find(item => item.tsird_tabia_id === button.dataset.pilotTabia);
@@ -1206,9 +1208,9 @@ class DroughtDashboard {
   _renderVegetationMoistureLegend() {
     if (!this.legend) return;
     const artifact = this.hlsNdmiArtifact;
-    const full = artifact && !artifact.unavailable && artifact.run && artifact.run.run_scope === 'full_development';
+    const full = artifact && !artifact.unavailable && artifact.run && (this.publicMode || artifact.run.run_scope === 'full_development');
     this.legend.innerHTML = full
-      ? `<div class="drought-legend-heading"><strong>HLS monthly NDMI · DEV</strong><span>Tabia mean, masked evidence</span></div><div class="drought-legend-scale"><span style="background:#92302b"></span><span style="background:#cb5b4f"></span><span style="background:#e89f92"></span><span style="background:#e5e5e5"></span><span style="background:#b1cfa0"></span><span style="background:#6dab75"></span><span style="background:#2a7652"></span></div><div class="drought-legend-labels"><span>lower NDMI</span><span>higher NDMI</span></div><p>Amber = limited coverage; grey = insufficient coverage. These are observed index values only, not moisture-stress, drought, food-security, or priority classes.</p>`
+      ? `<div class="drought-legend-heading"><strong>HLS monthly NDMI · ${this.publicMode ? 'experimental public evidence' : 'DEV'}</strong><span>Tabia mean, masked evidence</span></div><div class="drought-legend-scale"><span style="background:#92302b"></span><span style="background:#cb5b4f"></span><span style="background:#e89f92"></span><span style="background:#e5e5e5"></span><span style="background:#b1cfa0"></span><span style="background:#6dab75"></span><span style="background:#2a7652"></span></div><div class="drought-legend-labels"><span>lower NDMI</span><span>higher NDMI</span></div><p>Amber = limited coverage; grey = insufficient coverage. These are observed index values only, not moisture-stress, drought, food-security, allocation, response, or priority classes.</p>`
       : `<div class="drought-legend-heading"><strong>Experimental pilot status</strong><span>no regional map displayed</span></div><p>When an approved DEV artifact exists, the legend will describe observed index values and valid coverage. It will not use universal moisture-stress thresholds.</p>`;
   }
 
@@ -1689,6 +1691,7 @@ class DroughtDashboard {
     const publicEvidenceColors = ['#440154', '#472d7b', '#3b528b', '#2c728e', '#21918c', '#27ad81', '#5ec962', '#fde725'];
     const publicEvidenceBands = {
       vegetation: fineBands('NDVI', [0.15, 0.25, 0.35, 0.45, 0.55, 0.65, 0.75], publicEvidenceColors, '', 'Tabia-average value'),
+      moisture: fineBands('NDMI', [-0.20, -0.10, 0, 0.10, 0.20, 0.30, 0.40], publicEvidenceColors, '', 'experimental Tabia-average value'),
       soilWater: fineBands('SWI-040', [15, 25, 35, 45, 55, 65, 75], publicEvidenceColors, '%', 'Tabia-average value'),
       thermal: fineBands('LST', [15, 20, 25, 30, 35, 40, 45], publicEvidenceColors, ' °C', 'Tabia-average value'),
       waterUse: fineBands('T', [0.5, 1, 1.5, 2, 2.5, 3, 3.5], publicEvidenceColors, ' mm/day', 'Tabia-average magnitude')
@@ -1746,6 +1749,11 @@ class DroughtDashboard {
         title: 'Map legend · vegetation condition',
         note: this.spatialViews.vegetation === 'raw' ? 'Ten fixed NDVI bands preserve the retained 300 m grid. They indicate greenness values, not drought severity or priority.' : this.publicMode ? 'Copernicus NDVI v3 Tabia mean. Eight colour-vision-safe value bands support the released display; this is not a drought-severity or priority scale.' : 'Copernicus NDVI v3 mean, zonally summarized from the retained 300 m raster. It uses the same ten fixed NDVI bands and colours as the native grid.',
         items: this.publicMode && this.spatialViews.vegetation !== 'raw' ? publicEvidenceBands.vegetation : fineNdviBands
+      },
+      moisture: {
+        title: 'Map legend · experimental vegetation moisture',
+        note: 'HLS monthly NDMI Tabia mean from cloud- and shadow-masked observations. Limited coverage is amber and insufficient evidence is hatched. The value is not a moisture-stress, drought, food-security, allocation, or response class.',
+        items: publicEvidenceBands.moisture
       },
       soilWater: {
         title: 'Map legend · soil-water context',
@@ -2014,7 +2022,7 @@ class DroughtDashboard {
       this._highlightHistoryTabia(selection);
     }
     if (this.mode === 'moisture') this._renderVegetationMoistureSelection(selection);
-    if (['observed', 'rapid', 'vegetation', 'soilWater', 'thermal', 'waterUse'].includes(this.mode)) {
+    if (['observed', 'rapid', 'vegetation', 'moisture', 'soilWater', 'thermal', 'waterUse'].includes(this.mode)) {
       const value = this._publicEvidenceForTabia(selection.id);
       if (value && value.tsird_tabia_id) {
         this._showPublicEvidenceSelection({
@@ -2398,6 +2406,7 @@ class DroughtDashboard {
       observed: this.observedArtifact && this.observedArtifact.conditions,
       rapid: this.preliminaryArtifact && this.preliminaryArtifact.summaries,
       vegetation: this.ndviArtifact && this.ndviArtifact.summaries,
+      moisture: this.hlsNdmiArtifact && this.hlsNdmiArtifact.summaries,
       soilWater: this.swiArtifact && this.swiArtifact.summaries,
       thermal: this.lstArtifact && this.lstArtifact.summaries,
       waterUse: this.waporArtifact && this.waporArtifact.summaries
@@ -2410,7 +2419,7 @@ class DroughtDashboard {
   }
 
   _appendPublicEvidenceSelection() {
-    if (!['observed', 'rapid', 'vegetation', 'soilWater', 'thermal', 'waterUse'].includes(this.mode)) return;
+    if (!['observed', 'rapid', 'vegetation', 'moisture', 'soilWater', 'thermal', 'waterUse'].includes(this.mode)) return;
     const announcement = document.createElement('div');
     announcement.className = 'drought-selection-announcement';
     announcement.dataset.publicEvidenceAnnouncement = '';
@@ -2446,6 +2455,7 @@ class DroughtDashboard {
       observed: `Rainfall ${number(value.rainfall_mm, 1, ' mm')} · baseline median ${number(value.baseline_median_mm, 1, ' mm')} · ${finite(value.percentile) ? `${number(value.percentile)}th percentile` : 'baseline percentile unavailable'}`,
       rapid: `Rainfall ${number(value.rainfall_mm, 1, ' mm')}${finite(value.provisional_percentile) ? ` · provisional final-history percentile ${number(value.provisional_percentile)}th` : ''}`,
       vegetation: `NDVI mean ${number(value.ndvi_mean, 3)}`,
+      moisture: `HLS NDMI mean ${number(value.ndmi_mean, 3)}`,
       soilWater: `SWI-040 mean ${number(value.swi040_mean, 1, '%')}`,
       thermal: `Land-surface temperature mean ${number(value.lst_c_mean, 1, ' °C')}`,
       waterUse: `Transpiration ${number(value.transpiration_mm, 3, ' mm/day')} · AETI ${number(value.aeti_mm, 3, ' mm/day')}`
@@ -2454,6 +2464,7 @@ class DroughtDashboard {
       observed: 'Retained CHIRPS Tabia zonal mean; this is observed rainfall evidence, not a drought class or priority.',
       rapid: 'Retained preliminary-rainfall Tabia zonal mean; it is observed rainfall evidence, not a drought class or priority.',
       vegetation: 'Retained Copernicus NDVI zonal mean; it is vegetation context, not a drought or food-security classification.',
+      moisture: 'Experimental HLS NDMI Tabia evidence with cloud and shadow masking. It has no seasonal baseline and is not a drought, food-security, allocation, or response classification.',
       soilWater: 'Retained Copernicus SWI zonal mean; the coarse source grid does not create Tabia-scale precision.',
       thermal: 'Retained land-surface-temperature zonal mean; it is not an air-temperature observation or drought class.',
       waterUse: 'Retained WaPOR zonal mean; it is vegetation water-use context, not crop extent, yield, or food-security status.'
@@ -2476,7 +2487,7 @@ class DroughtDashboard {
   }
 
   _publicEvidenceValue(row) {
-    const field = { observed: 'rainfall_mm', rapid: 'rainfall_mm', vegetation: 'ndvi_mean', soilWater: 'swi040_mean', thermal: 'lst_c_mean', waterUse: 'transpiration_mm' }[this.mode];
+    const field = { observed: 'rainfall_mm', rapid: 'rainfall_mm', vegetation: 'ndvi_mean', moisture: 'ndmi_mean', soilWater: 'swi040_mean', thermal: 'lst_c_mean', waterUse: 'transpiration_mm' }[this.mode];
     return Number(row && row[field]);
   }
 
@@ -2488,6 +2499,7 @@ class DroughtDashboard {
     const colours = ['#440154', '#472d7b', '#3b528b', '#2c728e', '#21918c', '#27ad81', '#5ec962', '#fde725'];
     const thresholds = {
       vegetation: [0.15, 0.25, 0.35, 0.45, 0.55, 0.65, 0.75],
+      moisture: [-0.20, -0.10, 0, 0.10, 0.20, 0.30, 0.40],
       soilWater: [15, 25, 35, 45, 55, 65, 75],
       thermal: [15, 20, 25, 30, 35, 40, 45],
       waterUse: [0.5, 1, 1.5, 2, 2.5, 3, 3.5]

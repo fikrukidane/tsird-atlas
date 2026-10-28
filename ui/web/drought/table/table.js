@@ -5,6 +5,7 @@
     observed: { endpoint: 'observed', historyKey: 'rainfall', label: 'Final rainfall (CHIRPS)', field: 'rainfall_mm', unit: ' mm', digits: 1 },
     rapid: { endpoint: 'rapid', historyKey: 'rapid', label: 'Rapid rainfall (CHIRPS preliminary)', field: 'rainfall_mm', unit: ' mm', digits: 1 },
     vegetation: { endpoint: 'vegetation', historyKey: 'ndvi', label: 'Vegetation (NDVI)', field: 'ndvi_mean', unit: '', digits: 3 },
+    vegetation_moisture: { endpoint: 'vegetation_moisture', historyKey: null, label: 'Vegetation moisture (experimental HLS NDMI)', field: 'ndmi_mean', unit: '', digits: 3 },
     soil_water: { endpoint: 'soil_water', historyKey: 'swi', label: 'Soil water (SWI-040)', field: 'swi040_mean', unit: '%', digits: 1 },
     thermal: { endpoint: 'thermal', historyKey: 'lst', label: 'Thermal (land-surface temperature)', field: 'lst_c_mean', unit: ' °C', digits: 1 },
     water_use: { endpoint: 'water_use', historyKey: 'wapor', label: 'Crop water use (WaPOR transpiration)', field: 'transpiration_mm', unit: ' mm/day', digits: 3 }
@@ -64,8 +65,8 @@
         status.textContent = 'Superseded release: no values displayed.'; return;
       }
       release.className = 'drought-table-release';
-      const isHistorical = requestedMonth && requestedMonth !== 'latest';
-      release.textContent = `${isHistorical ? `Retained historical snapshot ${requestedMonth}` : `Approved indicator release ${currentRelease || 'not recorded'} · activated ${String(overview.indicator_release && overview.indicator_release.activated_at || 'not recorded').slice(0, 10)}`}.`;
+    const isHistorical = requestedMonth && requestedMonth !== 'latest' && MODES[indicator].historyKey;
+      release.textContent = `${isHistorical ? `Retained historical snapshot ${requestedMonth}` : `Approved indicator release ${currentRelease || 'not recorded'} · activated ${String(overview.indicator_release && overview.indicator_release.activated_at || 'not recorded').slice(0, 10)}`}.${indicator === 'vegetation_moisture' ? ' Experimental HLS NDMI — for review only; not for operational, public-safety, food-security, allocation, or response decisions.' : ''}`;
       const source = isHistorical
         ? `${API_ROOT}/evidence/${MODES[indicator].historyKey}/runs/${encodeURIComponent(requestedMonth)}/summary`
         : `${API_ROOT}/indicator/${MODES[indicator].endpoint}`;
