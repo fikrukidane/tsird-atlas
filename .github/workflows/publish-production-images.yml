@@ -60,5 +60,12 @@ jobs:
           context: ${{ matrix.context }}
           push: true
           tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+          # Keep metadata-action's standard OCI labels, then explicitly
+          # pin the two deployment-audit labels to this workflow's commit.
+          # This avoids an ambiguous image identity when a tag build is
+          # triggered from an annotated release tag.
+          labels: |
+            ${{ steps.meta.outputs.labels }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.created=${{ steps.meta.outputs.created }}
           provenance: mode=max
