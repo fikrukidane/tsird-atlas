@@ -94,6 +94,24 @@ not copied to PostGIS, artifacts, browser files, or Git.
     food-security class, an IPC determination, or a priority score. A bounded
     native-FSC asset loader requires separate approval after issue/validity
     periods, terms, schema, and provider geography are confirmed.
+18. `sentinel2-ndmi-pilot`: calls CDSE Sentinel Hub's Statistical API for no
+    more than 20 fixed canonical Tabias and one completed 30-day UTC window.
+    It calculates B08/B11 NDMI at the 20 m B11/SCL grid using `dataMask` and
+    SCL classes 4/5 only, retains compact mean/median/coverage results, and
+    marks rows below 70% valid coverage as `insufficient_evidence`. It never
+    downloads raw scenes, creates a regional raster, schedules itself, creates
+    a drought/food-security classification, or publishes a public release.
+
+19. `hls-ndmi-monthly-pilot`: discovers NASA HLS v2.0 L30/S30 COGs through
+    CMR-STAC for one completed calendar month and reads only the windows needed
+    for twenty fixed canonical Tabias. It requires a local DEV-only
+    `EARTHDATA_TOKEN`, masks Fmask cloud, adjacent cloud/shadow, shadow,
+    snow/ice, water and high aerosol, and retains compact observation-level
+    NDMI mean/median, valid/candidate observation-pixel counts, acquisition
+    count and first/last/median acquisition time. It requires 30 valid pixels,
+    70% observation coverage and two contributing acquisitions for `ok`; it
+    never schedules itself, retains raw scenes, serves a WMS/API layer, or
+    publishes a release.
 
 ## Retention and time-series rule
 

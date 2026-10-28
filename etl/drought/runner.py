@@ -43,6 +43,10 @@ CONTROL_WORKFLOWS = (
     {"key": "wapor", "label": "WaPOR crop water-use", "cadence": "Daily 07:00 Addis; refresh only when the provider declares a new dekad", "policy_state": "active"},
     {"key": "ndvi", "label": "Copernicus NDVI source probe", "cadence": "Daily 06:45 Addis; metadata only", "policy_state": "active"},
     {"key": "ndvi-summary", "label": "Copernicus NDVI Tabia evidence", "cadence": "Manual development verification; no schedule activated", "policy_state": "inactive"},
+    {"key": "sentinel2-ndmi-pilot", "label": "Sentinel-2 vegetation-moisture pilot", "cadence": "Manual development verification; 20 Tabias only", "policy_state": "inactive"},
+    {"key": "sentinel2-ndmi-full", "label": "Sentinel-2 vegetation-moisture all-Tabia evidence", "cadence": "Manual DEV acquisition only; no schedule", "policy_state": "inactive"},
+    {"key": "hls-ndmi-monthly-pilot", "label": "HLS monthly vegetation-moisture feasibility pilot", "cadence": "Manual development verification; 20 Tabias only", "policy_state": "inactive"},
+    {"key": "hls-ndmi-monthly-full", "label": "HLS monthly vegetation-moisture all-Tabia evidence", "cadence": "Manual DEV acquisition only; resumable local checkpoint; no schedule", "policy_state": "inactive"},
     {"key": "swi", "label": "Copernicus SWI source probe", "cadence": "Daily 06:50 Addis; metadata only", "policy_state": "active"},
     {"key": "lst-history", "label": "Thermal historical evidence (CLMS LST v2)", "cadence": "Manual history only; upstream product superseded", "policy_state": "inactive"},
     {"key": "seasonal-outlook", "label": "ICPAC seasonal-outlook catalogue probe", "cadence": "Weekly 07:10 Addis; no schedule activated", "policy_state": "inactive"},
@@ -358,7 +362,7 @@ def run_preliminary_baseline(job_id: str):
         jobs[job_id].update(status="running", started_at=now())
     try:
         completed = subprocess.run(["python3", str(WORK_DIR / "build_chirps_prelim_baseline.py")], cwd=WORK_DIR,
-            text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=True, timeout=7200)
+            text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=True, timeout=14400)
         status, error, output = "succeeded", None, completed.stdout[-4000:]
     except subprocess.CalledProcessError as exc:
         status, error, output = "failed", "CHIRPS preliminary baseline build failed", (exc.stdout or "")[-4000:]
@@ -476,6 +480,111 @@ def run_ndvi_tabia_summary(job_id: str):
         status, error, output = "failed", f"Unexpected NDVI summary error: {type(exc).__name__}", []
     with jobs_lock:
         jobs[job_id].update(status=status, finished_at=now(), error=error, output_tail="\n".join(output)[-4000:])
+
+
+def run_sentinel2_ndmi_pilot(job_id: str):
+    """Run the fixed 20-Tabia statistical pilot; never downloads imagery or publishes."""
+    with jobs_lock:
+        jobs[job_id].update(status="running", started_at=now())
+    try:
+        summary = subprocess.run(["python3", str(WORK_DIR / "sentinel2_ndmi_statistical_pilot.py")], cwd=WORK_DIR,
+            text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=True, timeout=1800)
+        first_json = summary.stdout.find("{")
+        if first_json < 0:
+            raise ValueError("Sentinel-2 pilot did not report a run ID")
+        result = json.JSONDecoder().raw_decode(summary.stdout[first_json:])[0]
+        run_id = result["run_id"]
+        loaded = subprocess.run(["python3", str(WORK_DIR / "load_sentinel2_ndmi_pilot.py"), str(DATA_ROOT / "outputs" / run_id)],
+            cwd=WORK_DIR, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=True, timeout=600)
+        loaded_json = json.JSONDecoder().raw_decode(loaded.stdout[loaded.stdout.find("{"):])[0]
+        status, error, output = loaded_json.get("artifact_status", "succeeded"), None, [summary.stdout[-2000:], loaded.stdout[-2000:]]
+    except subprocess.CalledProcessError as exc:
+        status, error, output = "failed", "Sentinel-2 NDMI pilot failed", [(exc.stdout or "")[-2000:]]
+    except subprocess.TimeoutExpired:
+        status, error, output = "failed", "Sentinel-2 NDMI pilot exceeded the 30-minute development timeout", []
+    except Exception as exc:
+        status, error, output = "failed", f"Unexpected Sentinel-2 NDMI pilot error: {type(exc).__name__}", []
+    with jobs_lock:
+        jobs[job_id].update(status=status, finished_at=now(), error=error, output_tail="\n".join(output)[-4000:])
+
+
+def run_sentinel2_ndmi_full(job_id: str):
+    """Run exactly one all-Tabia DEV acquisition; never publish or schedule it."""
+    with jobs_lock:
+        jobs[job_id].update(status="running", started_at=now())
+    try:
+        summary = subprocess.run(["python3", str(WORK_DIR / "sentinel2_ndmi_statistical_full.py")], cwd=WORK_DIR,
+            text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=True, timeout=7200)
+        first_json = summary.stdout.rfind('{"run_id"')
+        if first_json < 0:
+            raise ValueError("Sentinel-2 full acquisition did not report a run ID")
+        result = json.JSONDecoder().raw_decode(summary.stdout[first_json:])[0]
+        run_id = result["run_id"]
+        loaded = subprocess.run(["python3", str(WORK_DIR / "load_sentinel2_ndmi_full.py"), str(DATA_ROOT / "outputs" / run_id)],
+            cwd=WORK_DIR, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=True, timeout=900)
+        loaded_json = json.JSONDecoder().raw_decode(loaded.stdout[loaded.stdout.find("{"):])[0]
+        status, error, output = loaded_json.get("artifact_status", "succeeded"), None, [summary.stdout[-2500:], loaded.stdout[-2000:]]
+    except subprocess.CalledProcessError as exc:
+        status, error, output = "failed", "Sentinel-2 NDMI full DEV acquisition failed", [(exc.stdout or "")[-2500:]]
+    except subprocess.TimeoutExpired:
+        status, error, output = "failed", "Sentinel-2 NDMI full DEV acquisition exceeded the four-hour timeout", []
+    except Exception as exc:
+        status, error, output = "failed", f"Unexpected Sentinel-2 NDMI full DEV error: {type(exc).__name__}", []
+    with jobs_lock:
+        jobs[job_id].update(status=status, finished_at=now(), error=error, output_tail="\n".join(output)[-5000:])
+    return jobs[job_id]
+
+
+def run_hls_ndmi_monthly_pilot(job_id: str):
+    """Run the fixed 20-Tabia HLS monthly pilot; it cannot publish or schedule."""
+    with jobs_lock:
+        jobs[job_id].update(status="running", started_at=now())
+    try:
+        summary = subprocess.run(["python3", str(WORK_DIR / "hls_ndmi_monthly_pilot.py")], cwd=WORK_DIR,
+            text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=True, timeout=7200)
+        first_json = summary.stdout.find("{")
+        if first_json < 0:
+            raise ValueError("HLS monthly pilot did not report a run ID")
+        result = json.JSONDecoder().raw_decode(summary.stdout[first_json:])[0]
+        run_id = result["run_id"]
+        loaded = subprocess.run(["python3", str(WORK_DIR / "load_hls_ndmi_monthly_pilot.py"), str(DATA_ROOT / "outputs" / run_id)],
+            cwd=WORK_DIR, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=True, timeout=600)
+        loaded_json = json.JSONDecoder().raw_decode(loaded.stdout[loaded.stdout.find("{"):])[0]
+        status, error, output = loaded_json.get("artifact_status", "succeeded"), None, [summary.stdout[-2500:], loaded.stdout[-2000:]]
+    except subprocess.CalledProcessError as exc:
+        status, error, output = "failed", "HLS monthly NDMI pilot failed", [(exc.stdout or "")[-2500:]]
+    except subprocess.TimeoutExpired:
+        status, error, output = "failed", "HLS monthly NDMI pilot exceeded the two-hour development timeout", []
+    except Exception as exc:
+        status, error, output = "failed", f"Unexpected HLS monthly NDMI pilot error: {type(exc).__name__}", []
+    with jobs_lock:
+        jobs[job_id].update(status=status, finished_at=now(), error=error, output_tail="\n".join(output)[-5000:])
+
+
+def run_hls_ndmi_monthly_full(job_id: str):
+    """Run one fixed, resumable all-Tabia HLS DEV acquisition; never publish it."""
+    with jobs_lock:
+        jobs[job_id].update(status="running", started_at=now())
+    try:
+        summary = subprocess.run(["python3", str(WORK_DIR / "hls_ndmi_monthly_full.py")], cwd=WORK_DIR,
+            text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=True, timeout=129600)
+        first_json = summary.stdout.rfind('{\n  "run_id"')
+        if first_json < 0:
+            raise ValueError("HLS full-development acquisition did not report a run ID")
+        result = json.JSONDecoder().raw_decode(summary.stdout[first_json:])[0]
+        run_id = result["run_id"]
+        loaded = subprocess.run(["python3", str(WORK_DIR / "load_hls_ndmi_monthly_full.py"), str(DATA_ROOT / "outputs" / run_id)],
+            cwd=WORK_DIR, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=True, timeout=900)
+        loaded_json = json.JSONDecoder().raw_decode(loaded.stdout[loaded.stdout.find("{"):])[0]
+        status, error, output = loaded_json.get("artifact_status", "succeeded"), None, [summary.stdout[-3000:], loaded.stdout[-2000:]]
+    except subprocess.CalledProcessError as exc:
+        status, error, output = "failed", "HLS monthly full-development acquisition failed", [(exc.stdout or "")[-3000:]]
+    except subprocess.TimeoutExpired:
+        status, error, output = "failed", "HLS monthly full-development acquisition exceeded the 36-hour DEV timeout", []
+    except Exception as exc:
+        status, error, output = "failed", f"Unexpected HLS monthly full-development error: {type(exc).__name__}", []
+    with jobs_lock:
+        jobs[job_id].update(status=status, finished_at=now(), error=error, output_tail="\n".join(output)[-5000:])
 
 
 def run_swi_tabia_summary(job_id: str):
@@ -989,6 +1098,62 @@ def start_ndvi_tabia_summary():
                         "status": "queued", "requested_at": now(), "request": {}, "run_id": None,
                         "started_at": None, "finished_at": None, "error": None, "output_tail": None}
     threading.Thread(target=run_ndvi_tabia_summary, args=(job_id,), daemon=True).start()
+    return jobs[job_id]
+
+
+@app.post("/runs/sentinel2-ndmi-pilot/development-test", status_code=202)
+def start_sentinel2_ndmi_pilot():
+    """Run one fixed 20-Tabia, cloud-masked Sentinel-2 statistics pilot."""
+    with jobs_lock:
+        if any(job["status"] in {"queued", "running"} for job in jobs.values()):
+            raise HTTPException(status_code=409, detail="A drought refresh job is already active")
+        job_id = str(uuid.uuid4())
+        jobs[job_id] = {"job_id": job_id, "workflow": "sentinel2-ndmi-pilot", "status": "queued",
+                        "requested_at": now(), "request": {}, "run_id": None, "started_at": None,
+                        "finished_at": None, "error": None, "output_tail": None}
+    threading.Thread(target=run_sentinel2_ndmi_pilot, args=(job_id,), daemon=True).start()
+    return jobs[job_id]
+
+
+@app.post("/runs/sentinel2-ndmi-full/development-test", status_code=202)
+def start_sentinel2_ndmi_full():
+    """Run one fixed 748-Tabia cloud-masked Sentinel-2 DEV acquisition."""
+    with jobs_lock:
+        if any(job["status"] in {"queued", "running"} for job in jobs.values()):
+            raise HTTPException(status_code=409, detail="A drought refresh job is already active")
+        job_id = str(uuid.uuid4())
+        jobs[job_id] = {"job_id": job_id, "workflow": "sentinel2-ndmi-full", "status": "queued",
+                        "requested_at": now(), "request": {}, "run_id": None, "started_at": None,
+                        "finished_at": None, "error": None, "output_tail": None}
+    threading.Thread(target=run_sentinel2_ndmi_full, args=(job_id,), daemon=True).start()
+    return jobs[job_id]
+
+
+@app.post("/runs/hls-ndmi-monthly-pilot/development-test", status_code=202)
+def start_hls_ndmi_monthly_pilot():
+    """Run one fixed 20-Tabia HLS monthly feasibility pilot inside the DEV network."""
+    with jobs_lock:
+        if any(job["status"] in {"queued", "running"} for job in jobs.values()):
+            raise HTTPException(status_code=409, detail="A drought refresh job is already active")
+        job_id = str(uuid.uuid4())
+        jobs[job_id] = {"job_id": job_id, "workflow": "hls-ndmi-monthly-pilot", "status": "queued",
+                        "requested_at": now(), "request": {}, "run_id": None, "started_at": None,
+                        "finished_at": None, "error": None, "output_tail": None}
+    threading.Thread(target=run_hls_ndmi_monthly_pilot, args=(job_id,), daemon=True).start()
+    return jobs[job_id]
+
+
+@app.post("/runs/hls-ndmi-monthly-full/development-test", status_code=202)
+def start_hls_ndmi_monthly_full():
+    """Run one fixed, all-Tabia HLS monthly DEV acquisition inside the private network."""
+    with jobs_lock:
+        if any(job["status"] in {"queued", "running"} for job in jobs.values()):
+            raise HTTPException(status_code=409, detail="A drought refresh job is already active")
+        job_id = str(uuid.uuid4())
+        jobs[job_id] = {"job_id": job_id, "workflow": "hls-ndmi-monthly-full", "status": "queued",
+                        "requested_at": now(), "request": {}, "run_id": None, "started_at": None,
+                        "finished_at": None, "error": None, "output_tail": None}
+    threading.Thread(target=run_hls_ndmi_monthly_full, args=(job_id,), daemon=True).start()
     return jobs[job_id]
 
 @app.post("/runs/swi-tabia-summary/development-test", status_code=202)

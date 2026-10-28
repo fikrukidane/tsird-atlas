@@ -19,6 +19,7 @@ class DroughtDashboard {
     this.swiUrl = options.swiUrl || 'api/drought/development/swi/latest?limit=748';
     this.lstUrl = options.lstUrl || 'api/drought/development/lst/latest?limit=748';
     this.waporUrl = options.waporUrl || 'api/drought/development/wapor/latest?limit=748';
+    this.hlsNdmiUrl = options.hlsNdmiUrl || 'api/drought/development/hls-ndmi/latest?limit=748';
     // DroughtDashboard is also mounted under /map/drought/, so its fallback
     // must resolve through the parent /map/api/ route even if an older caller
     // has not yet supplied the explicit workspace URL.
@@ -51,6 +52,8 @@ class DroughtDashboard {
     this.swiArtifact = null;
     this.lstArtifact = null;
     this.waporArtifact = null;
+    this.hlsNdmiArtifact = null;
+    this.hlsNdmiLayer = null;
     this.outlookArtifact = null;
     this.outlookRuns = [];
     this.priorityConfiguration = null;
@@ -145,7 +148,7 @@ class DroughtDashboard {
       await Promise.all([
         this._loadObservedArtifact(), this._loadObservedRuns(), this._loadPreliminaryArtifact(),
         this._loadNdviArtifact(), this._loadSwiArtifact(), this._loadLstArtifact(),
-        this._loadWaporArtifact(), this._loadOutlookArtifact(), this._loadPriorityFoundation(),
+        this._loadWaporArtifact(), this._loadHlsNdmiArtifact(), this._loadOutlookArtifact(), this._loadPriorityFoundation(),
         this._loadFewsNetContext(), this._loadHistoryRuns(), this._loadPublicGeometry()
       ]);
       this._createBoundaryLayer();
@@ -357,6 +360,18 @@ class DroughtDashboard {
     } catch (error) {
       console.error('[DroughtDashboard] WaPOR unavailable:', error);
       this.waporArtifact = { unavailable: true, message: 'Agricultural water-use artifact is unavailable.' };
+    }
+  }
+
+  async _loadHlsNdmiArtifact() {
+    try {
+      const response = await fetch(this.hlsNdmiUrl, { cache: 'no-store' });
+      const artifact = await response.json();
+      if (!response.ok || !artifact.run || !Array.isArray(artifact.summaries)) throw new Error('invalid HLS NDMI artifact');
+      this.hlsNdmiArtifact = artifact;
+    } catch (error) {
+      console.info('[DroughtDashboard] HLS NDMI artifact unavailable:', error);
+      this.hlsNdmiArtifact = { unavailable: true, message: 'No all-Tabia HLS monthly vegetation-moisture artifact has been loaded yet.' };
     }
   }
 
@@ -638,7 +653,11 @@ class DroughtDashboard {
     controls.className = 'drought-mode-controls';
     const modeItems = this.priorityOnly
       ? []
-      : [['observed', 'Latest'], ['rapid', 'Rapid rain'], ['vegetation', 'Vegetation'], ['soilWater', 'Soil water'], ['thermal', 'Thermal'], ['waterUse', 'Crop water use'], ['history', 'History'], ['outlook', 'Outlook'], ['vulnerability', 'Exposure']];
+      : [
+        ['observed', 'Latest'], ['rapid', 'Rapid rain'], ['vegetation', 'Vegetation'],
+        ['moisture', 'Veg. moisture'], ['soilWater', 'Soil water'], ['waterUse', 'Crop water use'],
+        ['thermal', 'Thermal'], ['history', 'History'], ['outlook', 'Outlook'], ['vulnerability', 'Exposure']
+      ].filter(([mode]) => mode !== 'moisture' || !this.publicMode);
     modeItems.forEach(([mode, label]) => {
       const button = document.createElement('button');
       button.type = 'button';
@@ -757,6 +776,7 @@ class DroughtDashboard {
     if (this.mode === 'observed') {
       const historical = this.observedSnapshotId !== 'latest';
       this._setEvidenceLayer(historical ? null : this._evidenceLayerForMode());
+      this._ensureContextLayersVisible('tabia');
       this.notice.textContent = historical
         ? 'Historical evidence snapshot: this Tabia-only map shows an archived CHIRPS observation period. It is not an as-issued forecast or a model backtest, and no historical native raster is implied.'
         : this.spatialViews.observed === 'raw'
@@ -770,6 +790,7 @@ class DroughtDashboard {
     }
     if (this.mode === 'rapid') {
       this._setEvidenceLayer(this._evidenceLayerForMode());
+      this._ensureContextLayersVisible('tabia');
       this.notice.textContent = 'Rapid monitoring uses six completed CHIRPS preliminary pentads. Choose the native grid or Tabia zonal average; it is an observed rainfall total, not a drought class or food-security prediction.';
       this._renderPreliminaryArtifact();
       this._appendPublicEvidenceSelection();
@@ -778,6 +799,18 @@ class DroughtDashboard {
       return;
     }
     if (this.mode === 'vegetation') { this._renderIndicatorMode('Vegetation condition can be shown as the retained Copernicus native raster or a Tabia zonal mean. It is not a drought or food-security classification.', () => this._renderNdviArtifact()); return; }
+    if (this.mode === 'moisture') {
+      const hasFullMap = this.hlsNdmiArtifact && !this.hlsNdmiArtifact.unavailable &&
+        this.hlsNdmiArtifact.run && this.hlsNdmiArtifact.run.run_scope === 'full_development';
+      this._setEvidenceLayer(hasFullMap ? 'tigray_drought_hls_ndmi_dev' : null);
+      this._ensureContextLayersVisible('tabia');
+      this.notice.textContent = hasFullMap
+        ? 'Vegetation moisture is a development-only, experimental Tabia map of cloud- and shadow-masked NASA HLS monthly surface-condition evidence. It is not a native raster, drought class, forecast, or decision product.'
+        : 'Vegetation moisture is a development-only, experimental monthly HLS surface-condition product. It does not draw a regional raster or classification until a complete all-Tabia artifact validates.';
+      this._renderVegetationMoisturePilot();
+      this._renderVegetationMoistureLegend();
+      return;
+    }
     if (this.mode === 'soilWater') { this._renderIndicatorMode('Soil water can be shown as the coarse Copernicus native grid or a Tabia zonal mean. It is context, not a Tabia-scale observation, drought class, or food-security prediction.', () => this._renderSwiArtifact()); return; }
     if (this.mode === 'thermal') { this._renderIndicatorMode('Land-surface temperature can be shown as the retained native raster or a Tabia zonal mean. It is not measured air temperature, a drought class, or a food-security prediction.', () => this._renderLstArtifact()); return; }
     if (this.mode === 'waterUse') { this._renderIndicatorMode('Crop water use shows FAO WaPOR transpiration—a vegetation water-use measure—alongside actual evapotranspiration context. It is not current crop extent, yield, drought severity, food-security, or a priority classification.', () => this._renderWaporArtifact()); return; }
@@ -1109,12 +1142,74 @@ class DroughtDashboard {
       return;
     }
     this._setEvidenceLayer(this._evidenceLayerForMode());
+    this._ensureContextLayersVisible('tabia');
     this.notice.textContent = currentNotice;
     renderCurrentArtifact();
     this._appendPublicEvidenceSelection();
     this._renderSpatialControl();
     this._renderIndicatorSnapshotControl();
     this._renderLegend();
+  }
+
+  _renderVegetationMoisturePilot() {
+    const artifact = this.hlsNdmiArtifact;
+    if (artifact && !artifact.unavailable) {
+      const run = artifact.run;
+      const usable = artifact.summaries.filter(row => row.quality_status === 'ok' && Number.isFinite(Number(row.ndmi_mean)));
+      const isFullMap = run.run_scope === 'full_development';
+      const rows = artifact.summaries.slice(0, isFullMap ? 15 : artifact.summaries.length).map(row => {
+        const value = Number.isFinite(Number(row.ndmi_mean)) ? Number(row.ndmi_mean).toFixed(3) : 'not available';
+        return `<tr><td><button type="button" class="drought-pilot-tabia" data-pilot-tabia="${row.tsird_tabia_id}">${row.tabia_name_en || 'Unnamed Tabia'}</button><small>${row.woreda_name_en || ''}</small></td><td>${value}</td><td>${Number(row.coverage_pct).toFixed(1)}%</td><td>${String(row.quality_status).replaceAll('_', ' ')}</td></tr>`;
+      }).join('');
+      const tableMarkup = isFullMap
+        ? `<details class="drought-index-card drought-data-list"><summary>Tabia data list (optional)</summary><div class="drought-table-wrap"><table class="drought-pilot-table"><thead><tr><th>Tabia</th><th>NDMI mean</th><th>Valid coverage</th><th>Quality</th></tr></thead><tbody>${rows}</tbody></table></div></details>`
+        : `<section class="drought-index-card"><h3>Masked monthly Tabia statistics</h3><div class="drought-table-wrap"><table class="drought-pilot-table"><thead><tr><th>Tabia</th><th>NDMI mean</th><th>Valid coverage</th><th>Quality</th></tr></thead><tbody>${rows}</tbody></table></div></section>`;
+      this.content.innerHTML = `
+        <div class="drought-mode-title"><strong>Vegetation moisture</strong><span>HLS monthly NDMI / LSWI · development ${isFullMap ? 'Tabia evidence map' : 'technical pilot'}</span></div>
+        <div class="drought-pilot-status"><strong>${run.status === 'degraded' ? 'Limited usable coverage' : isFullMap ? 'Observed Tabia evidence map' : 'Bounded pilot evidence'}</strong><span>${usable.length}/${artifact.summaries.length} ${isFullMap ? 'Tabias' : 'sampled Tabias'} meet the ${Number(run.min_valid_observation_coverage_pct).toFixed(0)}% spatial-coverage rule.</span><small>${isFullMap ? 'Colour shows adequate observed coverage. Amber is limited evidence and grey is insufficient evidence; select a Tabia boundary to inspect its retained statistic.' : 'This is a 20-Tabia technical sample, not a regional map or a completed monitoring product.'}</small></div>
+        <div class="drought-source-meta"><span>Observation window: ${String(run.observation_start).slice(0, 10)} to ${String(run.observation_end).slice(0, 10)}</span><span>Analytical grid: ${run.native_resolution}</span><span>Source collections: ${(run.source_collections || []).join(', ')}</span></div>
+        <section class="drought-index-card"><h3>Masked monthly Tabia evidence</h3><p>NDMI = <code>(NIR − SWIR) / (NIR + SWIR)</code>. HLS harmonises Landsat and Sentinel-2 surface reflectance. The monthly value is a per-pixel median over valid observations before Tabia statistics; no gap filling or temporal interpolation is used. ${isFullMap ? 'The map uses source-value bands only; it does not classify drought.' : 'Click a sampled Tabia to highlight its boundary; no regional interpolation or colour classification is drawn.'}</p>${isFullMap ? '<div class="drought-map-selection" data-hls-selection>Select a Tabia boundary to inspect its retained statistic.</div>' : ''}</section>
+        ${tableMarkup}
+        <section class="drought-index-card drought-index-card-muted"><h3>Interpretation boundary</h3><p>These observed surface-condition statistics have no seasonal baseline yet. They are not a drought classification, food-security classification, forecast, allocation rule, or composite score.</p></section>
+        <section class="drought-acknowledgement"><strong>Acknowledgement</strong><span>The educational index-selection framing for this pilot refers to Geoinfotech's spatial-indices explainer, shared with TSIRD on 24 October 2026. Geoinfotech does not supply this platform's imagery, methods validation, or results.</span></section>`;
+      this.content.querySelectorAll('[data-pilot-tabia]').forEach(button => button.addEventListener('click', () => {
+        const row = artifact.summaries.find(item => item.tsird_tabia_id === button.dataset.pilotTabia);
+        if (row) {
+          const selection = { type: 'tabia', id: row.tsird_tabia_id, name_en: row.tabia_name_en || 'Sampled Tabia', parent_name_en: row.woreda_name_en || '' };
+          this._handleBoundarySelection({ detail: selection });
+          this.selectBoundary({ type: 'tabia', id: selection.id, label: selection.name_en });
+        }
+      }));
+      return;
+    }
+    this.content.innerHTML = `
+      <div class="drought-mode-title"><strong>Vegetation moisture</strong><span>NDMI / LSWI · experimental pilot</span></div>
+      <div class="drought-pilot-status"><strong>Awaiting source imagery</strong><span>No NIR/SWIR surface-reflectance artifact has been acquired, quality-screened, or summarised for this workspace.</span><small>No Tabia value, colour, trend, or drought interpretation is shown.</small></div>
+      <section class="drought-index-card" aria-label="Vegetation moisture pilot method">
+        <h3>What this would measure</h3>
+        <p><code>(NIR − SWIR) / (NIR + SWIR)</code></p>
+        <p>NDMI and LSWI are overlapping names for this NIR–SWIR moisture-sensitive index. HLS uses harmonised Landsat and Sentinel-2 surface reflectance; it may add context where vegetation remains green in NDVI but is retaining less moisture than is typical for the season.</p>
+      </section>
+      <section class="drought-index-card" aria-label="Required evidence safeguards">
+        <h3>Required before any map</h3>
+        <ul><li>Cloud, shadow and invalid-pixel masking on surface reflectance—not display imagery or raw digital numbers.</li><li>Harmonised HLS NIR/SWIR1 pairs at the documented 30 m analysis resolution.</li><li>Tabia summaries with valid-pixel coverage and a same-calendar-period historical reference.</li><li>Stored source, observation date, sensor collection, processing version and an explicit insufficient-evidence state.</li></ul>
+      </section>
+      <section class="drought-index-card drought-index-card-muted" aria-label="Interpretation boundary">
+        <h3>Interpretation boundary</h3>
+        <p>This is surface-condition evidence only. It will not become a drought classification, food-security classification, forecast, allocation rule or composite score.</p>
+      </section>
+      <section class="drought-acknowledgement" aria-label="Acknowledgement">
+        <strong>Acknowledgement</strong><span>The educational index-selection framing for this pilot refers to Geoinfotech's spatial-indices explainer, shared with TSIRD on 24 October 2026. Geoinfotech does not supply this platform's imagery, methods validation, or results.</span>
+      </section>`;
+  }
+
+  _renderVegetationMoistureLegend() {
+    if (!this.legend) return;
+    const artifact = this.hlsNdmiArtifact;
+    const full = artifact && !artifact.unavailable && artifact.run && artifact.run.run_scope === 'full_development';
+    this.legend.innerHTML = full
+      ? `<div class="drought-legend-heading"><strong>HLS monthly NDMI · DEV</strong><span>Tabia mean, masked evidence</span></div><div class="drought-legend-scale"><span style="background:#92302b"></span><span style="background:#cb5b4f"></span><span style="background:#e89f92"></span><span style="background:#e5e5e5"></span><span style="background:#b1cfa0"></span><span style="background:#6dab75"></span><span style="background:#2a7652"></span></div><div class="drought-legend-labels"><span>lower NDMI</span><span>higher NDMI</span></div><p>Amber = limited coverage; grey = insufficient coverage. These are observed index values only, not moisture-stress, drought, food-security, or priority classes.</p>`
+      : `<div class="drought-legend-heading"><strong>Experimental pilot status</strong><span>no regional map displayed</span></div><p>When an approved DEV artifact exists, the legend will describe observed index values and valid coverage. It will not use universal moisture-stress thresholds.</p>`;
   }
 
   _indicatorLabel(kind) {
@@ -1399,6 +1494,10 @@ class DroughtDashboard {
 
   _handleFixtureMapClick(event) {
     const historicalObserved = this.mode === 'observed' && this.observedSnapshotId !== 'latest';
+    if (!this.publicMode && ['observed', 'rapid', 'vegetation', 'soilWater', 'thermal', 'waterUse', 'moisture'].includes(this.mode)) {
+      void this._selectDevelopmentTabiaAtCoordinate(event.coordinate);
+      return;
+    }
     if (this.publicMode && this.mode !== 'priority' && this.publicEvidenceLayer && this.publicEvidenceLayer.getVisible()) {
       performance.clearMarks('tsird-public-evidence-selection-ready');
       // Canvas hit detection redraws the full Tabia vector layer on every
@@ -1914,6 +2013,72 @@ class DroughtDashboard {
       this._renderHistory();
       this._highlightHistoryTabia(selection);
     }
+    if (this.mode === 'moisture') this._renderVegetationMoistureSelection(selection);
+    if (['observed', 'rapid', 'vegetation', 'soilWater', 'thermal', 'waterUse'].includes(this.mode)) {
+      const value = this._publicEvidenceForTabia(selection.id);
+      if (value && value.tsird_tabia_id) {
+        this._showPublicEvidenceSelection({
+          ...value,
+          tabia_name_en: value.tabia_name_en || selection.name_en,
+          woreda_name_en: value.woreda_name_en || selection.parent_name_en
+        });
+      } else {
+        const target = this.content && this.content.querySelector('[data-public-evidence-selection], [data-indicator-selection]');
+        if (target) {
+          target.dataset.selectedTabia = String(selection.id);
+          target.innerHTML = `<strong>Tabia detail · ${selection.name_en || 'Selected Tabia'}</strong><span>No retained ${this._indicatorLabel(this._indicatorKindForMode())} value is available for this Tabia.</span><small>This indicator does not infer a value where the retained source has insufficient coverage.</small>`;
+        }
+      }
+    }
+  }
+
+  async _selectDevelopmentTabiaAtCoordinate(coordinate) {
+    const tabiaLayer = this.map.getLayers().getArray().find(layer => layer.layerId === 'tigray_tabias_ti_en_pg');
+    const source = tabiaLayer && tabiaLayer.getSource && tabiaLayer.getSource();
+    if (!source || !source.getFeatureInfoUrl) return;
+    const url = source.getFeatureInfoUrl(
+      coordinate,
+      this.map.getView().getResolution(),
+      this.map.getView().getProjection(),
+      { 'INFO_FORMAT': 'application/vnd.ogc.gml', 'FEATURE_COUNT': 1 }
+    );
+    if (!url) return;
+    try {
+      const response = await fetch(url, { cache: 'no-store' });
+      if (!response.ok) throw new Error(`Tabia feature lookup returned ${response.status}`);
+      const documentNode = new DOMParser().parseFromString(await response.text(), 'text/xml');
+      if (documentNode.querySelector('parsererror, ServiceException')) throw new Error('Tabia feature lookup returned invalid XML');
+      const feature = Array.from(documentNode.getElementsByTagName('*')).find(node => {
+        const name = node.localName || node.tagName || '';
+        return name.endsWith('_feature');
+      });
+      if (!feature) return;
+      const properties = {};
+      Array.from(feature.children).forEach(child => {
+        const key = child.localName || child.tagName;
+        if (key !== 'boundedBy' && child.textContent.trim()) properties[key] = child.textContent.trim();
+      });
+      if (!properties.tsird_tabia_id) return;
+      const selection = {
+        type: 'tabia', id: properties.tsird_tabia_id,
+        name_en: properties.TABIA || 'Selected Tabia', parent_name_en: properties.WEREDA || ''
+      };
+      this._handleBoundarySelection({ detail: selection });
+      void this.selectBoundary({ type: 'tabia', id: selection.id, label: selection.name_en }, { writeUrl: false });
+    } catch (error) {
+      console.error('[DroughtDashboard] Tabia map selection failed:', error);
+    }
+  }
+
+  _renderVegetationMoistureSelection(selection) {
+    const target = this.content && this.content.querySelector('[data-hls-selection]');
+    const artifact = this.hlsNdmiArtifact;
+    if (!target || !artifact || !Array.isArray(artifact.summaries)) return;
+    const row = artifact.summaries.find(item => item.tsird_tabia_id === selection.id);
+    if (!row) { target.textContent = 'No HLS monthly NDMI record is retained for this Tabia.'; return; }
+    const value = Number(row.ndmi_mean);
+    const coverage = Number(row.coverage_pct);
+    target.innerHTML = `<strong>${row.tabia_name_en || 'Selected Tabia'}</strong><br>NDMI mean: ${Number.isFinite(value) ? value.toFixed(3) : 'not available'} · Valid coverage: ${Number.isFinite(coverage) ? `${coverage.toFixed(1)}%` : 'not recorded'} · Quality: ${String(row.quality_status).replaceAll('_', ' ')}.`;
   }
 
   async _highlightHistoryTabia(selection) {
@@ -2171,14 +2336,37 @@ class DroughtDashboard {
       this._setPublicEvidenceLayer(publicRaster ? null : activeLayerId);
       return;
     }
-    const ids = ['tigray_drought_chirps_dev', 'tigray_drought_chirps_raw_dev', 'tigray_drought_chirps_rapid_raw_dev', 'tigray_drought_chirps_rapid_tabia_dev', 'tigray_drought_ndvi_dev', 'tigray_drought_ndvi_raw_dev', 'tigray_drought_swi_dev', 'tigray_drought_swi_raw_dev', 'tigray_drought_lst_dev', 'tigray_drought_lst_raw_dev', 'tigray_drought_wapor_dev', 'tigray_drought_wapor_raw_dev', 'tigray_drought_road_accessibility_dev', 'tigray_drought_population_dev', 'tigray_drought_cropland_dev'];
+    // HLS is a dashboard-managed WMS overlay. It deliberately is not in the
+    // general Atlas TOC, so it cannot be toggled through InteractionController.
+    const hlsActive = activeLayerId === 'tigray_drought_hls_ndmi_dev';
+    const ids = ['tigray_drought_chirps_dev', 'tigray_drought_chirps_raw_dev', 'tigray_drought_chirps_rapid_raw_dev', 'tigray_drought_chirps_rapid_tabia_dev', 'tigray_drought_ndvi_dev', 'tigray_drought_sentinel2_ndmi_dev', 'tigray_drought_ndvi_raw_dev', 'tigray_drought_swi_dev', 'tigray_drought_swi_raw_dev', 'tigray_drought_lst_dev', 'tigray_drought_lst_raw_dev', 'tigray_drought_wapor_dev', 'tigray_drought_wapor_raw_dev', 'tigray_drought_road_accessibility_dev', 'tigray_drought_population_dev', 'tigray_drought_cropland_dev'];
     if (this.onSetEvidenceLayer) {
-      this.onSetEvidenceLayer(activeLayerId);
+      this.onSetEvidenceLayer(hlsActive ? null : activeLayerId);
+      this._setHlsNdmiLayer(hlsActive);
       return;
     }
     this.map.getLayers().getArray().forEach(layer => {
       if (ids.includes(layer.layerId)) layer.setVisible(layer.layerId === activeLayerId);
     });
+    this._setHlsNdmiLayer(hlsActive);
+  }
+
+  _setHlsNdmiLayer(visible) {
+    if (!visible) {
+      if (this.hlsNdmiLayer) this.hlsNdmiLayer.setVisible(false);
+      return;
+    }
+    if (!this.hlsNdmiLayer) {
+      const source = new ol.source.ImageWMS({
+        url: this.wmsBaseUrl,
+        params: { LAYERS: 'tigray_drought_hls_ndmi_dev', TRANSPARENT: true, FORMAT: 'image/png', STYLES: '' },
+        serverType: 'mapserver', ratio: 1, wmsVersion: '1.3.0'
+      });
+      this.hlsNdmiLayer = new ol.layer.Image({ source, opacity: 0.84, visible: false, zIndex: 20 });
+      this.hlsNdmiLayer.set('layerId', 'tigray_drought_hls_ndmi_dashboard');
+      this.map.addLayer(this.hlsNdmiLayer);
+    }
+    this.hlsNdmiLayer.setVisible(true);
   }
 
   _setPublicRasterLayer(layerId) {
@@ -2222,7 +2410,7 @@ class DroughtDashboard {
   }
 
   _appendPublicEvidenceSelection() {
-    if (!this.publicMode || !['observed', 'rapid', 'vegetation', 'soilWater', 'thermal', 'waterUse'].includes(this.mode)) return;
+    if (!['observed', 'rapid', 'vegetation', 'soilWater', 'thermal', 'waterUse'].includes(this.mode)) return;
     const announcement = document.createElement('div');
     announcement.className = 'drought-selection-announcement';
     announcement.dataset.publicEvidenceAnnouncement = '';
@@ -2233,8 +2421,8 @@ class DroughtDashboard {
     target.className = 'drought-map-selection';
     target.dataset.publicEvidenceSelection = '';
     target.textContent = this.spatialViews[this.mode] === 'raw'
-      ? 'Search for a Tabia to inspect its approved zonal summary.'
-      : 'Select a coloured Tabia to inspect its approved evidence summary.';
+      ? 'Click a Tabia boundary to inspect its retained zonal summary.'
+      : 'Select a coloured Tabia to inspect its retained evidence summary.';
     this.content.appendChild(target);
   }
 
