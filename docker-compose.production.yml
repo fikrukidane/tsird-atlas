@@ -49,30 +49,16 @@ services:
   # The parent mount lets the activation utility atomically replace `current`
   # without a container restart and never exposes development source archives.
   tsird-mapserver:
-    # Reset the development mapfile-directory bind. Docker applies the broad
-    # parent mount after a nested file mount on this host, which otherwise
-    # exposes the development `vectors_gold.map` include. The dedicated
-    # production mapfile directory is an exact, read-only publication set.
-    volumes: !reset
+    # Replace the base mapfile-directory bind at the same target. Docker
+    # applies a broad parent mount after a nested file mount on this host,
+    # which otherwise exposes the development `vectors_gold.map` include.
+    # Compose merges volumes by target, so this preserves the base config,
+    # fonts, symbols, and data mounts while selecting the exact read-only
+    # production publication set.
+    volumes:
       - type: bind
         source: ./infra/production-mapserver/mapfiles
         target: /etc/mapserver
-        read_only: true
-      - type: bind
-        source: ./infra/mapserver/mapfiles/ms.config
-        target: /etc/mapserver.conf
-        read_only: true
-      - type: bind
-        source: ./infra/mapserver/fonts
-        target: /fonts
-        read_only: true
-      - type: bind
-        source: ./infra/mapserver/symbols
-        target: /symbols
-        read_only: true
-      - type: bind
-        source: ./data
-        target: /data
         read_only: true
       - type: bind
         source: /opt/tigrayinsights/apps/tsird/releases/drought/indicators
