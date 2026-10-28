@@ -1517,9 +1517,15 @@ class DroughtDashboard {
       });
       const tabiaId = feature && feature.get('tsird_tabia_id');
       if (tabiaId) {
-        this.selectBoundary({ type: 'tabia', id: tabiaId, label: feature.get('tabia_name_en') || 'Selected Tabia' });
-        this._showPublicEvidenceSelection(feature.getProperties());
-        if (this.mode === 'history') this._handleBoundarySelection({ detail: { type: 'tabia', id: tabiaId, name_en: feature.get('tabia_name_en'), parent_name_en: feature.get('woreda_name_en') } });
+        const selection = {
+          type: 'tabia', id: tabiaId,
+          name_en: feature.get('tabia_name_en'), parent_name_en: feature.get('woreda_name_en')
+        };
+        // Route every public-map click through the shared selection handler.
+        // The HLS map has a dedicated retained-statistic card, while the
+        // other public indicators use the shared evidence-detail card.
+        this._handleBoundarySelection({ detail: selection });
+        this.selectBoundary({ type: 'tabia', id: tabiaId, label: selection.name_en || 'Selected Tabia' });
       }
       return;
     }
