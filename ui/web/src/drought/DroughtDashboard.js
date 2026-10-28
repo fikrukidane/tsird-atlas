@@ -1158,7 +1158,11 @@ class DroughtDashboard {
     if (artifact && !artifact.unavailable) {
       const run = artifact.run;
       const usable = artifact.summaries.filter(row => row.quality_status === 'ok' && Number.isFinite(Number(row.ndmi_mean)));
-      const isFullMap = run.run_scope === 'full_development';
+      // A production release deliberately sanitises `full_development` to
+      // `experimental_public`.  The retained 748-row payload is nevertheless
+      // the full Tabia map, not the earlier 20-Tabia pilot.
+      const isFullMap = run.run_scope === 'full_development'
+        || (run.run_scope === 'experimental_public' && artifact.summaries.length === 748);
       const rows = artifact.summaries.slice(0, isFullMap ? 15 : artifact.summaries.length).map(row => {
         const value = Number.isFinite(Number(row.ndmi_mean)) ? Number(row.ndmi_mean).toFixed(3) : 'not available';
         return `<tr><td><button type="button" class="drought-pilot-tabia" data-pilot-tabia="${row.tsird_tabia_id}">${row.tabia_name_en || 'Unnamed Tabia'}</button><small>${row.woreda_name_en || ''}</small></td><td>${value}</td><td>${Number(row.coverage_pct).toFixed(1)}%</td><td>${String(row.quality_status).replaceAll('_', ' ')}</td></tr>`;
