@@ -139,11 +139,17 @@ geometry archive. It must be checked against the completed VPS capacity
 baseline before production release.
 
 The automatic indicator package includes `drought-workspace-latest.json` for
-the six current views, plus compact retained-run assets for historical rainfall,
-rapid rainfall, NDVI, SWI, LST and WaPOR selectors. The browser joins these
-value-only snapshots to one package-owned Tabia geometry asset. It contains no
-raw download URL, retrieval receipt, workflow state, development control data,
-or scoring trace.
+the six established current views plus the separately identified experimental
+HLS vegetation-moisture (NDMI) view. The HLS view is accepted only from a
+complete 748-Tabia run; it is a value-only, manually refreshed evidence view,
+not a source-refresh schedule, native raster, WMS layer, or operational
+classification. It carries a visible experimental HLS NDMI disclaimer and the
+same decision boundary: “for review only. Not for operational, public-safety,
+food-security, allocation, or response decisions.” The package also includes
+compact retained-run assets for historical rainfall, rapid rainfall, NDVI, SWI,
+LST and WaPOR selectors. The browser joins these value-only snapshots to one
+package-owned Tabia geometry asset. It contains no raw download URL, retrieval
+receipt, workflow state, development control data, or scoring trace.
 
 To preserve the public Priority Review controls, a later approved package may
 also include one sanitised GeoJSON per retained historical replay and one per

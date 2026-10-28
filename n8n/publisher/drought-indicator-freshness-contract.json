@@ -24,6 +24,13 @@
       "automation_state": "manual-until-acquisition"
     },
     {
+      "key": "vegetation_moisture",
+      "label": "Vegetation moisture (HLS NDMI)",
+      "expected_after_days": 35,
+      "stale_after_days": 65,
+      "automation_state": "manual-experimental"
+    },
+    {
       "key": "soil_water",
       "label": "Soil water (Copernicus SWI)",
       "expected_after_days": 10,

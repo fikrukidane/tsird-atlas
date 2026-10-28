@@ -24,6 +24,7 @@ const INDICATORS = {
   observed: "/map/api/drought/development/observed-rainfall/latest?limit=748",
   rapid: "/map/api/drought/development/preliminary-rainfall/latest?limit=748",
   vegetation: "/map/api/drought/development/ndvi/latest?limit=748",
+  vegetation_moisture: "/map/api/drought/development/hls-ndmi/latest?limit=748",
   soil_water: "/map/api/drought/development/swi/latest?limit=748",
   thermal: "/map/api/drought/development/lst/latest?limit=748",
   water_use: "/map/api/drought/development/wapor/latest?limit=748",
@@ -40,6 +41,7 @@ const SUMMARY_FIELDS = {
   observed: ["tsird_tabia_id", "tabia_name_en", "woreda_name_en", "rainfall_mm", "baseline_median_mm", "percentile", "condition_class", "coverage_pct", "quality_status"],
   rapid: ["tsird_tabia_id", "tabia_name_en", "woreda_name_en", "rainfall_mm", "baseline_median_mm", "provisional_percentile", "comparison_status", "coverage_pct", "quality_status"],
   vegetation: ["tsird_tabia_id", "tabia_name_en", "woreda_name_en", "ndvi_mean", "ndvi_median", "coverage_pct", "quality_status"],
+  vegetation_moisture: ["tsird_tabia_id", "tabia_name_en", "woreda_name_en", "ndmi_mean", "ndmi_median", "coverage_pct", "quality_status"],
   soil_water: ["tsird_tabia_id", "tabia_name_en", "woreda_name_en", "swi010_mean", "swi040_mean", "swi100_mean", "coverage_pct", "quality_status"],
   thermal: ["tsird_tabia_id", "tabia_name_en", "woreda_name_en", "lst_c_mean", "errorbar_c_mean", "coverage_pct", "quality_status"],
   water_use: ["tsird_tabia_id", "tabia_name_en", "woreda_name_en", "transpiration_mm", "aeti_mm", "coverage_pct", "quality_status"],
@@ -120,6 +122,9 @@ function usable(payload, name) {
   const run = payload.run;
   const rows = name === "observed" ? payload.conditions : payload.summaries;
   if (!run || typeof run !== "object" || !Array.isArray(rows) || !rows.length) fail(`${name} has no complete retained Tabia evidence`);
+  if (name === "vegetation_moisture" && (run.run_scope !== "full_development" || rows.length !== 748)) {
+    fail("vegetation_moisture must be a full 748-Tabia development run before public packaging");
+  }
   if (["failed", "unavailable"].includes(String(run.status || "").toLowerCase())) fail(`${name} source state is not publishable`);
   if (!rows.some((row) => row && ["ok", "validated"].includes(String(row.quality_status || "").toLowerCase()) &&
     (row.coverage_pct == null || Number(row.coverage_pct) >= 90))) fail(`${name} contains no quality-approved Tabia summaries`);
@@ -130,7 +135,11 @@ function publicWorkspace(payloads) {
     const run = payload.run;
     const rows = name === "observed" ? payload.conditions : payload.summaries;
     const publicRun = {};
-    for (const key of ["run_id", "source_product", "source_version", "status", "analysis_year", "season_months", "period_start", "period_end", "observation_start", "observation_end", "source_period_start", "source_period_end", "native_resolution", "pentad_count"]) if (run[key] != null) publicRun[key] = run[key];
+    for (const key of ["run_id", "source_product", "source_version", "status", "analysis_year", "season_months", "period_start", "period_end", "observation_start", "observation_end", "source_period_start", "source_period_end", "native_resolution", "pentad_count", "run_scope", "source_collections", "min_valid_observation_coverage_pct"]) if (run[key] != null) publicRun[key] = run[key];
+    if (name === "vegetation_moisture") {
+      publicRun.status = "experimental retained evidence";
+      publicRun.run_scope = "experimental_public";
+    }
     indicators[name] = { run: publicRun, summaries: rows.filter((row) => row && typeof row === "object").map((row) => {
       const safe = {}; for (const field of SUMMARY_FIELDS[name]) if (Object.hasOwn(row, field)) safe[field] = row[field]; return safe;
     })};

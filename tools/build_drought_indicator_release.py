@@ -348,7 +348,7 @@ def copy_native_rasters(source_root: Path, release_dir: Path, payloads: dict[str
 
 
 def validate_workspace_inputs(payloads: dict[str, dict[str, Any]]) -> None:
-    """Require a complete, usable six-stream Tabia workspace before publish.
+    """Require a complete, usable current-workspace package before publish.
 
     ``development`` identifies the local environment, not a quality grade. The
     per-Tabia quality flag and coverage therefore decide publishability here.
@@ -363,6 +363,13 @@ def validate_workspace_inputs(payloads: dict[str, dict[str, Any]]) -> None:
         run = payload.get("run")
         if not isinstance(run, dict) or not isinstance(rows, list) or not rows:
             raise RuntimeError(f"{indicator} has no complete retained Tabia evidence")
+        if indicator == "vegetation_moisture":
+            # HLS NDMI is a manually reviewed experimental public view. It is
+            # never safe to turn a small diagnostic sample into a regional map.
+            if run.get("run_scope") != "full_development" or len(rows) != 748:
+                raise RuntimeError(
+                    "vegetation_moisture must be a full 748-Tabia development run before public packaging"
+                )
         if str(run.get("status", "")).lower() in {"failed", "unavailable"}:
             raise RuntimeError(f"{indicator} source state is not publishable: {run.get('status')}")
         usable = [

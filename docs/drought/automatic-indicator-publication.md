@@ -5,7 +5,10 @@
 TSIRD source-derived indicator views may publish automatically after their
 technical checks pass. They do not require a named human release approval.
 This applies to final and preliminary rainfall, NDVI, soil water, land-surface
-temperature and WaPOR crop-water-use summaries.
+temperature and WaPOR crop-water-use summaries. The separately approved HLS
+vegetation-moisture view is packageable as `manual-experimental`: the release
+preserves its last validated all-Tabia snapshot but creates no schedule,
+provider retry policy, raw-raster release or operational use.
 
 The same automatic package carries the six fixed, display-ready native-grid
 TIFF derivatives already used in development. They preserve provider-grid
@@ -44,7 +47,7 @@ indicator pointer and cannot advance the reviewed Priority Replay pointer.
 ## Freshness and forward-only publication
 
 `n8n/publisher/drought-indicator-freshness-contract.json` is the one declared
-cadence contract for the six source-derived views. Every automatic package
+cadence contract for the six scheduled source-derived views. Every automatic package
 must contain per-source `source_observation_end`, `expected_next`,
 `stale_after`, and `automation_state` metadata derived from that contract.
 The release validator refuses an automatic package without it, and the public
@@ -58,9 +61,9 @@ allowed because a source may correct a value for the same observation period.
 
 The current contract is intentionally honest about capability: CHIRPS final
 and rapid rainfall are automatic; NDVI, SWI and WaPOR remain
-`manual-until-acquisition`; thermal is `replacement-required` because the
-upstream LST product is superseded. Those states are visible, rather than
-being presented as successfully automated feeds.
+`manual-until-acquisition`; HLS NDMI remains `manual-experimental`; thermal is
+`replacement-required` because the upstream LST product is superseded. Those
+states are visible, rather than being presented as successfully automated feeds.
 
 Run `tools/monitor_drought_public_freshness.py` from a scheduler outside n8n
 with an ignored state file. It reads only the public indicator metadata, emits
