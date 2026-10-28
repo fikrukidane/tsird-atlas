@@ -776,6 +776,7 @@ class DroughtDashboard {
     if (this.mode === 'observed') {
       const historical = this.observedSnapshotId !== 'latest';
       this._setEvidenceLayer(historical ? null : this._evidenceLayerForMode());
+      this._ensureContextLayersVisible('tabia');
       this.notice.textContent = historical
         ? 'Historical evidence snapshot: this Tabia-only map shows an archived CHIRPS observation period. It is not an as-issued forecast or a model backtest, and no historical native raster is implied.'
         : this.spatialViews.observed === 'raw'
@@ -789,6 +790,7 @@ class DroughtDashboard {
     }
     if (this.mode === 'rapid') {
       this._setEvidenceLayer(this._evidenceLayerForMode());
+      this._ensureContextLayersVisible('tabia');
       this.notice.textContent = 'Rapid monitoring uses six completed CHIRPS preliminary pentads. Choose the native grid or Tabia zonal average; it is an observed rainfall total, not a drought class or food-security prediction.';
       this._renderPreliminaryArtifact();
       this._appendPublicEvidenceSelection();
@@ -1140,6 +1142,7 @@ class DroughtDashboard {
       return;
     }
     this._setEvidenceLayer(this._evidenceLayerForMode());
+    this._ensureContextLayersVisible('tabia');
     this.notice.textContent = currentNotice;
     renderCurrentArtifact();
     this._appendPublicEvidenceSelection();
@@ -1171,7 +1174,11 @@ class DroughtDashboard {
         <section class="drought-acknowledgement"><strong>Acknowledgement</strong><span>The educational index-selection framing for this pilot refers to Geoinfotech's spatial-indices explainer, shared with TSIRD on 24 October 2026. Geoinfotech does not supply this platform's imagery, methods validation, or results.</span></section>`;
       this.content.querySelectorAll('[data-pilot-tabia]').forEach(button => button.addEventListener('click', () => {
         const row = artifact.summaries.find(item => item.tsird_tabia_id === button.dataset.pilotTabia);
-        if (row) this.selectBoundary({ type: 'tabia', id: row.tsird_tabia_id, label: row.tabia_name_en || 'Sampled Tabia' });
+        if (row) {
+          const selection = { type: 'tabia', id: row.tsird_tabia_id, name_en: row.tabia_name_en || 'Sampled Tabia', parent_name_en: row.woreda_name_en || '' };
+          this._handleBoundarySelection({ detail: selection });
+          this.selectBoundary({ type: 'tabia', id: selection.id, label: selection.name_en });
+        }
       }));
       return;
     }
@@ -1487,6 +1494,10 @@ class DroughtDashboard {
 
   _handleFixtureMapClick(event) {
     const historicalObserved = this.mode === 'observed' && this.observedSnapshotId !== 'latest';
+    if (!this.publicMode && ['observed', 'rapid', 'vegetation', 'soilWater', 'thermal', 'waterUse', 'moisture'].includes(this.mode)) {
+      void this._selectDevelopmentTabiaAtCoordinate(event.coordinate);
+      return;
+    }
     if (this.publicMode && this.mode !== 'priority' && this.publicEvidenceLayer && this.publicEvidenceLayer.getVisible()) {
       performance.clearMarks('tsird-public-evidence-selection-ready');
       // Canvas hit detection redraws the full Tabia vector layer on every
@@ -2003,6 +2014,60 @@ class DroughtDashboard {
       this._highlightHistoryTabia(selection);
     }
     if (this.mode === 'moisture') this._renderVegetationMoistureSelection(selection);
+    if (['observed', 'rapid', 'vegetation', 'soilWater', 'thermal', 'waterUse'].includes(this.mode)) {
+      const value = this._publicEvidenceForTabia(selection.id);
+      if (value && value.tsird_tabia_id) {
+        this._showPublicEvidenceSelection({
+          ...value,
+          tabia_name_en: value.tabia_name_en || selection.name_en,
+          woreda_name_en: value.woreda_name_en || selection.parent_name_en
+        });
+      } else {
+        const target = this.content && this.content.querySelector('[data-public-evidence-selection], [data-indicator-selection]');
+        if (target) {
+          target.dataset.selectedTabia = String(selection.id);
+          target.innerHTML = `<strong>Tabia detail · ${selection.name_en || 'Selected Tabia'}</strong><span>No retained ${this._indicatorLabel(this._indicatorKindForMode())} value is available for this Tabia.</span><small>This indicator does not infer a value where the retained source has insufficient coverage.</small>`;
+        }
+      }
+    }
+  }
+
+  async _selectDevelopmentTabiaAtCoordinate(coordinate) {
+    const tabiaLayer = this.map.getLayers().getArray().find(layer => layer.layerId === 'tigray_tabias_ti_en_pg');
+    const source = tabiaLayer && tabiaLayer.getSource && tabiaLayer.getSource();
+    if (!source || !source.getFeatureInfoUrl) return;
+    const url = source.getFeatureInfoUrl(
+      coordinate,
+      this.map.getView().getResolution(),
+      this.map.getView().getProjection(),
+      { 'INFO_FORMAT': 'application/vnd.ogc.gml', 'FEATURE_COUNT': 1 }
+    );
+    if (!url) return;
+    try {
+      const response = await fetch(url, { cache: 'no-store' });
+      if (!response.ok) throw new Error(`Tabia feature lookup returned ${response.status}`);
+      const documentNode = new DOMParser().parseFromString(await response.text(), 'text/xml');
+      if (documentNode.querySelector('parsererror, ServiceException')) throw new Error('Tabia feature lookup returned invalid XML');
+      const feature = Array.from(documentNode.getElementsByTagName('*')).find(node => {
+        const name = node.localName || node.tagName || '';
+        return name.endsWith('_feature');
+      });
+      if (!feature) return;
+      const properties = {};
+      Array.from(feature.children).forEach(child => {
+        const key = child.localName || child.tagName;
+        if (key !== 'boundedBy' && child.textContent.trim()) properties[key] = child.textContent.trim();
+      });
+      if (!properties.tsird_tabia_id) return;
+      const selection = {
+        type: 'tabia', id: properties.tsird_tabia_id,
+        name_en: properties.TABIA || 'Selected Tabia', parent_name_en: properties.WEREDA || ''
+      };
+      this._handleBoundarySelection({ detail: selection });
+      void this.selectBoundary({ type: 'tabia', id: selection.id, label: selection.name_en }, { writeUrl: false });
+    } catch (error) {
+      console.error('[DroughtDashboard] Tabia map selection failed:', error);
+    }
   }
 
   _renderVegetationMoistureSelection(selection) {
@@ -2345,7 +2410,7 @@ class DroughtDashboard {
   }
 
   _appendPublicEvidenceSelection() {
-    if (!this.publicMode || !['observed', 'rapid', 'vegetation', 'soilWater', 'thermal', 'waterUse'].includes(this.mode)) return;
+    if (!['observed', 'rapid', 'vegetation', 'soilWater', 'thermal', 'waterUse'].includes(this.mode)) return;
     const announcement = document.createElement('div');
     announcement.className = 'drought-selection-announcement';
     announcement.dataset.publicEvidenceAnnouncement = '';
@@ -2356,8 +2421,8 @@ class DroughtDashboard {
     target.className = 'drought-map-selection';
     target.dataset.publicEvidenceSelection = '';
     target.textContent = this.spatialViews[this.mode] === 'raw'
-      ? 'Search for a Tabia to inspect its approved zonal summary.'
-      : 'Select a coloured Tabia to inspect its approved evidence summary.';
+      ? 'Click a Tabia boundary to inspect its retained zonal summary.'
+      : 'Select a coloured Tabia to inspect its retained evidence summary.';
     this.content.appendChild(target);
   }
 
