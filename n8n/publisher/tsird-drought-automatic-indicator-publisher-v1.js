@@ -225,9 +225,14 @@ function floorTabiaIds(geometry) {
 function mapshaperBin() {
   const configured = process.env.TSIRD_MAPSHAPER_BIN;
   const bundled = path.join(__dirname, "node_modules", ".bin", "mapshaper");
-  const candidate = configured || bundled;
-  if (!fs.existsSync(candidate)) fail(`topology-preserving display simplifier is unavailable at ${candidate}; install ${MAPSHAPER_VERSION} beside the publisher before activating the workflow`);
-  return candidate;
+  // A Windows bind mount preserves package files but may not preserve npm's
+  // POSIX .bin symlink. The package's own Node entry point is equivalent and
+  // works in the Linux n8n container without broadening the executable path.
+  const packageEntry = path.join(__dirname, "node_modules", "mapshaper", "bin", "mapshaper");
+  for (const candidate of [configured, bundled, packageEntry]) {
+    if (candidate && fs.existsSync(candidate)) return candidate;
+  }
+  fail(`topology-preserving display simplifier is unavailable; install ${MAPSHAPER_VERSION} beside the publisher before activating the workflow`);
 }
 function simplifyDisplayGeometry(geometry, releaseDir) {
   const expected = geometryIds(geometry);
