@@ -18,7 +18,7 @@ import psycopg2
 from hls_ndmi_monthly_pilot import (
     HLS_COLLECTIONS, MIN_LIMITED_SPATIAL_COVERAGE_PCT,
     MIN_SPATIAL_COVERAGE_PCT, MIN_USABLE_ACQUISITIONS,
-    MIN_VALID_OBSERVATION_PIXELS, PRODUCT, dsn, earthdata_token,
+    MIN_VALID_OBSERVATION_PIXELS, PRODUCT, analysis_grid, dsn, earthdata_token,
     completed_month, summarize_tabia,
 )
 
@@ -97,6 +97,18 @@ def summarize_with_transport_retry(geometry, start, end, token):
     it never changes the evidence rule, extends the time window, or skips a
     Tabia. Any persistent provider failure remains a failed, resumable run.
     """
+    # A degenerate source boundary can contain no cell on the documented 30 m
+    # equal-area analysis grid.  It is retained as a canonical Tabia with an
+    # explicit no-evidence profile, rather than changing its boundary or
+    # aborting the regional artifact.  This check precedes STAC discovery so
+    # no provider call is made for a geometry that cannot yield a statistic.
+    try:
+        analysis_grid(geometry)
+    except RuntimeError as exc:
+        if "HLS analysis grid contains no Tabia pixels" not in str(exc):
+            raise
+        return no_analysis_pixel_profiles()
+
     for attempt in range(1, MAX_TABIA_TRANSPORT_ATTEMPTS + 1):
         try:
             return summarize_tabia(geometry, start, end, token)
@@ -106,6 +118,28 @@ def summarize_with_transport_retry(geometry, start, end, token):
             wait_seconds = 15 * attempt
             print(json.dumps({"transport_retry": attempt, "retry_in_seconds": wait_seconds}), flush=True)
             time.sleep(wait_seconds)
+
+
+def no_analysis_pixel_profiles():
+    """Return an honest, non-value result for a degenerate source geometry."""
+    summary = {
+        "ndmi_mean": None,
+        "ndmi_median": None,
+        "spatial_coverage_pct": 0.0,
+        "two_observation_coverage_pct": 0.0,
+        "median_valid_observation_count": None,
+        "valid_spatial_pixel_count": 0,
+        "total_eligible_pixel_count": 0,
+        "valid_observation_pixel_count": 0,
+        "candidate_acquisition_count": 0,
+        "usable_acquisition_count": 0,
+        "evidence_tier": "insufficient",
+        "first_acquisition_at": None,
+        "last_acquisition_at": None,
+        "median_acquisition_at": None,
+        "adjacency_accepted_pixel_count": 0,
+    }
+    return {"strict": summary.copy(), "adjacency_allowed": summary.copy()}
 
 
 def main():
@@ -151,6 +185,13 @@ def main():
     write_rows(base.with_suffix(".csv"), rows)
     primary_adequate = sum(row["adjacency_allowed_evidence_tier"] == "adequate" for row in rows)
     primary_limited = sum(row["adjacency_allowed_evidence_tier"] == "limited" for row in rows)
+    no_analysis_pixel_tabias = [
+        {"tsird_tabia_id": row["tsird_tabia_id"], "tabia_name_en": row["tabia_name_en"],
+         "woreda_name_en": row["woreda_name_en"]}
+        for row in rows
+        if (row["adjacency_allowed_total_eligible_pixel_count"] == "0" and
+            row["adjacency_allowed_candidate_acquisition_count"] == "0")
+    ]
     manifest = {
         "run_id": run_id,
         "source_id": SOURCE_ID,
@@ -168,6 +209,7 @@ def main():
         "min_valid_observation_pixels": MIN_VALID_OBSERVATION_PIXELS,
         "min_usable_acquisition_count": MIN_USABLE_ACQUISITIONS,
         "tabia_count": TABIA_COUNT,
+        "no_analysis_pixel_tabias": no_analysis_pixel_tabias,
         "source_retrieved_at": datetime.now(timezone.utc).isoformat(),
         "processing_version": PROCESSING_VERSION,
         "method": "CMR-STAC discovery; authenticated HLS v2 COG range reads; paired NIR/SWIR1 NDMI per valid observation; per-pixel monthly NDMI medians on a 30 m equal-area grid before Tabia statistics. Strict and adjacency-allowed Fmask profiles are retained. No temporal interpolation or gap filling.",

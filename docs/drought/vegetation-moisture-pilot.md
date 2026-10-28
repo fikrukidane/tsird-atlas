@@ -105,6 +105,15 @@ retries the same Tabia at most twice after 15- and 30-second waits. It does not
 retry a whole regional run, alter the month or mask, or treat a provider/data
 error as transport. A persistent failure stops with the checkpoint intact.
 
+Two canonical source boundaries—Menachek (Degua Temben) and Debre Genet (Kola
+Temben)—were previously identified as near-zero-area slivers. If either
+contains no 30 m equal-area analysis-grid pixel, the full DEV collector retains
+its Tabia identity with zero candidate/valid pixels, null NDMI values, and an
+insufficient-evidence result. It does not move, enlarge, repair, or otherwise
+alter the source boundary, and it does not call the HLS provider for that
+unmeasurable geometry. The completed artifact records these cases explicitly
+in its manifest.
+
 The fixed, internal runner endpoint is
 `/runs/hls-ndmi-monthly-pilot/development-test`. It accepts no date, geometry,
 URL, command, database statement or credential from a caller and requires one
