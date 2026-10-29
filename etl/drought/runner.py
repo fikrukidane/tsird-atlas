@@ -46,9 +46,9 @@ CONTROL_WORKFLOWS = (
     {"key": "sentinel2-ndmi-pilot", "label": "Sentinel-2 vegetation-moisture pilot", "cadence": "Manual development verification; 20 Tabias only", "policy_state": "inactive"},
     {"key": "sentinel2-ndmi-full", "label": "Sentinel-2 vegetation-moisture all-Tabia evidence", "cadence": "Manual DEV acquisition only; no schedule", "policy_state": "inactive"},
     {"key": "hls-ndmi-monthly-pilot", "label": "HLS monthly vegetation-moisture feasibility pilot", "cadence": "Manual development verification; 20 Tabias only", "policy_state": "inactive"},
-    {"key": "hls-ndmi-monthly-full", "label": "HLS monthly vegetation-moisture all-Tabia evidence", "cadence": "Manual DEV acquisition only; resumable local checkpoint; no schedule", "policy_state": "inactive"},
+    {"key": "hls-ndmi-monthly-full", "label": "HLS monthly vegetation-moisture all-Tabia evidence", "cadence": "Daily source check; acquire one new completed month only; resumable local checkpoint", "policy_state": "active"},
     {"key": "swi", "label": "Copernicus SWI source probe", "cadence": "Daily 06:50 Addis; metadata only", "policy_state": "active"},
-    {"key": "lst-history", "label": "Thermal historical evidence (CLMS LST v2)", "cadence": "Manual history only; upstream product superseded", "policy_state": "inactive"},
+    {"key": "lst", "label": "Thermal context (CLMS LST Daily Cycle 3 km V3)", "cadence": "Daily source check; retrieve only a newer 10-daily provider item", "policy_state": "active"},
     {"key": "seasonal-outlook", "label": "ICPAC seasonal-outlook catalogue probe", "cadence": "Weekly 07:10 Addis; no schedule activated", "policy_state": "inactive"},
     {"key": "c3s-seasonal", "label": "C3S seasonal forecast access probe", "cadence": "Monthly candidate; no schedule activated", "policy_state": "inactive"},
     {"key": "c3s-hindcast", "label": "C3S matched hindcast availability probe", "cadence": "Manual development gate; no schedule activated", "policy_state": "inactive"},
@@ -439,14 +439,14 @@ def run_swi_access_check(job_id: str):
 def run_lst_access_check(job_id: str):
     with jobs_lock: jobs[job_id].update(status="running", started_at=now())
     try:
-        environment = os.environ.copy(); environment["CDSE_NDVI_COLLECTION"] = environment["CDSE_LST_COLLECTION"]
+        environment = os.environ.copy(); environment["CDSE_NDVI_COLLECTION"] = environment.get("CDSE_LST_V3_COLLECTION", "7f175dfe-eee2-4c4c-93a6-db8072e76a44")
         completed = subprocess.run(["python3", str(WORK_DIR / "ndvi_access_check.py")], cwd=WORK_DIR, env=environment,
             text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=True, timeout=90)
         status, error, output = "succeeded", None, completed.stdout[-1000:]
     except subprocess.CalledProcessError as exc:
         status, error, output = "failed", "CDSE LST access check failed", (exc.stdout or "")[-1000:]
     except KeyError:
-        status, error, output = "failed", "CDSE LST collection setting is missing", ""
+        status, error, output = "failed", "CDSE LST V3 collection setting is missing", ""
     except Exception as exc:
         status, error, output = "failed", f"Unexpected LST access-check error: {type(exc).__name__}", ""
     with jobs_lock: jobs[job_id].update(status=status, finished_at=now(), error=error, output_tail=output)
@@ -587,6 +587,24 @@ def run_hls_ndmi_monthly_full(job_id: str):
         jobs[job_id].update(status=status, finished_at=now(), error=error, output_tail="\n".join(output)[-5000:])
 
 
+def run_hls_ndmi_monthly_probe(job_id: str):
+    """Check one eligible HLS month without downloading source pixels."""
+    with jobs_lock:
+        jobs[job_id].update(status="running", started_at=now())
+    try:
+        completed = subprocess.run(["python3", str(WORK_DIR / "hls_ndmi_monthly_probe.py")], cwd=WORK_DIR,
+                                   text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                                   check=True, timeout=180)
+        result = json.loads(completed.stdout)
+        status, error, output = result.get("status", "unavailable"), None, completed.stdout[-3000:]
+    except subprocess.CalledProcessError as exc:
+        status, error, output = "unavailable", "HLS monthly source probe failed", (exc.stdout or "")[-3000:]
+    except Exception as exc:
+        status, error, output = "unavailable", f"Unexpected HLS monthly probe error: {type(exc).__name__}", ""
+    with jobs_lock:
+        jobs[job_id].update(status=status, finished_at=now(), error=error, output_tail=output)
+
+
 def run_swi_tabia_summary(job_id: str):
     with jobs_lock: jobs[job_id].update(status="running", started_at=now())
     try:
@@ -602,7 +620,7 @@ def run_swi_tabia_summary(job_id: str):
 def run_lst_tabia_summary(job_id: str):
     with jobs_lock: jobs[job_id].update(status="running", started_at=now())
     try:
-        summary = subprocess.run(["python3", str(WORK_DIR / "cdse_lst_tabia_summary.py")], cwd=WORK_DIR,
+        summary = subprocess.run(["python3", str(WORK_DIR / "cdse_lst_v3_tabia_summary.py")], cwd=WORK_DIR,
             text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=True, timeout=1800)
         run_id = json.JSONDecoder().raw_decode(summary.stdout[summary.stdout.find("{"):])[0]["run_id"]
         loaded = subprocess.run(["python3", str(WORK_DIR / "load_cdse_lst_summary.py"), str(DATA_ROOT / "outputs" / run_id)], cwd=WORK_DIR,
@@ -1087,6 +1105,20 @@ def start_swi_source_probe():
     return jobs[job_id]
 
 
+@app.post("/runs/lst-source-probe/development-test", status_code=202)
+def start_lst_source_probe():
+    """Check CLMS LST V3 catalogue metadata without downloading a raster."""
+    with jobs_lock:
+        if any(job["status"] in {"queued", "running"} for job in jobs.values()):
+            raise HTTPException(status_code=409, detail="A drought refresh job is already active")
+        job_id = str(uuid.uuid4())
+        jobs[job_id] = {"job_id": job_id, "workflow": "lst-source-probe", "status": "queued",
+                        "requested_at": now(), "request": {}, "run_id": None, "started_at": None,
+                        "finished_at": None, "error": None, "output_tail": None}
+    threading.Thread(target=run_cdse_source_probe, args=(job_id, "lst"), daemon=True).start()
+    return jobs[job_id]
+
+
 @app.post("/runs/ndvi-tabia-summary/development-test", status_code=202)
 def start_ndvi_tabia_summary():
     """Run one bounded Tigray NDVI raster/Tabia development artifact."""
@@ -1154,6 +1186,20 @@ def start_hls_ndmi_monthly_full():
                         "requested_at": now(), "request": {}, "run_id": None, "started_at": None,
                         "finished_at": None, "error": None, "output_tail": None}
     threading.Thread(target=run_hls_ndmi_monthly_full, args=(job_id,), daemon=True).start()
+    return jobs[job_id]
+
+
+@app.post("/runs/hls-ndmi-monthly-probe/development-test", status_code=202)
+def start_hls_ndmi_monthly_probe():
+    """Discover one source-ready HLS period; it never reads HLS rasters."""
+    with jobs_lock:
+        if any(job["status"] in {"queued", "running"} for job in jobs.values()):
+            raise HTTPException(status_code=409, detail="A drought refresh job is already active")
+        job_id = str(uuid.uuid4())
+        jobs[job_id] = {"job_id": job_id, "workflow": "hls-ndmi-monthly-probe", "status": "queued",
+                        "requested_at": now(), "request": {}, "run_id": None, "started_at": None,
+                        "finished_at": None, "error": None, "output_tail": None}
+    threading.Thread(target=run_hls_ndmi_monthly_probe, args=(job_id,), daemon=True).start()
     return jobs[job_id]
 
 @app.post("/runs/swi-tabia-summary/development-test", status_code=202)

@@ -1,4 +1,4 @@
-"""Metadata-only new/current probe for the configured CDSE NDVI or SWI source.
+"""Metadata-only new/current probe for configured CDSE evidence sources.
 
 The probe obtains an OAuth token and queries the catalogue but never calls the
 Process API. A source is ``ready`` only when its latest timestamp has no valid
@@ -12,11 +12,13 @@ from urllib.error import HTTPError, URLError
 
 from cdse_ndvi_tabia_summary import access_token, cdse_settings, fetch_tabias_and_bounds, latest_item
 from cdse_swi_tabia_summary import get_settings as swi_settings
+from cdse_lst_v3_tabia_summary import settings as lst_settings
 
 
 CONFIG = {
     "ndvi": {"prefix": "cdse-clms-ndvi-v3-", "timestamp": "observation_timestamp", "max_age": 15},
     "swi": {"prefix": "cdse-clms-swi-v4-", "timestamp": "observation_at", "max_age": 15},
+    "lst": {"prefix": "cdse-clms-lst-v3-", "timestamp": "observation_at", "max_age": 20},
 }
 
 
@@ -37,7 +39,11 @@ def main() -> int:
     parser.add_argument("kind", choices=sorted(CONFIG))
     kind = parser.parse_args().kind
     try:
-        settings, collection = swi_settings() if kind == "swi" else cdse_settings()
+        settings, collection = (
+            swi_settings() if kind == "swi" else
+            lst_settings() if kind == "lst" else
+            cdse_settings()
+        )
         token = access_token(settings)
         _, bounds = fetch_tabias_and_bounds()
         _, stamp = latest_item(token, collection, bounds)

@@ -1246,7 +1246,7 @@ class DroughtDashboard {
     const names = {
       ndvi: ['Vegetation condition', 'Copernicus NDVI v3'],
       swi: ['Soil-water context', 'Copernicus SWI v4'],
-      lst: ['Thermal context', 'Copernicus LST v2'],
+      lst: ['Thermal context', 'Copernicus LST V3'],
       wapor: ['Agricultural water use', 'FAO WaPOR v3']
     }[kind];
     let quality = run.quality_summary || {};
@@ -1898,7 +1898,7 @@ class DroughtDashboard {
     if (!artifact || artifact.unavailable) { this.content.innerHTML = `<p class="drought-empty">${artifact ? artifact.message : 'Loading artifact.'}</p>`; return; }
     const run = artifact.run, usable = artifact.summaries.filter(item => item.quality_status === 'ok' && Number.isFinite(Number(item.lst_c_mean)));
     const values = usable.map(item => Number(item.lst_c_mean)); const range = values.length ? `${Math.min(...values).toFixed(1)}–${Math.max(...values).toFixed(1)}°C` : 'no usable values';
-    this.content.innerHTML = `<div class="drought-mode-title"><strong>Thermal context</strong><span>Copernicus LST v2 · ${run.status}</span></div><div class="drought-source-meta"><span>Native resolution: ${run.native_resolution}</span><span>Observation: ${run.observation_start}</span><span>Usable: ${usable.length}/${artifact.summaries.length}</span><span>LST mean range: ${range}</span></div><div class="drought-map-instruction">${run.status === 'degraded' ? 'Degraded freshness — do not treat as current. ' : ''}Use Native raster for the retained ~5 km grid; Tabia average is a zonal summary. Neither is an air-temperature observation.</div>`;
+    this.content.innerHTML = `<div class="drought-mode-title"><strong>Thermal context</strong><span>${run.source_product || 'Copernicus LST'} · ${run.status}</span></div><div class="drought-source-meta"><span>Native resolution: ${run.native_resolution}</span><span>Observation: ${run.observation_start}</span><span>Usable: ${usable.length}/${artifact.summaries.length}</span><span>LST mean range: ${range}</span></div><div class="drought-map-instruction">${run.status === 'degraded' ? 'Degraded freshness — do not treat as current. ' : ''}Use Native raster for the retained provider grid; Tabia average is a zonal summary. Neither is an air-temperature observation.</div>`;
   }
 
   _renderWaporArtifact() {

@@ -14,7 +14,7 @@ import os
 import statistics
 import sys
 import warnings
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import numpy as np
@@ -60,12 +60,15 @@ def dsn():
 
 def completed_month(now):
     """Return the most recent calendar month with a five-day provider margin."""
-    candidate = now.replace(hour=0, minute=0, second=0, microsecond=0)
-    if candidate.day <= MONTHLY_LATENCY_DAYS:
-        candidate = candidate.replace(day=1)
+    first_of_this_month = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    # Do not ask for the immediately preceding month during the provider's
+    # declared five-day publication margin.  This prevents a 1--5 November
+    # run from treating October as complete before HLS is expected to have
+    # indexed all of its scenes.
+    if now.day <= MONTHLY_LATENCY_DAYS:
+        end = (first_of_this_month - timedelta(days=1)).replace(day=1)
     else:
-        candidate = candidate.replace(day=1)
-    end = candidate
+        end = first_of_this_month
     if end.month == 1:
         start = end.replace(year=end.year - 1, month=12)
     else:

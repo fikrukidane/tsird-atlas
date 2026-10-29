@@ -59,7 +59,10 @@ SPECS = {
         "query": """SELECT run_id, raster_path, observation_at::text AS observed_at
                     FROM tsird.drought_lst_run ORDER BY observation_at DESC, created_at DESC LIMIT 1""",
         "target": "lst-current.tif", "source": lambda row: Path(row['raster_path']),
-        "publish": "provider", "band": 1, "scale": 0.01, "offset": 0, "mask_band": 5,
+        # LST Daily Cycle V3 MEDIAN is encoded as Celsius * 100. The
+        # documented physical conversion adds 273.15 K, so a Celsius display
+        # uses the 1/100 scale only. The legacy V2 source remains history.
+        "publish": "provider", "band": 1, "scale": 0.01, "offset": 0, "mask_band": 3,
         "table": "drought_tabia_lst", "value": "lst_c_mean",
     },
     "wapor": {

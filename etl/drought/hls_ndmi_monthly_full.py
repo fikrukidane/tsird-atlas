@@ -3,8 +3,9 @@
 This is deliberately separate from the 20-Tabia feasibility pilot.  It uses
 the pilot's reviewed 30 m pixel-level compositing and mask profiles, retains
 only compact Tabia statistics, and checkpoints locally after each Tabia so an
-interruption can resume without repeating completed provider reads.  It has no
-schedule, public-release path, or production behaviour.
+interruption can resume without repeating completed provider reads. The runner
+may invoke it only after a daily metadata probe finds a newly eligible
+completed month; it has no direct public-release or production behaviour.
 """
 import argparse
 import csv
@@ -157,7 +158,7 @@ def main():
             "native_resolution": "30 m HLS surface-reflectance analysis grid",
             "mask_profiles": ["strict", "adjacency_allowed"],
             "checkpoint": "compact DEV statistics after each completed Tabia",
-            "schedule": "none",
+            "schedule": "daily metadata probe; acquisition only when a completed month is ready",
             "publication": "none",
         }, indent=2))
         return

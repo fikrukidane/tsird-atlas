@@ -749,7 +749,7 @@ WITH latest_run AS (
 )
 SELECT (SELECT row_to_json(latest_run) FROM latest_run) AS run,
  COALESCE(json_agg(row_to_json(summary) ORDER BY summary.tabia_name_en) FILTER (WHERE summary.tsird_tabia_id IS NOT NULL), '[]'::json) AS summaries
-FROM (SELECT l.tsird_tabia_id, t."TABIA" AS tabia_name_en, t."WEREDA" AS woreda_name_en, l.lst_c_mean, l.errorbar_c_mean, l.ppp_mean, l.qflag_mean, l.valid_pixel_count, l.grid_cell_count, l.coverage_pct, l.quality_status
+FROM (SELECT l.tsird_tabia_id, t."TABIA" AS tabia_name_en, t."WEREDA" AS woreda_name_en, l.lst_c_mean, l.errorbar_c_mean, l.ppp_mean, l.fobs_mean, l.qflag_mean, l.valid_pixel_count, l.grid_cell_count, l.coverage_pct, l.quality_status
  FROM tsird.drought_tabia_lst l JOIN latest_run r USING (run_id) JOIN tigray_tabias_ws t USING (tsird_tabia_id)
  ORDER BY t."TABIA" LIMIT $1) summary
 """
@@ -865,7 +865,7 @@ HISTORY_METADATA = {
     "rapid": {"label": "Rapid preliminary rainfall total", "unit": "mm", "source": "CHIRPS v3 preliminary"},
     "ndvi": {"label": "NDVI mean", "unit": "unitless", "source": "Copernicus CLMS NDVI v3"},
     "swi": {"label": "SWI-040 mean", "unit": "%", "source": "Copernicus CLMS SWI v4"},
-    "lst": {"label": "LST mean", "unit": "°C", "source": "Copernicus CLMS LST v2"},
+    "lst": {"label": "LST mean", "unit": "°C", "source": "Copernicus CLMS LST retained evidence (V2/V3)"},
     "wapor": {"label": "Transpiration mean", "unit": "mm per dekad", "source": "FAO WaPOR v3 Level 2"},
 }
 

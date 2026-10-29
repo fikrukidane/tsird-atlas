@@ -1371,10 +1371,10 @@
       "label": "Soil-water Context (SWI-040 native grid · development)", "type": "raster", "published": true, "default_visible": false, "opacity": 0.76, "min_scale": 10000000, "max_scale": 50000, "queryable": false, "wms_name": "tigray_drought_swi_raw_dev", "attribution": "Copernicus CLMS SWI v4 · native 0.1° grid · development only"
     },
     "tigray_drought_lst_dev": {
-      "label": "Thermal Context (LST · development)", "type": "vector", "geometry_type": "polygon", "published": true, "default_visible": false, "opacity": 0.72, "min_scale": 5000000, "max_scale": 50000, "queryable": true, "wms_name": "tigray_drought_lst_dev", "identify_fields": ["TABIA", "WEREDA", "lst_c_mean", "errorbar_c_mean", "coverage_pct", "quality_status"], "attribution": "Copernicus CLMS LST v2 · 5 km zonal context, development only"
+      "label": "Thermal Context (LST · development)", "type": "vector", "geometry_type": "polygon", "published": true, "default_visible": false, "opacity": 0.72, "min_scale": 5000000, "max_scale": 50000, "queryable": true, "wms_name": "tigray_drought_lst_dev", "identify_fields": ["TABIA", "WEREDA", "lst_c_mean", "fobs_mean", "coverage_pct", "quality_status"], "attribution": "Copernicus CLMS LST Daily Cycle V3 · 3 km zonal context, development only"
     },
     "tigray_drought_lst_raw_dev": {
-      "label": "Thermal Context (LST native grid · development)", "type": "raster", "published": true, "default_visible": false, "opacity": 0.76, "min_scale": 10000000, "max_scale": 50000, "queryable": false, "wms_name": "tigray_drought_lst_raw_dev", "attribution": "Copernicus CLMS LST v2 · native ~5 km grid · development only"
+      "label": "Thermal Context (LST native grid · development)", "type": "raster", "published": true, "default_visible": false, "opacity": 0.76, "min_scale": 10000000, "max_scale": 50000, "queryable": false, "wms_name": "tigray_drought_lst_raw_dev", "attribution": "Copernicus CLMS LST Daily Cycle V3 · native ~3 km grid · development only"
     },
     "tigray_drought_wapor_dev": {
       "label": "Agricultural Water Use (WaPOR Transpiration Tabia mean · development)", "type": "vector", "geometry_type": "polygon", "published": true, "default_visible": false, "opacity": 0.72, "min_scale": 5000000, "max_scale": 50000, "queryable": true, "wms_name": "tigray_drought_wapor_dev", "identify_fields": ["TABIA", "WEREDA", "transpiration_mm", "aeti_mm", "coverage_pct", "quality_status"], "attribution": "FAO WaPOR v3 L2 · dekadal transpiration zonal context · development only"

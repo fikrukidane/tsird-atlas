@@ -1,0 +1,87 @@
+# DEV-only source-refresh overlay.  It preserves the established tsird-atlas
+# project, its external PostGIS volume, and the shared local data directory.
+# Run with `docker compose -p tsird-atlas ... up -d --build`; never use `down`.
+services:
+  tsird-postgis:
+    env_file: !override
+      - C:/docker/projects/tsird-atlas/.env.tsird
+    volumes:
+      - tsird-local-pgdata:/var/lib/postgresql/data
+      - C:/docker/projects/tsird-atlas/.worktrees/source-refresh-completion/db/init:/docker-entrypoint-initdb.d:ro
+
+  tsird-mapserver:
+    env_file: !override
+      - C:/docker/projects/tsird-atlas/.env.tsird
+    volumes:
+      - C:/docker/projects/tsird-atlas/.worktrees/source-refresh-completion/infra/mapserver/mapfiles:/etc/mapserver
+      - C:/docker/projects/tsird-atlas/.worktrees/source-refresh-completion/infra/mapserver/mapfiles/ms.config:/etc/mapserver.conf:ro
+      - C:/docker/projects/tsird-atlas/.worktrees/source-refresh-completion/infra/mapserver/fonts:/fonts:ro
+      - C:/docker/projects/tsird-atlas/.worktrees/source-refresh-completion/infra/mapserver/symbols:/symbols:ro
+      - C:/docker/projects/tsird-atlas/data:/data:ro
+      - tsird-mapserver-tmp:/tmp
+
+  tsird-web:
+    image: tsird-atlas-tsird-web:dev-source-refresh-20261029
+    build:
+      context: ./ui/web
+      labels:
+        org.opencontainers.image.revision: "${TSIRD_BUILD_REVISION}"
+        org.opencontainers.image.created: "${TSIRD_BUILD_CREATED}"
+
+  tsird-etl:
+    image: tsird-atlas-tsird-etl:dev-source-refresh-20261029
+    build:
+      context: ./etl
+      labels:
+        org.opencontainers.image.revision: "${TSIRD_BUILD_REVISION}"
+        org.opencontainers.image.created: "${TSIRD_BUILD_CREATED}"
+    env_file: !override
+      - C:/docker/projects/tsird-atlas/.env.tsird
+    volumes:
+      - C:/docker/projects/tsird-atlas/data:/data
+
+  tsird-api:
+    image: tsird-atlas-tsird-api:dev-source-refresh-20261029
+    build:
+      context: ./api
+      labels:
+        org.opencontainers.image.revision: "${TSIRD_BUILD_REVISION}"
+        org.opencontainers.image.created: "${TSIRD_BUILD_CREATED}"
+    env_file: !override
+      - C:/docker/projects/tsird-atlas/.env.tsird
+    volumes:
+      - C:/docker/projects/tsird-atlas/data:/data:ro
+
+  tsird-edge:
+    image: tsird-atlas-tsird-edge:dev-source-refresh-20261029
+    build:
+      context: ./infra/edge
+      labels:
+        org.opencontainers.image.revision: "${TSIRD_BUILD_REVISION}"
+        org.opencontainers.image.created: "${TSIRD_BUILD_CREATED}"
+    env_file: !override
+      - C:/docker/projects/tsird-atlas/.env.tsird
+
+  tsird-drought-runner:
+    image: tsird-atlas-tsird-drought-runner:dev-source-refresh-20261029
+    build:
+      context: ./etl
+      labels:
+        org.opencontainers.image.revision: "${TSIRD_BUILD_REVISION}"
+        org.opencontainers.image.created: "${TSIRD_BUILD_CREATED}"
+    env_file: !override
+      - C:/docker/projects/tsird-atlas/.env.tsird
+      - C:/docker/projects/tsird-atlas/.env.tsird.cdse
+      - C:/docker/projects/tsird-atlas/.env.tsird.cds
+      - path: C:/docker/projects/tsird-atlas/.env.tsird.earthdata
+        required: false
+    volumes:
+      - C:/docker/projects/tsird-atlas/data:/data
+
+volumes:
+  tsird-local-pgdata:
+    external: true
+    name: tsird-local-pgdata
+  tsird-mapserver-tmp:
+    external: true
+    name: f4a2a11189943c2fe05b5db97734afec983fcdcb475d2a1f60b29cfa84b2b14a

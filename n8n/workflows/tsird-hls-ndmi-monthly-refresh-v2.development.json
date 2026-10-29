@@ -1,0 +1,1587 @@
+{
+  "name": "TSIRD · HLS monthly vegetation-moisture refresh v2 (development)",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "f01f82b9-f491-59b2-8516-51df9b779919",
+      "name": "Manual development run",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        120,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "15 7 * * *"
+            }
+          ]
+        }
+      },
+      "id": "e7d3205d-c28d-5ed0-95b6-795d8d938eab",
+      "name": "Scheduled source check",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        120,
+        460
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://tsird-drought-runner:8090/runs/hls-ndmi-monthly-probe/development-test",
+        "options": {
+          "timeout": 30000,
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "51f90e22-bac9-547e-8712-1689f889d1c5",
+      "name": "Start source probe",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        340,
+        380
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.statusCode }}",
+              "operator": {
+                "type": "number",
+                "operation": "equals"
+              },
+              "rightValue": 202
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "c6d0d248-69b7-5494-8156-8ba31b13a326",
+      "name": "Probe accepted?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        560,
+        380
+      ]
+    },
+    {
+      "parameters": {
+        "amount": "={{ Math.min(30, 5 * ($runIndex + 1)) }}",
+        "unit": "seconds"
+      },
+      "id": "df7a3819-cc65-5169-8c27-254a19118689",
+      "name": "Wait for probe",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        780,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=http://tsird-drought-runner:8090/runs/{{ $('Start source probe').item.json.body.job_id }}",
+        "options": {
+          "timeout": 30000,
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "b6a5f9d1-4fe5-5e60-af4d-d08be72c101f",
+      "name": "Read probe job",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1000,
+        300
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ [\"queued\",\"running\"].includes($json.body.status) }}",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "d9aa2625-7bdf-59c3-92ee-3daf09ac30b7",
+      "name": "Probe still running?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1220,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $runIndex }}",
+              "operator": {
+                "type": "number",
+                "operation": "lt"
+              },
+              "rightValue": 8
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "ff62ade7-14ba-582c-8e39-d655f522c624",
+      "name": "Probe poll budget left?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1440,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.body.status }}",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              },
+              "rightValue": "ready"
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "14aab7f0-e51b-5ed2-bc59-6265eb75c948",
+      "name": "Newer data available?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1440,
+        420
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ [\"current\",\"degraded\"].includes($json.body.status) }}",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "bb49acfd-a31e-5828-93ec-a7caf940f608",
+      "name": "Provider state known?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1660,
+        540
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://tsird-drought-runner:8090/runs/hls-ndmi-monthly-full/development-test",
+        "options": {
+          "timeout": 30000,
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "df8864d7-525c-53a7-af22-e72e3adfcadf",
+      "name": "Start acquisition",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1660,
+        760
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.statusCode }}",
+              "operator": {
+                "type": "number",
+                "operation": "equals"
+              },
+              "rightValue": 202
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "c33c2a63-3593-57f1-a1a4-b5e19b0e625d",
+      "name": "Acquisition accepted?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1880,
+        760
+      ]
+    },
+    {
+      "parameters": {
+        "amount": "={{ Math.min(60, 15 * ($runIndex + 1)) }}",
+        "unit": "seconds"
+      },
+      "id": "22c99b0e-cb07-560d-9466-db2ad64b8b10",
+      "name": "Wait for acquisition",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        2100,
+        680
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=http://tsird-drought-runner:8090/runs/{{ $('Start acquisition').item.json.body.job_id }}",
+        "options": {
+          "timeout": 30000,
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "2beefc44-62fa-5b5c-9956-070168d12f87",
+      "name": "Read acquisition job",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2320,
+        680
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ [\"queued\",\"running\"].includes($json.body.status) }}",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "e2708058-f83f-5691-a00c-81916e9ac289",
+      "name": "Acquisition still running?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2540,
+        680
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $runIndex }}",
+              "operator": {
+                "type": "number",
+                "operation": "lt"
+              },
+              "rightValue": 360
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "d1c017c6-3a33-5346-a230-22114dc8bd7e",
+      "name": "Acquisition poll budget left?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2760,
+        580
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ [\"failed\",\"unavailable\",\"error\"].includes($json.body.status) }}",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "6f917fbe-8f27-525c-af1b-a25724ea81cc",
+      "name": "Acquisition failed?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2760,
+        800
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "efcfac23-e313-5a00-871e-9e321511dcbf",
+              "name": "schema_version",
+              "value": "tsird-drought-source-refresh-receipt/v2",
+              "type": "string"
+            },
+            {
+              "id": "b0294683-a38b-5906-a411-9908ee1d2322",
+              "name": "workflow_key",
+              "value": "hls-ndmi",
+              "type": "string"
+            },
+            {
+              "id": "9f4f9c74-2e9c-5044-b0fc-12cb0b4d137d",
+              "name": "source_id",
+              "value": "nasa-hls-v2-ndmi-monthly",
+              "type": "string"
+            },
+            {
+              "id": "077a5a03-b92e-50bc-a337-cff62e1d11ad",
+              "name": "run_outcome",
+              "value": "no_new_data",
+              "type": "string"
+            },
+            {
+              "id": "19890a6a-fa66-5ace-be3b-44b213f0ed2b",
+              "name": "outcome_detail",
+              "value": "provider_has_no_newer_item",
+              "type": "string"
+            },
+            {
+              "id": "af05a726-a60f-5315-8e6f-41428315f5ee",
+              "name": "provider_state",
+              "value": "={{ $json.body.status }}",
+              "type": "string"
+            },
+            {
+              "id": "28478d6b-5bb5-5d77-b9ed-7908dbd181e0",
+              "name": "evidence_changed",
+              "value": false,
+              "type": "boolean"
+            },
+            {
+              "id": "14ec40f2-4b4b-54bd-a7a3-7c52bd841c95",
+              "name": "action_required",
+              "value": "={{ $json.body.status === \"degraded\" }}",
+              "type": "boolean"
+            },
+            {
+              "id": "32a35539-6af4-5ac9-b96b-efe54e7876c8",
+              "name": "runner_job_id",
+              "value": "={{ $('Start source probe').item.json.body.job_id }}",
+              "type": "string"
+            },
+            {
+              "id": "72346915-d2bb-5e05-b9dd-6cf7e153f768",
+              "name": "probe_poll_budget",
+              "value": 8,
+              "type": "number"
+            },
+            {
+              "id": "a897be1a-cece-5fe8-8c42-9605e8f33252",
+              "name": "acquisition_poll_budget",
+              "value": 360,
+              "type": "number"
+            },
+            {
+              "id": "8da20604-8ba7-5262-8370-39930491819a",
+              "name": "checked_at",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            },
+            {
+              "id": "6a40ff1a-63d1-5efa-ac38-0b2527073d4d",
+              "name": "operator_summary",
+              "value": "=NASA HLS monthly NDMI probe ended {{ $json.body.status }}. No raster was downloaded and no local evidence changed. A 'current' state means the newest provider item is already summarised locally; a 'degraded' state means the newest provider item is older than the declared freshness window.",
+              "type": "string"
+            },
+            {
+              "id": "02efc985-cf1d-5649-89f2-d8c5920d65fb",
+              "name": "next_action",
+              "value": "None while 'current'. While 'degraded', check the provider schedule before the next run; do not force an acquisition.",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "081fbd9d-fd2b-5c24-9763-7b70c69173c0",
+      "name": "Report no new data",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1880,
+        440
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "95e6c6e8-0241-5eb9-b41e-10102a8bcc13",
+              "name": "schema_version",
+              "value": "tsird-drought-source-refresh-receipt/v2",
+              "type": "string"
+            },
+            {
+              "id": "d641647f-0687-5f75-8155-de2d98eb755d",
+              "name": "workflow_key",
+              "value": "hls-ndmi",
+              "type": "string"
+            },
+            {
+              "id": "5da03dfe-df1f-5fb4-96e2-4cd24003f08b",
+              "name": "source_id",
+              "value": "nasa-hls-v2-ndmi-monthly",
+              "type": "string"
+            },
+            {
+              "id": "92df0af6-65ef-54ed-8b0c-605f4a131b68",
+              "name": "run_outcome",
+              "value": "failure",
+              "type": "string"
+            },
+            {
+              "id": "bdeaf156-d7d7-5401-8948-c817299b81d1",
+              "name": "outcome_detail",
+              "value": "probe_failed",
+              "type": "string"
+            },
+            {
+              "id": "c3e4d606-944c-518f-9159-596f4b6a5898",
+              "name": "provider_state",
+              "value": "={{ $json.body.status || \"unknown\" }}",
+              "type": "string"
+            },
+            {
+              "id": "7a127158-174b-5eaa-9d87-ee34685fbec7",
+              "name": "evidence_changed",
+              "value": false,
+              "type": "boolean"
+            },
+            {
+              "id": "97a385c4-4f5a-5fcc-8ef0-78ad8fdb6d74",
+              "name": "action_required",
+              "value": true,
+              "type": "boolean"
+            },
+            {
+              "id": "d1cac86f-5416-52b8-b8db-2efc5152fead",
+              "name": "runner_job_id",
+              "value": "={{ $('Start source probe').item.json.body.job_id }}",
+              "type": "string"
+            },
+            {
+              "id": "6e6387e9-2269-51fe-b7b7-19c8b6e8f620",
+              "name": "probe_poll_budget",
+              "value": 8,
+              "type": "number"
+            },
+            {
+              "id": "2f6d0f1a-5625-5320-9f04-886b1bef0a1a",
+              "name": "acquisition_poll_budget",
+              "value": 360,
+              "type": "number"
+            },
+            {
+              "id": "a05aaf26-5398-5cfa-bec5-9be67ae798c6",
+              "name": "checked_at",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            },
+            {
+              "id": "2132150b-72cb-5b76-928a-3cf03cf58c93",
+              "name": "operator_summary",
+              "value": "=NASA HLS monthly NDMI probe did not reach a usable provider state (runner status {{ $json.body.status || 'unknown' }}). No acquisition was attempted and local evidence is unchanged.",
+              "type": "string"
+            },
+            {
+              "id": "9076d3ed-d7dd-5c6a-8c01-855d8ec3dce7",
+              "name": "next_action",
+              "value": "Inspect the runner receipt and provider access before the next scheduled run.",
+              "type": "string"
+            },
+            {
+              "id": "77235694-fda1-52b0-82bd-10dec4b57afe",
+              "name": "runner_error",
+              "value": "={{ $json.body.error || $json.body.detail || '' }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "48627d6f-e1be-5290-96b8-9c217f195c31",
+      "name": "Report probe failure",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1880,
+        620
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "6de08d42-7e76-5060-9b41-866930b8a896",
+              "name": "schema_version",
+              "value": "tsird-drought-source-refresh-receipt/v2",
+              "type": "string"
+            },
+            {
+              "id": "ddc5f4c2-873d-5191-b09e-a7566b899066",
+              "name": "workflow_key",
+              "value": "hls-ndmi",
+              "type": "string"
+            },
+            {
+              "id": "f2e4dd7f-144f-528c-8004-d0d1c22771d9",
+              "name": "source_id",
+              "value": "nasa-hls-v2-ndmi-monthly",
+              "type": "string"
+            },
+            {
+              "id": "312235a6-da11-5043-bd38-5223453d7809",
+              "name": "run_outcome",
+              "value": "failure",
+              "type": "string"
+            },
+            {
+              "id": "90ce8f2c-8327-5a0b-9b80-8e2a91f48669",
+              "name": "outcome_detail",
+              "value": "probe_poll_budget_exhausted",
+              "type": "string"
+            },
+            {
+              "id": "2b0eb241-54f6-58f5-95d6-8fee6bcc52be",
+              "name": "provider_state",
+              "value": "unknown",
+              "type": "string"
+            },
+            {
+              "id": "330c7ecc-0b9b-55ed-be94-4b67a2d2fc90",
+              "name": "evidence_changed",
+              "value": false,
+              "type": "boolean"
+            },
+            {
+              "id": "7bad3f26-cfb0-5a43-81a0-6ee8bc70ee31",
+              "name": "action_required",
+              "value": true,
+              "type": "boolean"
+            },
+            {
+              "id": "da589569-623a-5215-92a6-4fc4b9d66e9a",
+              "name": "runner_job_id",
+              "value": "={{ $('Start source probe').item.json.body.job_id }}",
+              "type": "string"
+            },
+            {
+              "id": "edcd4e07-1441-5f3c-a184-90b335093f8c",
+              "name": "probe_poll_budget",
+              "value": 8,
+              "type": "number"
+            },
+            {
+              "id": "6b053c98-77ee-5117-be6a-8c366dd9f503",
+              "name": "acquisition_poll_budget",
+              "value": 360,
+              "type": "number"
+            },
+            {
+              "id": "10ff9a84-79ef-5db7-952c-216ce0f2c270",
+              "name": "checked_at",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            },
+            {
+              "id": "764f6f16-6765-53f1-98ae-a6ed1964e64d",
+              "name": "operator_summary",
+              "value": "=NASA HLS monthly NDMI probe was still running after the bounded poll budget. The run stopped polling; the runner job may still finish on its own.",
+              "type": "string"
+            },
+            {
+              "id": "fc97cb9a-a219-57e0-b3a3-691edb2bd25f",
+              "name": "next_action",
+              "value": "Read the runner job once before the next schedule. Do not start a second probe while the first may still be active.",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "802963e5-8a12-5db4-b29a-d1b3356d68a8",
+      "name": "Report probe timeout",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1660,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "4eccce8f-15e1-52d4-8cc1-63f5d178e95d",
+              "name": "schema_version",
+              "value": "tsird-drought-source-refresh-receipt/v2",
+              "type": "string"
+            },
+            {
+              "id": "619552ed-3703-5e72-9b85-1181c8cb369b",
+              "name": "workflow_key",
+              "value": "hls-ndmi",
+              "type": "string"
+            },
+            {
+              "id": "7df94289-c178-5a9f-8b0c-aec63a382de8",
+              "name": "source_id",
+              "value": "nasa-hls-v2-ndmi-monthly",
+              "type": "string"
+            },
+            {
+              "id": "0b6e2972-ff57-52ba-894c-ad6fe3e20efa",
+              "name": "run_outcome",
+              "value": "failure",
+              "type": "string"
+            },
+            {
+              "id": "c33b77b8-0c21-5f0d-981a-7b505b787e15",
+              "name": "outcome_detail",
+              "value": "runner_unavailable_or_busy",
+              "type": "string"
+            },
+            {
+              "id": "54db6642-f369-5fae-bf74-25e262e7a9a7",
+              "name": "provider_state",
+              "value": "unknown",
+              "type": "string"
+            },
+            {
+              "id": "56ca8e29-7337-5441-bd33-e4b30fd5983e",
+              "name": "evidence_changed",
+              "value": false,
+              "type": "boolean"
+            },
+            {
+              "id": "5d26ffff-525f-5b4f-a629-85dbd9e499e6",
+              "name": "action_required",
+              "value": true,
+              "type": "boolean"
+            },
+            {
+              "id": "00ce09bf-1e08-5925-b34a-df19acc7ca70",
+              "name": "runner_job_id",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "82432e34-5c8b-5e42-851c-8e28aed269e3",
+              "name": "probe_poll_budget",
+              "value": 8,
+              "type": "number"
+            },
+            {
+              "id": "b2fad0b7-c432-5d9d-9265-85d72337f436",
+              "name": "acquisition_poll_budget",
+              "value": 360,
+              "type": "number"
+            },
+            {
+              "id": "1c0b9449-0818-50a0-a743-ddbcc9f1b366",
+              "name": "checked_at",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            },
+            {
+              "id": "4aea08d5-31e1-5bdf-b50d-46d8c212f51b",
+              "name": "operator_summary",
+              "value": "=NASA HLS monthly NDMI could not start a probe. The runner answered HTTP {{ $json.statusCode }}. HTTP 409 means another drought job is active and this run was deferred, not lost.",
+              "type": "string"
+            },
+            {
+              "id": "657258c8-566e-5b01-9303-44b2bfb4d391",
+              "name": "next_action",
+              "value": "No action for a single 409. For any other status, check that tsird-drought-runner is running and reachable on tsird-network.",
+              "type": "string"
+            },
+            {
+              "id": "349fdc8d-c3f7-51f2-8f2e-650d09617569",
+              "name": "http_status",
+              "value": "={{ $json.statusCode }}",
+              "type": "number"
+            },
+            {
+              "id": "16e62817-8683-5583-9341-a08b29534732",
+              "name": "runner_error",
+              "value": "={{ $json.body.detail || '' }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "a0876584-66a6-5bca-ac16-23e47ec591e1",
+      "name": "Report runner unavailable",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        780,
+        520
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "2db37952-fabd-56ed-a17f-04a0e339276f",
+              "name": "schema_version",
+              "value": "tsird-drought-source-refresh-receipt/v2",
+              "type": "string"
+            },
+            {
+              "id": "eb4d341f-ac2c-5974-b86f-45b5e9fcf03a",
+              "name": "workflow_key",
+              "value": "hls-ndmi",
+              "type": "string"
+            },
+            {
+              "id": "9b6455f9-25da-525f-8d76-3f14a2f731ee",
+              "name": "source_id",
+              "value": "nasa-hls-v2-ndmi-monthly",
+              "type": "string"
+            },
+            {
+              "id": "1d76b7c5-dc03-550d-9739-3941890ae450",
+              "name": "run_outcome",
+              "value": "failure",
+              "type": "string"
+            },
+            {
+              "id": "a5f8e251-79ab-587a-b480-3c23dbf4b133",
+              "name": "outcome_detail",
+              "value": "acquisition_not_started",
+              "type": "string"
+            },
+            {
+              "id": "9fac8ecb-242b-55eb-a16f-15a6d6a618c5",
+              "name": "provider_state",
+              "value": "ready",
+              "type": "string"
+            },
+            {
+              "id": "bfe0050c-206f-5311-947d-eba77175fa4f",
+              "name": "evidence_changed",
+              "value": false,
+              "type": "boolean"
+            },
+            {
+              "id": "599d05a2-d2af-5ca9-8e81-01d49e448691",
+              "name": "action_required",
+              "value": true,
+              "type": "boolean"
+            },
+            {
+              "id": "925f6e55-f48f-5b06-af92-443f946046ec",
+              "name": "runner_job_id",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "3a6ce29f-d62e-53c7-af2d-4f5c69baa18f",
+              "name": "probe_poll_budget",
+              "value": 8,
+              "type": "number"
+            },
+            {
+              "id": "2627f6f4-791b-5cb8-b040-97d88bf636c3",
+              "name": "acquisition_poll_budget",
+              "value": 360,
+              "type": "number"
+            },
+            {
+              "id": "a175746a-f8b9-5ab5-a208-2ac2af04facd",
+              "name": "checked_at",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            },
+            {
+              "id": "48cc0c86-e6d4-5ab0-927c-0db00139995e",
+              "name": "operator_summary",
+              "value": "=NASA HLS monthly NDMI found newer provider data but the runner refused the acquisition request with HTTP {{ $json.statusCode }}. Local evidence is unchanged and the previous valid artifact remains in place.",
+              "type": "string"
+            },
+            {
+              "id": "10d563c1-7ab2-57de-9215-8e0e16433f25",
+              "name": "next_action",
+              "value": "HTTP 409 means another job was active; the next scheduled run retries. Any other status needs a runner check.",
+              "type": "string"
+            },
+            {
+              "id": "58d27385-6317-52c2-b5ba-b6882b0a36ec",
+              "name": "http_status",
+              "value": "={{ $json.statusCode }}",
+              "type": "number"
+            },
+            {
+              "id": "031f3adf-e238-57dd-8a82-429b14b7e434",
+              "name": "runner_error",
+              "value": "={{ $json.body.detail || '' }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "15bf469c-2295-5513-a3a2-f59def15938e",
+      "name": "Report acquisition rejected",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2100,
+        880
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "75fd38b2-361f-5286-879c-b271892c2b67",
+              "name": "schema_version",
+              "value": "tsird-drought-source-refresh-receipt/v2",
+              "type": "string"
+            },
+            {
+              "id": "280c6ae2-adf4-597f-ba9e-7845c833f168",
+              "name": "workflow_key",
+              "value": "hls-ndmi",
+              "type": "string"
+            },
+            {
+              "id": "bce699c1-d51d-5916-a846-0cc9bbbe19f4",
+              "name": "source_id",
+              "value": "nasa-hls-v2-ndmi-monthly",
+              "type": "string"
+            },
+            {
+              "id": "398c1058-8cf0-5a42-8c0b-eed4e333ef76",
+              "name": "run_outcome",
+              "value": "failure",
+              "type": "string"
+            },
+            {
+              "id": "d58566ef-b9c6-5fc5-b778-32d8c614adc9",
+              "name": "outcome_detail",
+              "value": "acquisition_failed",
+              "type": "string"
+            },
+            {
+              "id": "766fbac1-7b98-52b6-909e-db8d259d2a14",
+              "name": "provider_state",
+              "value": "ready",
+              "type": "string"
+            },
+            {
+              "id": "5575b3d6-4a88-5706-9d45-0bb66ed52238",
+              "name": "evidence_changed",
+              "value": false,
+              "type": "boolean"
+            },
+            {
+              "id": "682f730a-9cc3-5766-921f-7e93bfd290e6",
+              "name": "action_required",
+              "value": true,
+              "type": "boolean"
+            },
+            {
+              "id": "8634b38c-bff9-5331-aaf9-3cc7ab4f2adc",
+              "name": "runner_job_id",
+              "value": "={{ $('Start acquisition').item.json.body.job_id }}",
+              "type": "string"
+            },
+            {
+              "id": "0c09cc81-1e2d-5d74-8c8a-22b3d436b471",
+              "name": "probe_poll_budget",
+              "value": 8,
+              "type": "number"
+            },
+            {
+              "id": "5b54fe41-9524-5720-92b2-9926cc801c84",
+              "name": "acquisition_poll_budget",
+              "value": 360,
+              "type": "number"
+            },
+            {
+              "id": "1a105b2f-702e-5e08-bcdb-d8a3f4cc9d69",
+              "name": "checked_at",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            },
+            {
+              "id": "bdea12b8-f781-5e3c-bda1-dfbb4f941239",
+              "name": "operator_summary",
+              "value": "=NASA HLS monthly NDMI acquisition job ended {{ $json.body.status }}. Nothing was published and the previous valid artifact remains the current one.",
+              "type": "string"
+            },
+            {
+              "id": "ee294257-169b-5ba2-8c0f-b4f78bf3bca7",
+              "name": "next_action",
+              "value": "Read the runner job output tail, then decide whether to re-run manually. The schedule will retry on its next cycle.",
+              "type": "string"
+            },
+            {
+              "id": "f945e932-f56d-5cda-a817-87ce641ee867",
+              "name": "runner_error",
+              "value": "={{ $json.body.error || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "2a6a5ae3-1dc9-58cf-bc21-e86c82cd0227",
+              "name": "runner_run_id",
+              "value": "={{ $json.body.run_id || '' }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "63ab6e43-5650-5bac-844c-d9fd929dcdd4",
+      "name": "Report acquisition failure",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2980,
+        880
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "8e1493d6-7eb2-50fd-980d-5a8a6ad959d5",
+              "name": "schema_version",
+              "value": "tsird-drought-source-refresh-receipt/v2",
+              "type": "string"
+            },
+            {
+              "id": "e7e637f4-7bf3-5259-816e-2f7f2693ddb4",
+              "name": "workflow_key",
+              "value": "hls-ndmi",
+              "type": "string"
+            },
+            {
+              "id": "fd3cb126-061c-5744-bab7-ed52a0ec3ff4",
+              "name": "source_id",
+              "value": "nasa-hls-v2-ndmi-monthly",
+              "type": "string"
+            },
+            {
+              "id": "6a7ca90a-e5cc-5b22-a400-4c15a3324ee5",
+              "name": "run_outcome",
+              "value": "failure",
+              "type": "string"
+            },
+            {
+              "id": "023fbfb5-91c1-5bf5-8e51-23fcce4125eb",
+              "name": "outcome_detail",
+              "value": "acquisition_poll_budget_exhausted",
+              "type": "string"
+            },
+            {
+              "id": "4850cb5e-b2f0-5da9-b0ed-b4dd0ed3fe1e",
+              "name": "provider_state",
+              "value": "ready",
+              "type": "string"
+            },
+            {
+              "id": "a9698691-16ec-5067-88ed-80e10b460ae9",
+              "name": "evidence_changed",
+              "value": false,
+              "type": "boolean"
+            },
+            {
+              "id": "eea9bb77-a678-5ed2-b794-4a5ec01509e9",
+              "name": "action_required",
+              "value": true,
+              "type": "boolean"
+            },
+            {
+              "id": "6410c54a-439f-5e12-afa6-c1635ef94115",
+              "name": "runner_job_id",
+              "value": "={{ $('Start acquisition').item.json.body.job_id }}",
+              "type": "string"
+            },
+            {
+              "id": "08371046-77cc-5411-900b-88913651ffbc",
+              "name": "probe_poll_budget",
+              "value": 8,
+              "type": "number"
+            },
+            {
+              "id": "94d7e89f-cbc4-59a9-8a4b-7756f438ecc4",
+              "name": "acquisition_poll_budget",
+              "value": 360,
+              "type": "number"
+            },
+            {
+              "id": "e5d46f03-d019-5fea-bd47-9878e2ff6de3",
+              "name": "checked_at",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            },
+            {
+              "id": "b53392b7-4c86-5381-a110-88795e98450c",
+              "name": "operator_summary",
+              "value": "=NASA HLS monthly NDMI acquisition was still running when the bounded poll budget ended. The job may still complete inside the runner; this run makes no claim about the result.",
+              "type": "string"
+            },
+            {
+              "id": "48379043-4fc3-5436-ade5-6472b1a07444",
+              "name": "next_action",
+              "value": "Read the runner job once, and confirm the artifact before treating the evidence as updated. Do not start a second acquisition for the same period.",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "768d65c4-7321-5d43-b3d9-432bdbe695c4",
+      "name": "Report acquisition timeout",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2980,
+        500
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "495c5d8f-11ca-589f-8a0b-2c279bafee29",
+              "name": "schema_version",
+              "value": "tsird-drought-source-refresh-receipt/v2",
+              "type": "string"
+            },
+            {
+              "id": "1217f002-2bc6-5831-83a4-db1931f8ca3b",
+              "name": "workflow_key",
+              "value": "hls-ndmi",
+              "type": "string"
+            },
+            {
+              "id": "72b63c24-8247-5d13-b572-7476494b8fc1",
+              "name": "source_id",
+              "value": "nasa-hls-v2-ndmi-monthly",
+              "type": "string"
+            },
+            {
+              "id": "b6398d06-4503-5162-93a3-2bf8fc200b5b",
+              "name": "run_outcome",
+              "value": "data_updated",
+              "type": "string"
+            },
+            {
+              "id": "17656b92-4ece-5db7-b3f8-88713f552b9b",
+              "name": "outcome_detail",
+              "value": "acquired_validated_loaded",
+              "type": "string"
+            },
+            {
+              "id": "3bd111ed-64db-5bad-abda-7c4f5520bfe4",
+              "name": "provider_state",
+              "value": "ready",
+              "type": "string"
+            },
+            {
+              "id": "5c7e522c-87d9-53b4-b791-129fe1a940d6",
+              "name": "evidence_changed",
+              "value": true,
+              "type": "boolean"
+            },
+            {
+              "id": "7d4f746f-66d5-535a-971b-3f5af2d6f928",
+              "name": "action_required",
+              "value": "={{ [\"degraded\",\"failed\"].includes($json.body.status) }}",
+              "type": "boolean"
+            },
+            {
+              "id": "ec563f14-51c1-5d63-ae31-ae08a34dfbc2",
+              "name": "runner_job_id",
+              "value": "={{ $('Start acquisition').item.json.body.job_id }}",
+              "type": "string"
+            },
+            {
+              "id": "26cf59bd-68e8-51aa-8ba3-faf4141536af",
+              "name": "probe_poll_budget",
+              "value": 8,
+              "type": "number"
+            },
+            {
+              "id": "ffc5b7db-eecc-5df3-90ef-7321459de1ca",
+              "name": "acquisition_poll_budget",
+              "value": 360,
+              "type": "number"
+            },
+            {
+              "id": "ca34d6fa-e477-56d8-b36b-609f164d198f",
+              "name": "checked_at",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            },
+            {
+              "id": "55fc6550-8a9c-5825-8f70-eb686b42d73c",
+              "name": "operator_summary",
+              "value": "=NASA HLS monthly NDMI acquired a newer provider item, validated it and loaded run {{ $json.body.run_id || 'unknown' }} with artifact status {{ $json.body.status }}. A successful run proves that one bounded monthly vegetation-moisture evidence raster was retrieved from the configured collection, summarised per Tabia, loaded into PostGIS and synchronised to the current monthly vegetation-moisture evidence display raster.",
+              "type": "string"
+            },
+            {
+              "id": "c336d7ce-565e-5af3-b78f-f98ee83d0401",
+              "name": "next_action",
+              "value": "None when the artifact status is 'development' or 'validated'. A 'degraded' artifact status means the data loaded but its quality gate flagged it; review before using it.",
+              "type": "string"
+            },
+            {
+              "id": "c775959a-491d-563b-8a0a-69c6e3470b68",
+              "name": "runner_run_id",
+              "value": "={{ $json.body.run_id || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "a680e8df-3421-51c3-8bf8-32722761b169",
+              "name": "artifact_status",
+              "value": "={{ $json.body.status }}",
+              "type": "string"
+            },
+            {
+              "id": "d0983d2b-c502-55e9-92e1-7b37b3aa6c14",
+              "name": "job_finished_at",
+              "value": "={{ $json.body.finished_at || '' }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "642d7d5a-a33d-5d03-903a-42e639f7c214",
+      "name": "Report data updated",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2980,
+        700
+      ]
+    }
+  ],
+  "connections": {
+    "Manual development run": {
+      "main": [
+        [
+          {
+            "node": "Start source probe",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Scheduled source check": {
+      "main": [
+        [
+          {
+            "node": "Start source probe",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Start source probe": {
+      "main": [
+        [
+          {
+            "node": "Probe accepted?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Probe accepted?": {
+      "main": [
+        [
+          {
+            "node": "Wait for probe",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Report runner unavailable",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait for probe": {
+      "main": [
+        [
+          {
+            "node": "Read probe job",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read probe job": {
+      "main": [
+        [
+          {
+            "node": "Probe still running?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Probe still running?": {
+      "main": [
+        [
+          {
+            "node": "Probe poll budget left?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Newer data available?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Probe poll budget left?": {
+      "main": [
+        [
+          {
+            "node": "Wait for probe",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Report probe timeout",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Newer data available?": {
+      "main": [
+        [
+          {
+            "node": "Start acquisition",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Provider state known?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Provider state known?": {
+      "main": [
+        [
+          {
+            "node": "Report no new data",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Report probe failure",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Start acquisition": {
+      "main": [
+        [
+          {
+            "node": "Acquisition accepted?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Acquisition accepted?": {
+      "main": [
+        [
+          {
+            "node": "Wait for acquisition",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Report acquisition rejected",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait for acquisition": {
+      "main": [
+        [
+          {
+            "node": "Read acquisition job",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read acquisition job": {
+      "main": [
+        [
+          {
+            "node": "Acquisition still running?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Acquisition still running?": {
+      "main": [
+        [
+          {
+            "node": "Acquisition poll budget left?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Acquisition failed?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Acquisition poll budget left?": {
+      "main": [
+        [
+          {
+            "node": "Wait for acquisition",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Report acquisition timeout",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Acquisition failed?": {
+      "main": [
+        [
+          {
+            "node": "Report acquisition failure",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Report data updated",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "saveExecutionProgress": true,
+    "timezone": "Africa/Addis_Ababa"
+  },
+  "versionId": "1a556dde-c5af-596f-85dc-0e6c5fa17d3b",
+  "meta": {},
+  "tags": []
+}
