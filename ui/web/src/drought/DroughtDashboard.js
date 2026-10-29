@@ -2238,7 +2238,14 @@ class DroughtDashboard {
     const accumulationLabel = months.length > 1
       ? `Cumulative rainfall total: ${analysisPeriod} (${months.length} completed calendar months)`
       : `Rainfall total: ${analysisPeriod} (one completed calendar month)`;
-    const latest = run.source_latest_month ? new Intl.DateTimeFormat('en', { month: 'long', year: 'numeric', timeZone: 'UTC' }).format(new Date(`${run.source_latest_month}T00:00:00Z`)) : 'not recorded';
+    // Older retained CHIRPS summaries predate ``source_latest_month``.  Their
+    // observation/period end still records the included completed month, and
+    // production must present that provenance rather than implying it is
+    // unknown.
+    const latestSourceMonth = run.source_latest_month || run.observation_end || run.source_period_end || run.period_end;
+    const latest = latestSourceMonth
+      ? new Intl.DateTimeFormat('en', { month: 'long', year: 'numeric', timeZone: 'UTC' }).format(new Date(`${String(latestSourceMonth).slice(0, 10)}T00:00:00Z`))
+      : 'not recorded';
     const historical = this.observedSnapshotId !== 'latest';
     // `run` changes to the selected historical record.  Excluding that record
     // removes the selected option from the control, so browsers fall back to
