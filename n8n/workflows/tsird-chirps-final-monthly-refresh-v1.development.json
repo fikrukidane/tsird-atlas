@@ -26,5 +26,5 @@
     "Read final rainfall result": {"main": [[{"node": "Final rainfall complete?", "type": "main", "index": 0}]]},
     "Final rainfall complete?": {"main": [[{"node": "Record final rainfall result", "type": "main", "index": 0}], [{"node": "Wait for final rainfall processing", "type": "main", "index": 0}]]}
   },
-  "pinData": {}, "active": false, "settings": {"executionOrder": "v1", "saveManualExecutions": true, "saveExecutionProgress": true}, "meta": {"templateCredsSetupCompleted": true}, "tags": []
+  "pinData": {}, "active": false, "settings": {"executionOrder": "v1", "saveManualExecutions": true, "saveExecutionProgress": true, "timezone": "Africa/Addis_Ababa"}, "meta": {"templateCredsSetupCompleted": true}, "tags": []
 }
