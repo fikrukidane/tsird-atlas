@@ -12,7 +12,7 @@ from pathlib import Path
 
 import psycopg2
 
-from hls_ndmi_monthly_pilot import completed_month, dsn, fetch_tabias_and_bounds, stac_items
+from hls_ndmi_monthly_pilot import completed_month, dsn, stac_items
 
 OUTPUT = Path("/data/drought/outputs/hls-ndmi-monthly-probe.json")
 
@@ -20,6 +20,25 @@ OUTPUT = Path("/data/drought/outputs/hls-ndmi-monthly-probe.json")
 def regional_polygon(bounds):
     west, south, east, north = bounds
     return {"type": "Polygon", "coordinates": [[[west, south], [east, south], [east, north], [west, north], [west, south]]]}
+
+
+def canonical_regional_bounds():
+    """Return only the aggregate extent required for a provider metadata query.
+
+    The probe deliberately does not load individual Tabia geometries or source
+    pixels.  The canonical boundary table remains the authority for the
+    regional search envelope used by CMR-STAC.
+    """
+    with psycopg2.connect(dsn()) as conn, conn.cursor() as cur:
+        cur.execute(
+            '''SELECT ST_XMin(extent), ST_YMin(extent), ST_XMax(extent), ST_YMax(extent)
+                 FROM (SELECT ST_Extent(geometry)::box2d AS extent
+                       FROM tigray_tabias_ws) AS regional_extent'''
+        )
+        row = cur.fetchone()
+    if not row or any(value is None for value in row):
+        raise RuntimeError("canonical Tabia boundaries have no regional extent")
+    return tuple(float(value) for value in row)
 
 
 def retained_full_run(start, end):
@@ -50,8 +69,7 @@ def main():
     if not os.environ.get("EARTHDATA_TOKEN", "").strip():
         receipt["reason"] = "EARTHDATA_TOKEN is not configured in the local development runner"
     else:
-        _, bounds = fetch_tabias_and_bounds()
-        items = stac_items(regional_polygon(bounds), start, end)
+        items = stac_items(regional_polygon(canonical_regional_bounds()), start, end)
         if not items:
             receipt.update(status="degraded", reason="CMR-STAC has no HLS L30/S30 item for the eligible completed month")
         else:

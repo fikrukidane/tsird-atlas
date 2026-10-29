@@ -65,7 +65,9 @@ def retrieve(token, collection, bounds, stamp, target):
             "height": math.ceil((bounds[3] - bounds[1]) / REQUESTED_DEGREES),
             "responses": [{"identifier": "default", "format": {"type": "image/tiff"}}],
         },
-        "evalscript": "//VERSION=3\\nfunction setup(){return {input:[\\\"MEDIAN\\\",\\\"FOBS\\\",\\\"dataMask\\\"],output:{bands:3,sampleType:\\\"FLOAT32\\\"}};}\\nfunction evaluatePixel(s){return [s.MEDIAN,s.FOBS,s.dataMask];}",
+        "evalscript": "//VERSION=3\n"
+                      "function setup(){return {input:[\"MEDIAN\",\"FOBS\",\"dataMask\"],output:{bands:3,sampleType:\"FLOAT32\"}};}\n"
+                      "function evaluatePixel(s){return [s.MEDIAN,s.FOBS,s.dataMask];}",
     }
     request = Request(
         PROCESS_URL, data=json.dumps(body).encode(), method="POST",
@@ -128,7 +130,10 @@ def main():
     checksum = retrieve(token, collection, bounds, stamp, raster)
     historical_only = os.environ.get("TSIRD_RETAIN_HISTORICAL_ONLY") == "1"
     if not historical_only:
-        publish_provider_band(raster, root / "published" / "lst-current.tif", band=1, scale=0.01, offset=-273.15, mask_band=3)
+        # MEDIAN's source encoding is Celsius * 100.  The public display copy
+        # therefore needs only the 1/100 scale; subtracting 273.15 here would
+        # apply the product offset a second time.
+        publish_provider_band(raster, root / "published" / "lst-current.tif", band=1, scale=0.01, offset=0, mask_band=3)
     rows = []
     for tabia_id, tabia, woreda, geometry in tabias:
         row = {"tsird_tabia_id": tabia_id, "tabia_name_en": tabia, "woreda_name_en": woreda}

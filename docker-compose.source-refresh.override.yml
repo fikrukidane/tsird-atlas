@@ -61,6 +61,8 @@ services:
         org.opencontainers.image.created: "${TSIRD_BUILD_CREATED}"
     env_file: !override
       - C:/docker/projects/tsird-atlas/.env.tsird
+    volumes:
+      - C:/docker/projects/tsird-atlas/.worktrees/source-refresh-completion/infra/edge/nginx.dev.conf:/etc/nginx/nginx.conf:ro
 
   tsird-drought-runner:
     image: tsird-atlas-tsird-drought-runner:dev-source-refresh-20261029
