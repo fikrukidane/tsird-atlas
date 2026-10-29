@@ -2242,7 +2242,19 @@ class DroughtDashboard {
     // observation/period end still records the included completed month, and
     // production must present that provenance rather than implying it is
     // unknown.
-    const latestSourceMonth = run.source_latest_month || run.observation_end || run.source_period_end || run.period_end;
+    const completedSeasonMonth = Number.isInteger(Number(run.analysis_year)) && Array.isArray(run.season_months)
+      ? Math.max(...run.season_months.map(Number).filter(Number.isInteger))
+      : null;
+    const latestSourceMonth = run.source_latest_month
+      || run.observation_end
+      || run.source_period_end
+      || run.period_end
+      // Current public CHIRPS summaries carry the included month as a
+      // year-plus-season-months pair.  Preserve that explicit provenance when
+      // the earlier date fields are not part of the compact public payload.
+      || (completedSeasonMonth
+        ? `${run.analysis_year}-${String(completedSeasonMonth).padStart(2, '0')}-01`
+        : null);
     const latest = latestSourceMonth
       ? new Intl.DateTimeFormat('en', { month: 'long', year: 'numeric', timeZone: 'UTC' }).format(new Date(`${String(latestSourceMonth).slice(0, 10)}T00:00:00Z`))
       : 'not recorded';
