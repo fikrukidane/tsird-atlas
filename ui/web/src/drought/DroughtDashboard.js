@@ -2044,7 +2044,7 @@ class DroughtDashboard {
         const target = this.content && this.content.querySelector('[data-public-evidence-selection], [data-indicator-selection]');
         if (target) {
           target.dataset.selectedTabia = String(selection.id);
-          target.innerHTML = `<strong>Tabia detail · ${selection.name_en || 'Selected Tabia'}</strong><span>No retained ${this._indicatorLabel(this._indicatorKindForMode())} value is available for this Tabia.</span><small>This indicator does not infer a value where the retained source has insufficient coverage.</small>`;
+          target.innerHTML = `<strong>${this._tabiaLocationLabel(selection.name_en, selection.parent_name_en)}</strong><span>No retained ${this._indicatorLabel(this._indicatorKindForMode())} value is available for this Tabia.</span><small>This indicator does not infer a value where the retained source has insufficient coverage.</small>`;
         }
       }
     }
@@ -2096,7 +2096,7 @@ class DroughtDashboard {
     if (!row) { target.textContent = 'No HLS monthly NDMI record is retained for this Tabia.'; return; }
     const value = Number(row.ndmi_mean);
     const coverage = Number(row.coverage_pct);
-    target.innerHTML = `<strong>${row.tabia_name_en || 'Selected Tabia'}</strong><br>NDMI mean: ${Number.isFinite(value) ? value.toFixed(3) : 'not available'} · Valid coverage: ${Number.isFinite(coverage) ? `${coverage.toFixed(1)}%` : 'not recorded'} · Quality: ${String(row.quality_status).replaceAll('_', ' ')}.`;
+    target.innerHTML = `<strong>${this._tabiaLocationLabel(row.tabia_name_en, row.woreda_name_en)}</strong><br>NDMI mean: ${Number.isFinite(value) ? value.toFixed(3) : 'not available'} · Valid coverage: ${Number.isFinite(coverage) ? `${coverage.toFixed(1)}%` : 'not recorded'} · Quality: ${String(row.quality_status).replaceAll('_', ' ')}.`;
   }
 
   async _highlightHistoryTabia(selection) {
@@ -2464,6 +2464,11 @@ class DroughtDashboard {
     this.content.appendChild(target);
   }
 
+  _tabiaLocationLabel(tabiaName, woredaName) {
+    const tabia = tabiaName || 'Selected Tabia';
+    return woredaName ? `Tabia: ${tabia} · Woreda: ${woredaName}` : `Tabia: ${tabia}`;
+  }
+
   _showPublicEvidenceSelection(value) {
     const target = this.content && this.content.querySelector('[data-public-evidence-selection], [data-indicator-selection]');
     if (!target || !value) return;
@@ -2475,7 +2480,7 @@ class DroughtDashboard {
     // performance gate distinguish evidence shown for a clicked Tabia from
     // explanatory text that happens to mention the same terms.
     target.dataset.selectedTabia = String(value.tsird_tabia_id || 'selected');
-    const title = `${value.tabia_name_en || 'Selected Tabia'}${value.woreda_name_en ? ` — ${value.woreda_name_en}` : ''}`;
+    const title = this._tabiaLocationLabel(value.tabia_name_en, value.woreda_name_en);
     const finite = number => number !== null && number !== undefined && number !== '' && Number.isFinite(Number(number));
     const number = (raw, places = 1, unit = '') => finite(raw) ? `${Number(raw).toFixed(places)}${unit}` : 'not available';
     const coverage = finite(value.coverage_pct) ? `${Number(value.coverage_pct).toFixed(0)}%` : 'not recorded';
