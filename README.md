@@ -3,7 +3,7 @@
 Geospatial data engineering system for normalizing heterogeneous vector and raster datasets to EPSG:4326, validating regional bounds, and publishing via OGC WMS/WFS. Built for Ethiopian spatial data with explicit focus on Tigray regional subsetting. This system handles CRS-inconsistent shapefiles, applies YAML-driven coordinate overrides, validates geometry integrity, quarantines malformed features, and exposes normalized layers through MapServer. Architecture is Docker-based with PostGIS storage and incremental pipeline orchestration in progress.
 
 **Stack**: Python 3.11, GeoPandas, GDAL 3.8, PostGIS 16+3.4, MapServer 8.6, Docker Compose
-**Status**: Private portfolio repository. Source datasets and credentials excluded.
+**Status**: Public portfolio repository. Source datasets and credentials excluded.
 
 ---
 
@@ -405,17 +405,11 @@ curl "http://localhost:18080/mapserv?SERVICE=WMS&REQUEST=GetCapabilities"
 - MapServer CONNECTION strings sanitized
 - No production database dumps included
 
-### 📦 Repository Size
-
-- **Tracked files**: 109
-- **Total size**: ~157 KB (code, docs, configs only)
-- **No binaries**: All data files properly excluded
-
 ---
 
 ## License
 
-**Private Portfolio Repository** — Not licensed for redistribution or commercial use.
+**All rights reserved** — Not licensed for redistribution or commercial use.
 
 ---
 
