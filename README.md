@@ -114,7 +114,7 @@ MapServer Publication
 
 ### System Status
 
-**Operational — v1.0.0 Production**
+**Operational: deployed and in active development**
 - Vector normalization pipeline (audit -> normalize -> separate)
 - CRS override catalog (YAML)
 - Geometry validation and quarantine model
