@@ -20,6 +20,7 @@ class DroughtDashboard {
     this.lstUrl = options.lstUrl || 'api/drought/development/lst/latest?limit=748';
     this.waporUrl = options.waporUrl || 'api/drought/development/wapor/latest?limit=748';
     this.hlsNdmiUrl = options.hlsNdmiUrl || 'api/drought/development/hls-ndmi/latest?limit=748';
+    this.sentinel1RadarUrl = options.sentinel1RadarUrl || 'api/drought/development/sentinel1-radar/latest?limit=748';
     // DroughtDashboard is also mounted under /map/drought/, so its fallback
     // must resolve through the parent /map/api/ route even if an older caller
     // has not yet supplied the explicit workspace URL.
@@ -54,6 +55,8 @@ class DroughtDashboard {
     this.waporArtifact = null;
     this.hlsNdmiArtifact = null;
     this.hlsNdmiLayer = null;
+    this.sentinel1RadarArtifact = null;
+    this.sentinel1RadarLayer = null;
     this.outlookArtifact = null;
     this.outlookRuns = [];
     this.priorityConfiguration = null;
@@ -148,7 +151,7 @@ class DroughtDashboard {
       await Promise.all([
         this._loadObservedArtifact(), this._loadObservedRuns(), this._loadPreliminaryArtifact(),
         this._loadNdviArtifact(), this._loadSwiArtifact(), this._loadLstArtifact(),
-        this._loadWaporArtifact(), this._loadHlsNdmiArtifact(), this._loadOutlookArtifact(), this._loadPriorityFoundation(),
+        this._loadWaporArtifact(), this._loadHlsNdmiArtifact(), this._loadSentinel1RadarArtifact(), this._loadOutlookArtifact(), this._loadPriorityFoundation(),
         this._loadFewsNetContext(), this._loadHistoryRuns(), this._loadPublicGeometry()
       ]);
       this._createBoundaryLayer();
@@ -373,6 +376,18 @@ class DroughtDashboard {
     } catch (error) {
       console.info('[DroughtDashboard] HLS NDMI artifact unavailable:', error);
       this.hlsNdmiArtifact = { unavailable: true, message: 'No all-Tabia HLS monthly vegetation-moisture artifact has been loaded yet.' };
+    }
+  }
+
+  async _loadSentinel1RadarArtifact() {
+    try {
+      const response = await fetch(this.sentinel1RadarUrl, { cache: 'no-store' });
+      const artifact = await response.json();
+      if (!response.ok || !artifact.run || !Array.isArray(artifact.summaries)) throw new Error('invalid Sentinel-1 radar artifact');
+      this.sentinel1RadarArtifact = artifact;
+    } catch (error) {
+      console.info('[DroughtDashboard] Sentinel-1 radar artifact unavailable:', error);
+      this.sentinel1RadarArtifact = { unavailable: true, message: 'No all-Tabia Sentinel-1 radar artifact has been loaded yet.' };
     }
   }
 
@@ -657,7 +672,7 @@ class DroughtDashboard {
       ? []
       : [
         ['observed', 'Latest'], ['rapid', 'Rapid rain'], ['vegetation', 'Vegetation'],
-        ['moisture', 'Veg. moisture'], ['soilWater', 'Soil water'], ['waterUse', 'Crop water use'],
+        ['moisture', 'Veg. moisture'], ...(!this.publicMode ? [['radar', 'All-weather radar']] : []), ['soilWater', 'Soil water'], ['waterUse', 'Crop water use'],
         ['thermal', 'Thermal'], ['history', 'History'], ['outlook', 'Outlook'], ['vulnerability', 'Exposure']
       ];
     modeItems.forEach(([mode, label]) => {
@@ -811,6 +826,17 @@ class DroughtDashboard {
         : 'Vegetation moisture is an experimental monthly HLS surface-condition product. It does not draw a regional raster or classification until a complete all-Tabia artifact validates.';
       this._renderVegetationMoisturePilot();
       this._renderVegetationMoistureLegend();
+      return;
+    }
+    if (this.mode === 'radar') {
+      const ready = this.sentinel1RadarArtifact && !this.sentinel1RadarArtifact.unavailable && this.sentinel1RadarArtifact.run;
+      this._setEvidenceLayer(ready ? 'tigray_drought_sentinel1_radar_dev' : null);
+      this._ensureContextLayersVisible('tabia');
+      this.notice.textContent = ready
+        ? 'Experimental all-weather radar map: terrain-corrected Sentinel-1 monthly VH backscatter summarized by Tabia. It is observed radar evidence, not soil moisture, a flood declaration, drought class, forecast, or decision product.'
+        : 'All-weather radar evidence has not yet completed its DEV validation. No regional radar map is drawn until a complete 748-Tabia artifact is available.';
+      this._renderSentinel1RadarArtifact();
+      this._renderLegend();
       return;
     }
     if (this.mode === 'soilWater') { this._renderIndicatorMode('Soil water can be shown as the coarse Copernicus native grid or a Tabia zonal mean. It is context, not a Tabia-scale observation, drought class, or food-security prediction.', () => this._renderSwiArtifact()); return; }
@@ -1151,6 +1177,27 @@ class DroughtDashboard {
     this._renderSpatialControl();
     this._renderIndicatorSnapshotControl();
     this._renderLegend();
+  }
+
+  _renderSentinel1RadarArtifact() {
+    const artifact = this.sentinel1RadarArtifact;
+    if (!artifact || artifact.unavailable || !artifact.run || !Array.isArray(artifact.summaries)) {
+      this.content.innerHTML = `<div class="drought-mode-title"><strong>All-weather radar conditions</strong><span>Sentinel-1 GRD · experimental development evidence</span></div><section class="drought-index-card"><h3>Radar evidence unavailable</h3><p>No complete 748-Tabia Sentinel-1 monthly artifact is available yet. The map remains blank rather than substituting an optical measurement or an unvalidated radar estimate.</p></section>`;
+      return;
+    }
+    const run = artifact.run;
+    const adequate = artifact.summaries.filter(row => row.quality_status === 'ok' && Number.isFinite(Number(row.vh_db_median))).length;
+    this.content.innerHTML = `<div class="drought-readiness-warning" role="note">Experimental all-weather radar evidence — for review only. Not for operational, public-safety, food-security, allocation, or response decisions.</div><div class="drought-mode-title"><strong>All-weather radar conditions</strong><span>Sentinel-1 GRD IW VH backscatter · development Tabia evidence</span></div><div class="drought-pilot-status"><strong>${run.status === 'degraded' ? 'Limited usable coverage' : 'Observed radar evidence map'}</strong><span>${adequate}/${artifact.summaries.length} Tabias meet the ${Number(run.min_valid_coverage_pct).toFixed(0)}% coverage rule</span></div><section class="drought-index-card"><h3>Terrain-corrected monthly radar backscatter</h3><p>VH backscatter is summarized from valid Sentinel-1 descending dual-polarisation observations for ${String(run.observation_start).slice(0, 10)} to ${String(run.observation_end).slice(0, 10)}. It is affected by vegetation structure, roughness, terrain and acquisition geometry. It is not a soil-moisture measurement, flood declaration, drought classification, or forecast.</p><div class="drought-map-selection" data-sentinel1-radar-selection>Select a Tabia boundary to inspect its retained radar statistic.</div></section><section class="drought-index-card"><h3>Method and quality</h3><p>${run.native_resolution || 'Radar analytical grid not recorded'} · ${run.orbit_direction || 'orbit not recorded'} orbit · ${Array.isArray(run.polarizations) ? run.polarizations.join('/') : 'polarisation not recorded'} · ${run.terrain_correction || 'terrain correction not recorded'} · ${run.source_scene_count || 0} catalogue scenes. Grey areas have insufficient evidence; amber areas have limited coverage.</p></section>`;
+  }
+
+  _renderSentinel1RadarSelection(selection) {
+    const target = this.content && this.content.querySelector('[data-sentinel1-radar-selection]');
+    const artifact = this.sentinel1RadarArtifact;
+    if (!target || !artifact || !Array.isArray(artifact.summaries)) return;
+    const row = artifact.summaries.find(item => item.tsird_tabia_id === selection.id);
+    if (!row) { target.textContent = 'No Sentinel-1 radar record is retained for this Tabia.'; return; }
+    const vh = Number(row.vh_db_median); const vv = Number(row.vv_db_median); const coverage = Number(row.coverage_pct);
+    target.innerHTML = `<strong>${this._tabiaLocationLabel(row.tabia_name_en, row.woreda_name_en)}</strong><br>VH median: ${Number.isFinite(vh) ? `${vh.toFixed(2)} dB` : 'not available'} · VV median: ${Number.isFinite(vv) ? `${vv.toFixed(2)} dB` : 'not available'} · Valid coverage: ${Number.isFinite(coverage) ? `${coverage.toFixed(1)}%` : 'not recorded'} · Scenes: ${row.contributing_scene_count || 'not recorded'} · Quality: ${String(row.quality_status).replaceAll('_', ' ')}.`;
   }
 
   _renderVegetationMoisturePilot() {
@@ -1500,7 +1547,7 @@ class DroughtDashboard {
 
   _handleFixtureMapClick(event) {
     const historicalObserved = this.mode === 'observed' && this.observedSnapshotId !== 'latest';
-    if (!this.publicMode && ['observed', 'rapid', 'vegetation', 'soilWater', 'thermal', 'waterUse', 'moisture'].includes(this.mode)) {
+    if (!this.publicMode && ['observed', 'rapid', 'vegetation', 'soilWater', 'thermal', 'waterUse', 'moisture', 'radar'].includes(this.mode)) {
       void this._selectDevelopmentTabiaAtCoordinate(event.coordinate);
       return;
     }
@@ -1764,6 +1811,11 @@ class DroughtDashboard {
         title: 'Map legend · experimental vegetation moisture',
         note: 'HLS monthly NDMI Tabia mean from cloud- and shadow-masked observations. Limited coverage is amber and insufficient evidence is hatched. The value is not a moisture-stress, drought, food-security, allocation, or response class.',
         items: publicEvidenceBands.moisture
+      },
+      radar: {
+        title: 'Map legend · experimental all-weather radar conditions',
+        note: 'Sentinel-1 descending-orbit VH backscatter median in decibels. It is affected by terrain, vegetation structure, surface roughness and viewing geometry. Bands show observed radar magnitude only—not soil moisture, flood extent, drought, food security, allocation, response or priority.',
+        items: [swatch('#313695', 'Below −25 dB', 'lower VH backscatter'), swatch('#4575b4', '−25 to −22 dB', 'VH backscatter'), swatch('#74add1', '−22 to −19 dB', 'VH backscatter'), swatch('#abd9e9', '−19 to −16 dB', 'VH backscatter'), swatch('#e0f3f8', 'At least −16 dB', 'higher VH backscatter'), swatch('#eecb70', 'Limited coverage', 'retain with caution'), swatch('#bfc4cc', 'Insufficient evidence', 'not classified')]
       },
       soilWater: {
         title: 'Map legend · soil-water context',
@@ -2032,7 +2084,8 @@ class DroughtDashboard {
       this._highlightHistoryTabia(selection);
     }
     if (this.mode === 'moisture') this._renderVegetationMoistureSelection(selection);
-    if (['observed', 'rapid', 'vegetation', 'moisture', 'soilWater', 'thermal', 'waterUse'].includes(this.mode)) {
+    if (this.mode === 'radar') this._renderSentinel1RadarSelection(selection);
+    if (['observed', 'rapid', 'vegetation', 'moisture', 'radar', 'soilWater', 'thermal', 'waterUse'].includes(this.mode)) {
       const value = this._publicEvidenceForTabia(selection.id);
       if (value && value.tsird_tabia_id) {
         this._showPublicEvidenceSelection({
@@ -2373,19 +2426,22 @@ class DroughtDashboard {
       this._setPublicEvidenceLayer(publicRaster ? null : activeLayerId);
       return;
     }
-    // HLS is a dashboard-managed WMS overlay. It deliberately is not in the
-    // general Atlas TOC, so it cannot be toggled through InteractionController.
+    // Experimental HLS and Sentinel-1 views are dashboard-managed WMS overlays.
+    // They deliberately are not in the general Atlas TOC.
     const hlsActive = activeLayerId === 'tigray_drought_hls_ndmi_dev';
+    const radarActive = activeLayerId === 'tigray_drought_sentinel1_radar_dev';
     const ids = ['tigray_drought_chirps_dev', 'tigray_drought_chirps_raw_dev', 'tigray_drought_chirps_rapid_raw_dev', 'tigray_drought_chirps_rapid_tabia_dev', 'tigray_drought_ndvi_dev', 'tigray_drought_sentinel2_ndmi_dev', 'tigray_drought_ndvi_raw_dev', 'tigray_drought_swi_dev', 'tigray_drought_swi_raw_dev', 'tigray_drought_lst_dev', 'tigray_drought_lst_raw_dev', 'tigray_drought_wapor_dev', 'tigray_drought_wapor_raw_dev', 'tigray_drought_road_accessibility_dev', 'tigray_drought_population_dev', 'tigray_drought_cropland_dev'];
     if (this.onSetEvidenceLayer) {
-      this.onSetEvidenceLayer(hlsActive ? null : activeLayerId);
+      this.onSetEvidenceLayer(hlsActive || radarActive ? null : activeLayerId);
       this._setHlsNdmiLayer(hlsActive);
+      this._setSentinel1RadarLayer(radarActive);
       return;
     }
     this.map.getLayers().getArray().forEach(layer => {
       if (ids.includes(layer.layerId)) layer.setVisible(layer.layerId === activeLayerId);
     });
     this._setHlsNdmiLayer(hlsActive);
+    this._setSentinel1RadarLayer(radarActive);
   }
 
   _setHlsNdmiLayer(visible) {
@@ -2404,6 +2460,24 @@ class DroughtDashboard {
       this.map.addLayer(this.hlsNdmiLayer);
     }
     this.hlsNdmiLayer.setVisible(true);
+  }
+
+  _setSentinel1RadarLayer(visible) {
+    if (!visible) {
+      if (this.sentinel1RadarLayer) this.sentinel1RadarLayer.setVisible(false);
+      return;
+    }
+    if (!this.sentinel1RadarLayer) {
+      const source = new ol.source.ImageWMS({
+        url: this.wmsBaseUrl,
+        params: { LAYERS: 'tigray_drought_sentinel1_radar_dev', TRANSPARENT: true, FORMAT: 'image/png', STYLES: '' },
+        serverType: 'mapserver', ratio: 1, wmsVersion: '1.3.0'
+      });
+      this.sentinel1RadarLayer = new ol.layer.Image({ source, opacity: 0.84, visible: false, zIndex: 20 });
+      this.sentinel1RadarLayer.set('layerId', 'tigray_drought_sentinel1_radar_dashboard');
+      this.map.addLayer(this.sentinel1RadarLayer);
+    }
+    this.sentinel1RadarLayer.setVisible(true);
   }
 
   _setPublicRasterLayer(layerId) {

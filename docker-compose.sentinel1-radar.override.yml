@@ -1,0 +1,61 @@
+# DEV-only Sentinel-1 integration overlay. It deliberately retains the existing
+# tsird-atlas project, external PostGIS volume and local data directory. Never
+# use this file for a VPS deployment and never run compose down with it.
+services:
+  tsird-postgis:
+    env_file: !override
+      - C:/docker/projects/tsird-atlas/.env.tsird
+    volumes:
+      - tsird-local-pgdata:/var/lib/postgresql/data
+      - C:/docker/projects/tsird-atlas/.worktrees/sentinel1-radar-dev/db/init:/docker-entrypoint-initdb.d:ro
+
+  tsird-mapserver:
+    env_file: !override
+      - C:/docker/projects/tsird-atlas/.env.tsird
+    volumes:
+      - C:/docker/projects/tsird-atlas/.worktrees/sentinel1-radar-dev/infra/mapserver/mapfiles:/etc/mapserver
+      - C:/docker/projects/tsird-atlas/.worktrees/sentinel1-radar-dev/infra/mapserver/mapfiles/ms.config:/etc/mapserver.conf:ro
+      - C:/docker/projects/tsird-atlas/.worktrees/sentinel1-radar-dev/infra/mapserver/fonts:/fonts:ro
+      - C:/docker/projects/tsird-atlas/.worktrees/sentinel1-radar-dev/infra/mapserver/symbols:/symbols:ro
+      - C:/docker/projects/tsird-atlas/data:/data:ro
+      - tsird-mapserver-tmp:/tmp
+
+  tsird-web:
+    build:
+      context: ./ui/web
+
+  tsird-api:
+    build:
+      context: ./api
+    env_file: !override
+      - C:/docker/projects/tsird-atlas/.env.tsird
+    volumes:
+      - C:/docker/projects/tsird-atlas/data:/data:ro
+
+  tsird-edge:
+    build:
+      context: ./infra/edge
+    env_file: !override
+      - C:/docker/projects/tsird-atlas/.env.tsird
+    volumes:
+      - C:/docker/projects/tsird-atlas/.worktrees/sentinel1-radar-dev/infra/edge/nginx.dev.conf:/etc/nginx/nginx.conf:ro
+
+  tsird-drought-runner:
+    build:
+      context: ./etl
+    env_file: !override
+      - C:/docker/projects/tsird-atlas/.env.tsird
+      - C:/docker/projects/tsird-atlas/.env.tsird.cdse
+      - C:/docker/projects/tsird-atlas/.env.tsird.cds
+      - path: C:/docker/projects/tsird-atlas/.env.tsird.earthdata
+        required: false
+    volumes:
+      - C:/docker/projects/tsird-atlas/data:/data
+
+volumes:
+  tsird-local-pgdata:
+    external: true
+    name: tsird-local-pgdata
+  tsird-mapserver-tmp:
+    external: true
+    name: f4a2a11189943c2fe05b5db97734afec983fcdcb475d2a1f60b29cfa84b2b14a

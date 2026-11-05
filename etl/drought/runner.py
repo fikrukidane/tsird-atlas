@@ -47,6 +47,7 @@ CONTROL_WORKFLOWS = (
     {"key": "sentinel2-ndmi-full", "label": "Sentinel-2 vegetation-moisture all-Tabia evidence", "cadence": "Manual DEV acquisition only; no schedule", "policy_state": "inactive"},
     {"key": "hls-ndmi-monthly-pilot", "label": "HLS monthly vegetation-moisture feasibility pilot", "cadence": "Manual development verification; 20 Tabias only", "policy_state": "inactive"},
     {"key": "hls-ndmi-monthly-full", "label": "HLS monthly vegetation-moisture all-Tabia evidence", "cadence": "Daily source check; acquire one new completed month only; resumable local checkpoint", "policy_state": "active"},
+    {"key": "sentinel1-radar-monthly", "label": "Sentinel-1 all-weather radar monthly evidence", "cadence": "Daily source check; acquire one new or revised completed month only; DEV review required", "policy_state": "inactive_pending_manual_validation"},
     {"key": "swi", "label": "Copernicus SWI source probe", "cadence": "Daily 06:50 Addis; metadata only", "policy_state": "active"},
     {"key": "lst", "label": "Thermal context (CLMS LST Daily Cycle 3 km V3)", "cadence": "Daily source check; retrieve only a newer 10-daily provider item", "policy_state": "active"},
     {"key": "seasonal-outlook", "label": "ICPAC seasonal-outlook catalogue probe", "cadence": "Weekly 07:10 Addis; no schedule activated", "policy_state": "inactive"},
@@ -531,7 +532,8 @@ def run_sentinel2_ndmi_full(job_id: str):
     except Exception as exc:
         status, error, output = "failed", f"Unexpected Sentinel-2 NDMI full DEV error: {type(exc).__name__}", []
     with jobs_lock:
-        jobs[job_id].update(status=status, finished_at=now(), error=error, output_tail="\n".join(output)[-5000:])
+        jobs[job_id].update(status=status, run_id=run_id if error is None else None,
+                            finished_at=now(), error=error, output_tail="\n".join(output)[-5000:])
     return jobs[job_id]
 
 
@@ -603,6 +605,49 @@ def run_hls_ndmi_monthly_probe(job_id: str):
         status, error, output = "unavailable", f"Unexpected HLS monthly probe error: {type(exc).__name__}", ""
     with jobs_lock:
         jobs[job_id].update(status=status, finished_at=now(), error=error, output_tail=output)
+
+
+def run_sentinel1_radar_monthly_probe(job_id: str):
+    """Discover one eligible radar month without retrieving pixels."""
+    with jobs_lock:
+        jobs[job_id].update(status="running", started_at=now())
+    try:
+        completed = subprocess.run(["python3", str(WORK_DIR / "sentinel1_radar_monthly_probe.py")], cwd=WORK_DIR,
+                                   text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=True, timeout=180)
+        result = json.loads(completed.stdout)
+        status, error, output = result.get("status", "unavailable"), None, completed.stdout[-3000:]
+    except subprocess.CalledProcessError as exc:
+        status, error, output = "unavailable", "Sentinel-1 monthly source probe failed", (exc.stdout or "")[-3000:]
+    except Exception as exc:
+        status, error, output = "unavailable", f"Unexpected Sentinel-1 monthly probe error: {type(exc).__name__}", ""
+    with jobs_lock:
+        jobs[job_id].update(status=status, finished_at=now(), error=error, output_tail=output)
+
+
+def run_sentinel1_radar_monthly_full(job_id: str):
+    """Run one resumable 748-Tabia Sentinel-1 DEV acquisition; never publish it."""
+    with jobs_lock:
+        jobs[job_id].update(status="running", started_at=now())
+    try:
+        summary = subprocess.run(["python3", str(WORK_DIR / "sentinel1_radar_monthly_full.py")], cwd=WORK_DIR,
+            text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=True, timeout=21600)
+        first_json = summary.stdout.rfind('{"run_id"')
+        if first_json < 0:
+            raise ValueError("Sentinel-1 monthly acquisition did not report a run ID")
+        run_id = json.JSONDecoder().raw_decode(summary.stdout[first_json:])[0]["run_id"]
+        loaded = subprocess.run(["python3", str(WORK_DIR / "load_sentinel1_radar_monthly_full.py"), str(DATA_ROOT / "outputs" / run_id)], cwd=WORK_DIR,
+            text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=True, timeout=900)
+        loaded_json = json.JSONDecoder().raw_decode(loaded.stdout[loaded.stdout.find("{"):])[0]
+        status, error, output = loaded_json.get("artifact_status", "succeeded"), None, [summary.stdout[-3000:], loaded.stdout[-2000:]]
+    except subprocess.CalledProcessError as exc:
+        status, error, output = "failed", "Sentinel-1 monthly DEV acquisition failed", [(exc.stdout or "")[-3000:]]
+    except subprocess.TimeoutExpired:
+        status, error, output = "failed", "Sentinel-1 monthly DEV acquisition exceeded the six-hour timeout", []
+    except Exception as exc:
+        status, error, output = "failed", f"Unexpected Sentinel-1 monthly DEV error: {type(exc).__name__}", []
+    with jobs_lock:
+        jobs[job_id].update(status=status, finished_at=now(), error=error, output_tail="\n".join(output)[-5000:])
+    return jobs[job_id]
 
 
 def run_swi_tabia_summary(job_id: str):
@@ -1200,6 +1245,34 @@ def start_hls_ndmi_monthly_probe():
                         "requested_at": now(), "request": {}, "run_id": None, "started_at": None,
                         "finished_at": None, "error": None, "output_tail": None}
     threading.Thread(target=run_hls_ndmi_monthly_probe, args=(job_id,), daemon=True).start()
+    return jobs[job_id]
+
+
+@app.post("/runs/sentinel1-radar-monthly-probe/development-test", status_code=202)
+def start_sentinel1_radar_monthly_probe():
+    """Discover the fixed Sentinel-1 candidate month; no pixels or public data are created."""
+    with jobs_lock:
+        if any(job["status"] in {"queued", "running"} for job in jobs.values()):
+            raise HTTPException(status_code=409, detail="A drought refresh job is already active")
+        job_id = str(uuid.uuid4())
+        jobs[job_id] = {"job_id": job_id, "workflow": "sentinel1-radar-monthly-probe", "status": "queued",
+                        "requested_at": now(), "request": {}, "run_id": None, "started_at": None,
+                        "finished_at": None, "error": None, "output_tail": None}
+    threading.Thread(target=run_sentinel1_radar_monthly_probe, args=(job_id,), daemon=True).start()
+    return jobs[job_id]
+
+
+@app.post("/runs/sentinel1-radar-monthly-full/development-test", status_code=202)
+def start_sentinel1_radar_monthly_full():
+    """Run one fixed full DEV radar acquisition; it cannot publish or reach production."""
+    with jobs_lock:
+        if any(job["status"] in {"queued", "running"} for job in jobs.values()):
+            raise HTTPException(status_code=409, detail="A drought refresh job is already active")
+        job_id = str(uuid.uuid4())
+        jobs[job_id] = {"job_id": job_id, "workflow": "sentinel1-radar-monthly-full", "status": "queued",
+                        "requested_at": now(), "request": {}, "run_id": None, "started_at": None,
+                        "finished_at": None, "error": None, "output_tail": None}
+    threading.Thread(target=run_sentinel1_radar_monthly_full, args=(job_id,), daemon=True).start()
     return jobs[job_id]
 
 @app.post("/runs/swi-tabia-summary/development-test", status_code=202)

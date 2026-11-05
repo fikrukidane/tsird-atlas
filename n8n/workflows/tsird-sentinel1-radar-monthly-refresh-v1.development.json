@@ -1,0 +1,662 @@
+{
+  "name": "TSIRD · Sentinel-1 all-weather radar refresh v1 (development)",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "a1000000-0000-4000-8000-000000000001",
+      "name": "Manual development run",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        120,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "10 1 * * *"
+            }
+          ]
+        }
+      },
+      "id": "a1000000-0000-4000-8000-000000000002",
+      "name": "Scheduled completed-month check",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        120,
+        380
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://tsird-drought-runner:8090/runs/sentinel1-radar-monthly-probe/development-test",
+        "options": {
+          "timeout": 30000,
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "a1000000-0000-4000-8000-000000000003",
+      "name": "Start source probe",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        350,
+        310
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.statusCode }}",
+              "operator": {
+                "type": "number",
+                "operation": "equals"
+              },
+              "rightValue": 202
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "a1000000-0000-4000-8000-000000000004",
+      "name": "Probe accepted?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        570,
+        310
+      ]
+    },
+    {
+      "parameters": {
+        "amount": "={{ Math.min(30, 5 * ($runIndex + 1)) }}",
+        "unit": "seconds"
+      },
+      "id": "a1000000-0000-4000-8000-000000000005",
+      "name": "Wait for probe",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        780,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=http://tsird-drought-runner:8090/runs/{{ $('Start source probe').item.json.body.job_id }}",
+        "options": {
+          "timeout": 30000,
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "a1000000-0000-4000-8000-000000000006",
+      "name": "Read probe receipt",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        990,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ ['queued','running'].includes($json.body.status) }}",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "a1000000-0000-4000-8000-000000000007",
+      "name": "Probe still running?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1210,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.body.status }}",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              },
+              "rightValue": "ready"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "a1000000-0000-4000-8000-000000000008",
+      "name": "New or revised month?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1430,
+        330
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://tsird-drought-runner:8090/runs/sentinel1-radar-monthly-full/development-test",
+        "options": {
+          "timeout": 30000,
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "a1000000-0000-4000-8000-000000000009",
+      "name": "Start full DEV acquisition",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1660,
+        280
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "amount": "={{ Math.min(60, 15 * ($runIndex + 1)) }}",
+        "unit": "seconds"
+      },
+      "id": "a1000000-0000-4000-8000-000000000010",
+      "name": "Wait for acquisition",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1870,
+        280
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=http://tsird-drought-runner:8090/runs/{{ $('Start full DEV acquisition').item.json.body.job_id }}",
+        "options": {
+          "timeout": 30000,
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "a1000000-0000-4000-8000-000000000011",
+      "name": "Read acquisition receipt",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2080,
+        280
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "name": "schema_version",
+              "value": "tsird-drought-source-refresh-receipt/v2",
+              "type": "string"
+            },
+            {
+              "name": "workflow_key",
+              "value": "sentinel1-radar",
+              "type": "string"
+            },
+            {
+              "name": "source_id",
+              "value": "cdse-sentinel1-grd-monthly-development",
+              "type": "string"
+            },
+            {
+              "name": "run_outcome",
+              "value": "={{ $json.body.status === 'development' || $json.body.status === 'degraded' ? 'data_updated' : 'failure' }}",
+              "type": "string"
+            },
+            {
+              "name": "provider_state",
+              "value": "ready",
+              "type": "string"
+            },
+            {
+              "name": "runner_job_id",
+              "value": "={{ $('Start full DEV acquisition').item.json.body.job_id }}",
+              "type": "string"
+            },
+            {
+              "name": "runner_run_id",
+              "value": "={{ $json.body.run_id || '' }}",
+              "type": "string"
+            },
+            {
+              "name": "artifact_status",
+              "value": "={{ $json.body.status || '' }}",
+              "type": "string"
+            },
+            {
+              "name": "action_required",
+              "value": "={{ $json.body.status !== 'development' }}",
+              "type": "boolean"
+            },
+            {
+              "name": "operator_summary",
+              "value": "=Sentinel-1 full DEV acquisition ended {{$json.body.status || 'without a receipt'}}. A successful receipt confirms a complete all-Tabia radar artifact was validated and loaded in DEV only; it does not publish or classify drought, soil moisture, flood, food security or priority.",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "a1000000-0000-4000-8000-000000000012",
+      "name": "Record acquisition outcome",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2300,
+        280
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "name": "schema_version",
+              "value": "tsird-drought-source-refresh-receipt/v2",
+              "type": "string"
+            },
+            {
+              "name": "workflow_key",
+              "value": "sentinel1-radar",
+              "type": "string"
+            },
+            {
+              "name": "run_outcome",
+              "value": "no_new_data",
+              "type": "string"
+            },
+            {
+              "name": "provider_state",
+              "value": "={{ $json.body.status || 'unavailable' }}",
+              "type": "string"
+            },
+            {
+              "name": "action_required",
+              "value": "={{ $json.body.status !== 'current' }}",
+              "type": "boolean"
+            },
+            {
+              "name": "operator_summary",
+              "value": "=Sentinel-1 completed-month source probe ended {{$json.body.status || 'unavailable'}}. No imagery was acquired or published by this path.",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "a1000000-0000-4000-8000-000000000013",
+      "name": "Record probe outcome",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1660,
+        500
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "name": "schema_version",
+              "value": "tsird-drought-source-refresh-receipt/v2",
+              "type": "string"
+            },
+            {
+              "name": "workflow_key",
+              "value": "sentinel1-radar",
+              "type": "string"
+            },
+            {
+              "name": "run_outcome",
+              "value": "failure",
+              "type": "string"
+            },
+            {
+              "name": "provider_state",
+              "value": "runner_unavailable_or_busy",
+              "type": "string"
+            },
+            {
+              "name": "action_required",
+              "value": true,
+              "type": "boolean"
+            },
+            {
+              "name": "operator_summary",
+              "value": "=Sentinel-1 development refresh could not continue because the runner was unavailable, busy, or a bounded poll budget was exhausted. No second acquisition was started and no evidence was published.",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "a1000000-0000-4000-8000-000000000014",
+      "name": "Record runner issue",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [780, 430]
+    },
+    {
+      "parameters": {"conditions": {"options": {"version": 2}, "conditions": [{"leftValue": "={{ $runIndex }}", "operator": {"type": "number", "operation": "lt"}, "rightValue": 8}]}, "options": {}},
+      "id": "a1000000-0000-4000-8000-000000000015",
+      "name": "Probe poll budget left?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [1430, 180]
+    },
+    {
+      "parameters": {"conditions": {"options": {"version": 2}, "conditions": [{"leftValue": "={{ $json.statusCode }}", "operator": {"type": "number", "operation": "equals"}, "rightValue": 202}]}, "options": {}},
+      "id": "a1000000-0000-4000-8000-000000000016",
+      "name": "Acquisition accepted?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [1870, 280]
+    },
+    {
+      "parameters": {"conditions": {"options": {"version": 2}, "conditions": [{"leftValue": "={{ ['queued','running'].includes($json.body.status) }}", "operator": {"type": "boolean", "operation": "true", "singleValue": true}}]}, "options": {}},
+      "id": "a1000000-0000-4000-8000-000000000017",
+      "name": "Acquisition still running?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [2300, 180]
+    },
+    {
+      "parameters": {"conditions": {"options": {"version": 2}, "conditions": [{"leftValue": "={{ $runIndex }}", "operator": {"type": "number", "operation": "lt"}, "rightValue": 360}]}, "options": {}},
+      "id": "a1000000-0000-4000-8000-000000000018",
+      "name": "Acquisition poll budget left?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [2520, 100]
+    }
+  ],
+  "connections": {
+    "Manual development run": {
+      "main": [
+        [
+          {
+            "node": "Start source probe",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Scheduled completed-month check": {
+      "main": [
+        [
+          {
+            "node": "Start source probe",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Start source probe": {
+      "main": [
+        [
+          {
+            "node": "Probe accepted?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Probe accepted?": {
+      "main": [
+        [
+          {
+            "node": "Wait for probe",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Record runner issue",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait for probe": {
+      "main": [
+        [
+          {
+            "node": "Read probe receipt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read probe receipt": {
+      "main": [
+        [
+          {
+            "node": "Probe still running?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Probe still running?": {
+      "main": [
+        [
+          {
+            "node": "Probe poll budget left?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "New or revised month?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Probe poll budget left?": {
+      "main": [
+        [
+          {
+            "node": "Wait for probe",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Record runner issue",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "New or revised month?": {
+      "main": [
+        [
+          {
+            "node": "Start full DEV acquisition",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Record probe outcome",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Start full DEV acquisition": {
+      "main": [
+        [
+          {
+            "node": "Acquisition accepted?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Acquisition accepted?": {
+      "main": [
+        [
+          {
+            "node": "Wait for acquisition",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Record runner issue",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait for acquisition": {
+      "main": [
+        [
+          {
+            "node": "Read acquisition receipt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read acquisition receipt": {
+      "main": [
+        [
+          {
+            "node": "Acquisition still running?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Acquisition still running?": {
+      "main": [
+        [
+          {
+            "node": "Acquisition poll budget left?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Record acquisition outcome",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Acquisition poll budget left?": {
+      "main": [
+        [
+          {
+            "node": "Wait for acquisition",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Record runner issue",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "saveExecutionProgress": true,
+    "timezone": "Africa/Addis_Ababa"
+  },
+  "versionId": "a1000000-0000-4000-8000-000000000099",
+  "meta": {},
+  "tags": []
+}

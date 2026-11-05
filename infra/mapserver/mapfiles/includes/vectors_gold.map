@@ -172,6 +172,30 @@ LAYER
   CLASS NAME "NDMI at least 0.30" EXPRESSION (("[quality_status]" = "ok") AND ([ndmi_mean] >= 0.30)) STYLE COLOR 42 118 82 OUTLINECOLOR 30 80 55 WIDTH 0.4 END END
 END
 
+# DEV-only all-weather Sentinel-1 radar evidence.  Values are terrain-corrected
+# VH dB zonal medians, not soil moisture, flood or drought classes.
+LAYER
+  NAME "tigray_drought_sentinel1_radar_dev"
+  TYPE POLYGON
+  STATUS OFF
+  CONNECTIONTYPE POSTGIS
+  CONNECTION "host=tsird-postgis port=5432 dbname=tsird user=tsird password=change_me_strong"
+  DATA "geometry FROM (SELECT t.gid,t.geometry,t.\"TABIA\",t.\"WEREDA\",s.vv_db_median,s.vh_db_median,s.coverage_pct,s.contributing_scene_count,COALESCE(s.quality_status,'insufficient_evidence') AS quality_status FROM tigray_tabias_ws t LEFT JOIN tsird.drought_tabia_sentinel1_radar s ON s.tsird_tabia_id=t.tsird_tabia_id AND s.run_id=(SELECT run_id FROM tsird.drought_sentinel1_radar_run ORDER BY observation_end DESC, created_at DESC LIMIT 1)) AS sentinel1_radar USING UNIQUE gid USING SRID=4326"
+  METADATA
+    "wms_title" "Tigray All-weather Radar Conditions (Sentinel-1, development)"
+    "wms_srs" "EPSG:3857" "wms_enable_request" "*" "wms_queryable" "true"
+    "gml_include_items" "TABIA,WEREDA,vv_db_median,vh_db_median,coverage_pct,contributing_scene_count,quality_status"
+  END
+  TEMPLATE "dummy.html"
+  CLASS NAME "Insufficient radar coverage" EXPRESSION ("[quality_status]" = "insufficient_evidence") STYLE COLOR 191 196 204 OPACITY 35 OUTLINECOLOR 107 114 128 WIDTH 0.5 END END
+  CLASS NAME "Limited radar coverage" EXPRESSION ("[quality_status]" = "limited_coverage") STYLE COLOR 238 203 112 OPACITY 45 OUTLINECOLOR 166 128 45 WIDTH 0.5 END END
+  CLASS NAME "VH below -25 dB" EXPRESSION (("[quality_status]" = "ok") AND ([vh_db_median] < -25)) STYLE COLOR 49 54 149 OUTLINECOLOR 40 40 100 WIDTH 0.4 END END
+  CLASS NAME "VH -25 to -22 dB" EXPRESSION (("[quality_status]" = "ok") AND ([vh_db_median] >= -25) AND ([vh_db_median] < -22)) STYLE COLOR 69 117 180 OUTLINECOLOR 45 80 125 WIDTH 0.4 END END
+  CLASS NAME "VH -22 to -19 dB" EXPRESSION (("[quality_status]" = "ok") AND ([vh_db_median] >= -22) AND ([vh_db_median] < -19)) STYLE COLOR 116 173 209 OUTLINECOLOR 75 120 150 WIDTH 0.4 END END
+  CLASS NAME "VH -19 to -16 dB" EXPRESSION (("[quality_status]" = "ok") AND ([vh_db_median] >= -19) AND ([vh_db_median] < -16)) STYLE COLOR 171 217 233 OUTLINECOLOR 110 160 180 WIDTH 0.4 END END
+  CLASS NAME "VH at least -16 dB" EXPRESSION (("[quality_status]" = "ok") AND ([vh_db_median] >= -16)) STYLE COLOR 224 243 248 OUTLINECOLOR 150 180 190 WIDTH 0.4 END END
+END
+
 LAYER
   NAME "tigray_drought_swi_dev"
   TYPE POLYGON

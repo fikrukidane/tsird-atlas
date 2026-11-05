@@ -729,6 +729,29 @@ FROM (
 ) summary
 """
 
+DROUGHT_DEVELOPMENT_SENTINEL1_RADAR_SQL = """
+WITH latest_run AS (
+ SELECT run_id, source_id, observation_start, observation_end, native_resolution,
+        orbit_direction, polarizations, terrain_correction, source_scene_count,
+        min_valid_coverage_pct, min_usable_scene_count, tabia_count,
+        processing_version, status, notes
+ FROM tsird.drought_sentinel1_radar_run
+ ORDER BY observation_end DESC, created_at DESC LIMIT 1
+)
+SELECT (SELECT row_to_json(latest_run) FROM latest_run) AS run,
+ COALESCE(json_agg(row_to_json(summary) ORDER BY summary.tabia_name_en)
+   FILTER (WHERE summary.tsird_tabia_id IS NOT NULL), '[]'::json) AS summaries
+FROM (
+ SELECT s.tsird_tabia_id, t."TABIA" AS tabia_name_en, t."WEREDA" AS woreda_name_en,
+        s.vv_db_median, s.vh_db_median, s.valid_pixel_count, s.grid_cell_count,
+        s.coverage_pct, s.contributing_scene_count, s.quality_status
+ FROM tsird.drought_tabia_sentinel1_radar s
+ JOIN latest_run r USING (run_id)
+ JOIN tigray_tabias_ws t USING (tsird_tabia_id)
+ ORDER BY t."TABIA" LIMIT $1
+) summary
+"""
+
 DROUGHT_DEVELOPMENT_SWI_SQL = """
 WITH latest_run AS (
  SELECT run_id, source_product, observation_at AS observation_start, observation_at AS observation_end, native_resolution, status, notes
@@ -2535,6 +2558,25 @@ async def development_hls_ndmi_full(limit: int = Query(748, ge=1, le=748)):
         raise HTTPException(status_code=404, detail="No all-Tabia development HLS NDMI artifact is available")
     decode = lambda value: json.loads(value) if isinstance(value, str) else value
     return {"schema_version": "tsird-drought-hls-ndmi-full.v1", "environment": "development",
+            "run": decode(row["run"]), "summaries": decode(row["summaries"])}
+
+
+@app.get("/drought/development/sentinel1-radar/latest")
+async def development_sentinel1_radar(limit: int = Query(748, ge=1, le=748)):
+    """Expose DEV-only Sentinel-1 radar evidence; never a classification."""
+    try:
+        conn = await asyncpg.connect(DB_DSN)
+        try:
+            row = await conn.fetchrow(DROUGHT_DEVELOPMENT_SENTINEL1_RADAR_SQL, limit)
+        finally:
+            await conn.close()
+    except Exception:
+        logging.exception("Development Sentinel-1 radar artifact query error")
+        raise HTTPException(status_code=503, detail="Development Sentinel-1 radar artifact service unavailable")
+    if not row or not row["run"]:
+        raise HTTPException(status_code=404, detail="No all-Tabia development Sentinel-1 radar artifact is available")
+    decode = lambda value: json.loads(value) if isinstance(value, str) else value
+    return {"schema_version": "tsird-drought-sentinel1-radar.v1", "environment": "development",
             "run": decode(row["run"]), "summaries": decode(row["summaries"])}
 
 
